@@ -1,0 +1,365 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* Tailwind v4: dark mode via class strategy */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===== Design System Theme Tokens ===== */
+@theme inline {
+  /* Primary — Digital Emerald */
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-light: rgba(5, 150, 105, 0.08);
+  --color-primary-mid: rgba(5, 150, 105, 0.25);
+  --color-primary-glow: rgba(5, 150, 105, 0.3);
+  --color-primary-soft: rgba(5, 150, 105, 0.1);
+
+  /* Accent — Deep Teal */
+  --color-accent: #007B83;
+  --color-accent-hover: #00666d;
+  --color-accent-glow: rgba(0, 123, 131, 0.3);
+  --color-accent-light: rgba(0, 123, 131, 0.1);
+
+  /* Brand Accents — Charcoal & Identifiers */
+  --color-brand-navy: #1A3C40;
+  --color-brand-teal: #007B83;
+  --color-brand-sky: rgba(0, 123, 131, 0.15);
+  --color-brand-indigo: #059669;
+
+  /* Backgrounds */
+  --color-bg-light: #F8F9FA;
+  --color-bg-base: #F8F9FA;
+  --color-bg-main: #FFFFFF;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-elevated: #f0f2f5;
+  --color-bg-card: #FFFFFF;
+  --color-bg-hover: rgba(5, 150, 105, 0.05);
+  --color-bg-dark: #0a191b;
+  --color-sidebar-light: #ffffff;
+  --color-sidebar-dark: #12282b;
+
+  /* Surfaces */
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #1a3c40;
+
+  /* Text */
+  --color-text-main: #1A3C40;
+  --color-text-sub: #636E72;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #FFFFFF;
+
+  /* Borders */
+  --color-border: rgba(0, 123, 131, 0.1);
+  --color-border-strong: rgba(0, 123, 131, 0.2);
+  --color-border-accent: rgba(5, 150, 105, 0.4);
+
+  /* Semantic */
+  --color-success: #10b981;
+  --color-success-light: rgba(16, 185, 129, 0.14);
+  --color-success-glow: rgba(16, 185, 129, 0.3);
+  --color-warning: #f59e0b;
+  --color-warning-light: rgba(245, 158, 11, 0.14);
+  --color-danger: #ef4444;
+  --color-danger-light: rgba(239, 68, 68, 0.14);
+  --color-danger-glow: rgba(239, 68, 68, 0.3);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(26, 60, 64, 0.05);
+  --shadow-sm: 0 4px 6px -1px rgba(26, 60, 64, 0.1);
+  --shadow-md: 0 10px 15px -3px rgba(26, 60, 64, 0.1);
+  --shadow-lg: 0 20px 25px -5px rgba(26, 60, 64, 0.1);
+  --shadow-glow: 0 0 20px var(--color-primary-glow);
+  --shadow-card: 0 10px 30px rgba(26, 60, 64, 0.08);
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-display: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-secondary: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), Georgia, serif;
+}
+
+/* ===== Base ===== */
+body {
+  font-family: var(--font-display);
+  background-color: var(--color-bg-base);
+  color: var(--color-text-main);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Ambient background orbs */
+body::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -10%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -20%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0, 123, 131, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Heading defaults */
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+/* Button defaults */
+button {
+  cursor: pointer;
+  font-family: var(--font-secondary);
+}
+
+/* ===== Material Symbols ===== */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-elevated);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #12282b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+/* ===== No Scrollbar ===== */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ===== Glassmorphism Utilities ===== */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-light {
+  background: var(--color-bg-hover);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+/* ===== Gradient Text ===== */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Glow Effects ===== */
+.glow-primary {
+  box-shadow: 0 0 20px var(--color-primary-glow);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px var(--color-success-glow);
+}
+
+.glow-danger {
+  box-shadow: 0 0 20px var(--color-danger-glow);
+}
+
+/* ===== Brand Gradient ===== */
+.brand-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+}
+
+/* ===== Card Shimmer Top Line ===== */
+.card-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border-strong), transparent);
+}
+
+/* ===== Dark Mode ===== */
+.dark {
+  --color-bg-base: #0a191b;
+  --color-bg-main: #12282b;
+  --color-bg-surface: #1a3c40;
+  --color-bg-elevated: #244f54;
+  --color-bg-card: #12282b;
+  --color-bg-hover: rgba(5, 150, 105, 0.1);
+
+  --color-text-main: #f1f5f9;
+  --color-text-sub: #cbd5e1;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #0a191b;
+
+  --color-border: rgba(5, 150, 105, 0.1);
+  --color-border-strong: rgba(5, 150, 105, 0.2);
+
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.dark .glass {
+  background: rgba(18, 40, 43, 0.8);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes pulse-danger {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.15); opacity: 0.7; }
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slide-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradient-rotate {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes shine-sweep {
+  0%   { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Animation Utilities */
+.animate-fade-in      { animation: fadeIn 0.4s ease-out forwards; }
+.animate-slide-up     { animation: slideUp 0.5s ease-out forwards; }
+.animate-float        { animation: float 3s ease-in-out infinite; }
+.animate-breathe      { animation: breathe 2s ease-in-out infinite; }
+.animate-pulse-danger { animation: pulse-danger 1s ease-in-out infinite; }
+.animate-shimmer      { animation: shimmer 2s infinite; }
+.animate-glow-pulse   { animation: glow-pulse 2s ease-in-out infinite; }
+.animate-spin         { animation: spin 0.7s linear infinite; }
+.animate-slide-in-up  { animation: slide-in-up 0.5s ease forwards; }
+
+/* ===== Tabular nums for timer ===== */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== Button Shine Effect ===== */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.2s ease;
+}
+
+.btn-shine:hover::after {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Button press effect */
+.btn-press:active {
+  transform: scale(0.97);
+}

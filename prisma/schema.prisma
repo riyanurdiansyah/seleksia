@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Companies =====
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidates   Candidate[]
+  tests        Test[]
+  instructions Instruction[]
+
+  @@map("companies")
+}
+
+// ===== Candidates / Users =====
+
+enum Role {
+  user
+  admin
+  proctor
+  superadmin
+}
+
+enum AccessType {
+  range
+  permanent
+}
+
+enum CandidateStatus {
+  registered
+  testing
+  completed
+  flagged
+}
+
+model Candidate {
+  id          String          @id @default(cuid())
+  companyId   String
+  displayId   String // PSK-001
+  name        String
+  email       String
+  phone       String?
+  role        Role            @default(user)
+  batch       String?
+  password    String
+  accessType  AccessType      @default(range)
+  accessStart DateTime?
+  accessEnd   DateTime?
+  status      CandidateStatus @default(registered)
+  score       Int?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignments TestAssignment[]
+
+  @@unique([companyId, displayId])
+  @@unique([companyId, email])
+  @@map("candidates")
+}
+
+// ===== Tests =====
+
+enum TestCategory {
+  intelligence
+  personality
+  aptitude
+  projective
+}
+
+enum QuestionType {
+  multiple_choice
+  true_false
+  likert_scale
+  forced_choice
+  number_series
+  image_pattern
+  essay
+}
+
+enum TestStatus {
+  draft
+  published
+  archived
+}
+
+model Test {
+  id           String       @id @default(cuid())
+  companyId    String
+  displayId    String // TST-001
+  name         String
+  category     TestCategory
+  questionType QuestionType
+  description  String?
+  duration     Int // minutes
+  status       TestStatus   @default(draft)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  questions    Question[]
+  assignments  TestAssignment[]
+  instructions Instruction[]
+
+  @@unique([companyId, displayId])
+  @@map("tests")
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  displayId     String // q-1, q-2 within a test
+  type          QuestionType
+  text          String
+  options       String[] // array of option strings
+  correctAnswer String?
+  imageUrl      String?
+  timeLimit     Int? // seconds
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+
+  testId String
+  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+// ===== Test Assignments =====
+
+enum AssignmentStatus {
+  assigned
+  in_progress
+  completed
+  expired
+}
+
+model TestAssignment {
+  id          String           @id @default(cuid())
+  candidateId String
+  testId      String
+  status      AssignmentStatus @default(assigned)
+  sortOrder   Int              @default(0) // order in which tests should be taken
+  assignedAt  DateTime         @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  test      Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  examSession ExamSession?
+  violations  Violation[]
+  answers     ExamAnswer[]
+
+  @@unique([candidateId, testId])
+  @@map("test_assignments")
+}
+
+// ===== Exam Sessions =====
+
+model ExamSession {
+  id                String         @id @default(cuid())
+  assignmentId      String         @unique
+  assignment        TestAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  totalViolations   Int            @default(0)
+  answeredCount     Int            @default(0)
+  totalQuestions    Int            @default(0)
+  timeUsedSeconds   Int            @default(0) // how long the candidate took
+  autoSubmitted     Boolean        @default(false) // was it auto-submitted due to violations?
+  deviceFingerprint String? // hash of user-agent + screen resolution to lock device
+  sessionToken      String? // unique token to prevent multi-tab and device switching
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@map("exam_sessions")
+}
+
+// ===== Exam Answers =====
+
+model ExamAnswer {
+  id           String         @id @default(cuid())
+  assignmentId String
+  assignment   TestAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  questionId   String
+  answer       String // the selected option key (A, B, C, D, etc.)
+  answeredAt   DateTime       @default(now())
+
+  @@unique([assignmentId, questionId])
+  @@map("exam_answers")
+}
+
+// ===== Violations / Cheating Detection =====
+
+enum ViolationType {
+  tab_switch
+  face_not_detected
+  right_click
+  copy_paste
+  window_blur
+  screen_capture
+  devtools_open
+  multiple_face
+  no_camera
+  cursor_leave
+  fullscreen_exit
+  multiple_displays
+  network_disconnect
+  audio_noise_detected
+  rapid_click
+}
+
+model Violation {
+  id           String         @id @default(cuid())
+  assignmentId String
+  assignment   TestAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  type         ViolationType
+  description  String?
+  severity     Int            @default(1) // 1=low, 2=medium, 3=high
+  detectedAt   DateTime       @default(now())
+
+  @@map("violations")
+}
+
+// ===== Instructions =====
+
+enum InstructionType {
+  general
+  specific
+}
+
+model Instruction {
+  id        String          @id @default(cuid())
+  companyId String
+  type      InstructionType @default(general)
+  content   String          @db.Text
+  testId    String? // Only used if type is 'specific'
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  test    Test?   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@map("instructions")
+}
+
+model Menu {
+  id        String   @id @default(cuid())
+  name      String
+  path      String?
+  icon      String?  // Material symbols icon
+  isActive  Boolean  @default(true)
+  parentId  String?
+  parent    Menu?    @relation("MenuToSubmenu", fields: [parentId], references: [id], onDelete: Cascade)
+  submenus  Menu[]   @relation("MenuToSubmenu")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roleAccess RoleMenuAccess[]
+
+  @@map("menus")
+}
+
+model RoleMenuAccess {
+  id        String   @id @default(cuid())
+  role      Role
+  menuId    String
+  
+  canRead   Boolean  @default(false)
+  canCreate Boolean  @default(false)
+  canUpdate Boolean  @default(false)
+  canDelete Boolean  @default(false)
+
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([role, menuId])
+  @@map("role_menu_access")
+}
