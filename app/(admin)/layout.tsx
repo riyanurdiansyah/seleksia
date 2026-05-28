@@ -19,7 +19,7 @@ export default function AdminLayout({
                 <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
                     <AdminHeader />
                     <main className="flex-1 overflow-y-auto bg-[var(--color-bg-base)]">
-                        <div className="relative z-10 p-7 max-w-[1600px] mx-auto space-y-6 pb-12">
+                        <div className="relative p-7 max-w-[1600px] mx-auto space-y-6 pb-12">
                             {children}
                         </div>
                     </main>

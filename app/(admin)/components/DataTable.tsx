@@ -24,8 +24,8 @@ export default function DataTable<T>({
     data,
     columns,
     globalSearchPlaceholder = "Search...",
-    itemsPerPageOptions = [10, 20, 50, 100],
-    defaultItemsPerPage = 10,
+    itemsPerPageOptions = [5, 15, 25],
+    defaultItemsPerPage = 5,
     emptyMessage = "No records found.",
 }: DataTableProps<T>) {
     const [globalSearch, setGlobalSearch] = useState("");
@@ -187,8 +187,30 @@ export default function DataTable<T>({
 
             {/* Pagination Footer */}
             <div className="pt-3 pb-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500 bg-transparent">
-                <div>
-                    {filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length}
+                <div className="flex items-center gap-3">
+                    <div>
+                        {filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length}
+                    </div>
+                    {/* Items per page dropdown */}
+                    <div className="relative">
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => {
+                                setItemsPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="appearance-none pl-4 pr-9 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-[#1B835E] hover:bg-gray-50 transition-all duration-200 cursor-pointer shadow-sm focus:outline-none focus:border-[#33997A] focus:ring-1 focus:ring-[#33997A]"
+                        >
+                            {itemsPerPageOptions.map((opt) => (
+                                <option key={opt} value={opt} className="text-gray-700 font-bold">
+                                    {opt}
+                                </option>
+                            ))}
+                        </select>
+                        <span className="material-symbols-outlined text-[16px] text-[#1B835E] font-bold absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none select-none">
+                            expand_more
+                        </span>
+                    </div>
                 </div>
                 <div className="flex items-center gap-1">
                     <button

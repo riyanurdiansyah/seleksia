@@ -35,6 +35,11 @@ export async function GET(req: NextRequest) {
                 status: true,
                 createdAt: true,
                 companyId: true,
+                company: {
+                    select: {
+                        name: true
+                    }
+                }
                 // omitting password
             }
         });

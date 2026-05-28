@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Breadcrumb from "../../components/Breadcrumb";
+import Select2 from "../../components/Select2";
 
 /* ===== Types ===== */
 interface CandidateInfo {
@@ -253,13 +254,18 @@ export default function AssignmentsClient() {
                     </span>
                     <input value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] transition-all duration-300" placeholder="Search candidates or tests..." />
                 </div>
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-10 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                    <option value="all">All Status</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="expired">Expired</option>
-                </select>
+                <Select2
+                    value={filterStatus}
+                    onChange={(val) => setFilterStatus(val)}
+                    options={[
+                        { value: "all", label: "All Status" },
+                        { value: "assigned", label: "Assigned" },
+                        { value: "in_progress", label: "In Progress" },
+                        { value: "completed", label: "Completed" },
+                        { value: "expired", label: "Expired" }
+                    ]}
+                    className="w-full sm:w-44 text-left"
+                />
             </div>
 
             {/* Assignments List - Grouped by Candidate */}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import Breadcrumb from "../../components/Breadcrumb";
+import Select2 from "../../components/Select2";
 
 interface ActivityItem {
     id: string;
@@ -119,16 +120,17 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
             <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-4 flex items-center justify-end">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Filter Type:</span>
-                    <select
+                    <Select2
                         value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
-                        className="h-10 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300"
-                    >
-                        <option value="all">All Activity</option>
-                        <option value="violation">Violations (Flagged)</option>
-                        <option value="completed">Completed Tests</option>
-                        <option value="started">Started Tests</option>
-                    </select>
+                        onChange={(val) => setFilterType(val)}
+                        options={[
+                            { value: "all", label: "All Activity" },
+                            { value: "violation", label: "Violations (Flagged)" },
+                            { value: "completed", label: "Completed Tests" },
+                            { value: "started", label: "Started Tests" }
+                        ]}
+                        className="w-48 text-left"
+                    />
                 </div>
             </div>
 

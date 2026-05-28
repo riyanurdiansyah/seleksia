@@ -7,7 +7,8 @@ import Link from "next/link";
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
     "/dashboard": { title: "Dashboard", subtitle: "Welcome back! Here's what's happening today." },
     "/candidate": { title: "Candidates", subtitle: "Manage and monitor all registered candidates." },
-    "/exam": { title: "Exam Tests", subtitle: "Configure and manage assessment tests." },
+    "/exam": { title: "Exam Management", subtitle: "Akses menu pengelolaan exam." },
+    "/exam/question": { title: "Exam Tests", subtitle: "Configure and manage assessment tests." },
     "/exam/assignment": { title: "Assignments", subtitle: "Track and manage test assignments." },
     "/exam/instruction": { title: "Instructions", subtitle: "Manage exam instructions and guidelines." },
     "/exam/monitoring": { title: "Monitoring", subtitle: "Real-time exam session monitoring." },

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Breadcrumb from "../../components/Breadcrumb";
+import Select2 from "../../components/Select2";
 
 interface MenuItem {
     id: string;
@@ -237,20 +238,16 @@ export default function MenuManagementPage() {
                     </div>
                     
                     {/* Filter */}
-                    <div className="relative w-full sm:w-auto">
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full sm:w-auto py-2.5 pl-4 pr-9 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-full text-[13px] text-[var(--color-text-sub)] focus:outline-none focus:border-primary focus:ring-2 focus:ring-[var(--color-primary-light)] transition-all appearance-none cursor-pointer font-bold"
-                        >
-                            <option value="all">Semua Status</option>
-                            <option value="active">Aktif</option>
-                            <option value="inactive">Nonaktif</option>
-                        </select>
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-[18px] pointer-events-none">
-                            expand_more
-                        </span>
-                    </div>
+                    <Select2
+                        value={statusFilter}
+                        onChange={(val) => setStatusFilter(val)}
+                        options={[
+                            { value: "all", label: "Semua Status" },
+                            { value: "active", label: "Aktif" },
+                            { value: "inactive", label: "Nonaktif" }
+                        ]}
+                        className="w-full sm:w-44 text-left"
+                    />
                 </div>
                 
                 {/* Tambah Menu Button Redesign */}
@@ -579,20 +576,17 @@ export default function MenuManagementPage() {
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
                                 Parent Menu (Biarkan kosong jika ini Root)
                             </label>
-                            <select
+                            <Select2
                                 value={formData.parentId}
-                                onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
-                                className="w-full px-4 py-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary-light)] focus:border-primary text-sm transition-all duration-300"
-                            >
-                                <option value="">Tanpa Parent (Root Menu)</option>
-                                {menus
-                                    .filter((m) => m.id !== editingMenu?.id) // Prevent self-referencing
-                                    .map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.name}
-                                        </option>
-                                    ))}
-                            </select>
+                                onChange={(val) => setFormData({ ...formData, parentId: val })}
+                                options={[
+                                    { value: "", label: "Tanpa Parent (Root Menu)" },
+                                    ...menus
+                                        .filter((m) => m.id !== editingMenu?.id)
+                                        .map((m) => ({ value: m.id, label: m.name }))
+                                ]}
+                                className="w-full text-left"
+                            />
                         </div>
 
                         {/* Sort Order */}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Breadcrumb from "../components/Breadcrumb";
+import Select2 from "../components/Select2";
 
 /* ===== Types ===== */
 type QuestionType =
@@ -337,19 +338,29 @@ export default function TestsClient() {
                     </span>
                     <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] transition-all duration-300" placeholder="Search tests..." />
                 </div>
-                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="h-10 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                    <option value="all">All Categories</option>
-                    <option value="intelligence">Intelligence</option>
-                    <option value="personality">Personality</option>
-                    <option value="aptitude">Aptitude</option>
-                    <option value="projective">Projective</option>
-                </select>
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-10 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                    <option value="all">All Status</option>
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                </select>
+                <Select2
+                    value={filterCategory}
+                    onChange={(val) => setFilterCategory(val)}
+                    options={[
+                        { value: "all", label: "All Categories" },
+                        { value: "intelligence", label: "Intelligence" },
+                        { value: "personality", label: "Personality" },
+                        { value: "aptitude", label: "Aptitude" },
+                        { value: "projective", label: "Projective" }
+                    ]}
+                    className="w-full sm:w-48 text-left"
+                />
+                <Select2
+                    value={filterStatus}
+                    onChange={(val) => setFilterStatus(val)}
+                    options={[
+                        { value: "all", label: "All Status" },
+                        { value: "draft", label: "Draft" },
+                        { value: "published", label: "Published" },
+                        { value: "archived", label: "Archived" }
+                    ]}
+                    className="w-full sm:w-44 text-left"
+                />
             </div>
 
             {/* Stats */}
@@ -510,15 +521,21 @@ export default function TestsClient() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Category</label>
-                                            <select value={newTest.category} onChange={(e) => setNewTest((prev) => ({ ...prev, category: e.target.value as TestCategory }))} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                                                {Object.entries(categoryConfig).map(([key, val]) => (<option key={key} value={key}>{val.label}</option>))}
-                                            </select>
+                                            <Select2
+                                                value={newTest.category}
+                                                onChange={(val) => setNewTest((prev) => ({ ...prev, category: val as TestCategory }))}
+                                                options={Object.entries(categoryConfig).map(([key, val]) => ({ value: key, label: val.label }))}
+                                                className="w-full text-left"
+                                            />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Question Type</label>
-                                            <select value={newTest.questionType} onChange={(e) => setNewTest((prev) => ({ ...prev, questionType: e.target.value as QuestionType }))} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                                                {Object.entries(questionTypeConfig).map(([key, val]) => (<option key={key} value={key}>{val.label}</option>))}
-                                            </select>
+                                            <Select2
+                                                value={newTest.questionType}
+                                                onChange={(val) => setNewTest((prev) => ({ ...prev, questionType: val as QuestionType }))}
+                                                options={Object.entries(questionTypeConfig).map(([key, val]) => ({ value: key, label: val.label }))}
+                                                className="w-full text-left"
+                                            />
                                         </div>
                                     </div>
                                     <div>
@@ -565,9 +582,12 @@ export default function TestsClient() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-5">
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Question Type</label>
-                                <select value={newQuestion.type} onChange={(e) => setNewQuestion((prev) => ({ ...prev, type: e.target.value as QuestionType }))} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                                    {Object.entries(questionTypeConfig).map(([key, val]) => (<option key={key} value={key}>{val.label} — {val.desc}</option>))}
-                                </select>
+                                <Select2
+                                    value={newQuestion.type}
+                                    onChange={(val) => setNewQuestion((prev) => ({ ...prev, type: val as QuestionType }))}
+                                    options={Object.entries(questionTypeConfig).map(([key, val]) => ({ value: key, label: `${val.label} — ${val.desc}` }))}
+                                    className="w-full text-left"
+                                />
                             </div>
 
                             <div>

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import DataTable, { ColumnDef } from "../components/DataTable";
 import Breadcrumb from "../components/Breadcrumb";
+import Select2 from "../components/Select2";
 
 /* ===== Helpers ===== */
 function generatePassword(length = 10): string {
@@ -300,17 +301,18 @@ export default function CandidatesClient() {
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-[var(--color-text-sub)]">Filter Status:</span>
                     {/* Status filter */}
-                    <select
+                    <Select2
                         value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="h-10 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="registered">Registered</option>
-                        <option value="testing">Testing</option>
-                        <option value="completed">Completed</option>
-                        <option value="flagged">Flagged</option>
-                    </select>
+                        onChange={(val) => setFilterStatus(val)}
+                        options={[
+                            { value: "all", label: "All Status" },
+                            { value: "registered", label: "Registered" },
+                            { value: "testing", label: "Testing" },
+                            { value: "completed", label: "Completed" },
+                            { value: "flagged", label: "Flagged" }
+                        ]}
+                        className="w-44 text-left"
+                    />
                 </div>
             </div>
 
@@ -568,33 +570,24 @@ export default function CandidatesClient() {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
                                         Assigned Batch
                                     </label>
-                                    <select
-                                        value={newCandidate.batch}
-                                        onChange={(e) =>
+                                    <Select2
+                                        value={newCandidate.batch || ""}
+                                        onChange={(val) =>
                                             setNewCandidate((prev) => ({
                                                 ...prev,
-                                                batch: e.target.value,
+                                                batch: val,
                                             }))
                                         }
-                                        className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300"
-                                    >
-                                        <option value="">Select batch...</option>
-                                        <option value="Engineering Intake 04">
-                                            Engineering Intake 04
-                                        </option>
-                                        <option value="Management Trainee">
-                                            Management Trainee
-                                        </option>
-                                        <option value="Cognitive Ability 12">
-                                            Cognitive Ability 12
-                                        </option>
-                                        <option value="Logic Reasoning 03">
-                                            Logic Reasoning 03
-                                        </option>
-                                        <option value="Personality Matrix B">
-                                            Personality Matrix B
-                                        </option>
-                                    </select>
+                                        options={[
+                                            { value: "Engineering Intake 04", label: "Engineering Intake 04" },
+                                            { value: "Management Trainee", label: "Management Trainee" },
+                                            { value: "Cognitive Ability 12", label: "Cognitive Ability 12" },
+                                            { value: "Logic Reasoning 03", label: "Logic Reasoning 03" },
+                                            { value: "Personality Matrix B", label: "Personality Matrix B" }
+                                        ]}
+                                        placeholder="Select batch..."
+                                        className="w-full text-left"
+                                    />
                                 </div>
                             )}
 

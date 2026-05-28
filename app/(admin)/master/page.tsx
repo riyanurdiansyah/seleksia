@@ -19,10 +19,10 @@ interface MenuItem {
     submenus?: SubMenuItem[];
 }
 
-export default function ExamParentPage() {
+export default function MasterParentPage() {
     const [submenus, setSubmenus] = useState<SubMenuItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [parentName, setParentName] = useState("Exam");
+    const [parentName, setParentName] = useState("Master Data");
 
     useEffect(() => {
         const fetchMenus = async () => {
@@ -31,14 +31,15 @@ export default function ExamParentPage() {
                 const res = await fetch(`/api/menus/sidebar?role=${role}`);
                 if (res.ok) {
                     const data: MenuItem[] = await res.json();
-                    const examMenu = data.find(
+                    // Find the menu item that corresponds to 'master' (either has path '/master' or name matches 'Master')
+                    const masterMenu = data.find(
                         (m) =>
-                            (m.path && m.path.toLowerCase() === "/exam") ||
-                            m.name.toLowerCase() === "exam"
+                            (m.path && m.path.toLowerCase().includes("master")) ||
+                            m.name.toLowerCase() === "master"
                     );
-                    if (examMenu) {
-                        setParentName(examMenu.name);
-                        setSubmenus(examMenu.submenus || []);
+                    if (masterMenu) {
+                        setParentName(masterMenu.name);
+                        setSubmenus(masterMenu.submenus || []);
                     }
                 }
             } catch (err) {
@@ -51,13 +52,13 @@ export default function ExamParentPage() {
     }, []);
 
     const getMenuDescription = (path: string | null) => {
-        if (!path) return "Akses menu pengelolaan exam.";
+        if (!path) return "Akses menu pengelolaan dan pengaturan sistem.";
         const p = path.toLowerCase();
-        if (p.includes("/exam/instruction")) return "Kelola instruksi dan panduan ujian.";
-        if (p.includes("/exam/assignment")) return "Kelola penugasan ujian kepada kandidat.";
-        if (p.includes("/exam/monitoring")) return "Monitor sesi ujian secara real-time.";
-        if (p.includes("/exam/question")) return "Kelola soal dan pertanyaan ujian.";
-        return "Akses menu pengelolaan exam.";
+        if (p.includes("/master/user")) return "Kelola data pengguna, kandidat, proctor, dan administrator secara terpusat.";
+        if (p.includes("/master/roles")) return "Atur level kewenangan, nama role jabatan, dan deskripsi otorisasi sistem.";
+        if (p.includes("/master/rbac")) return "Matriks otorisasi hak akses menu untuk baca, tulis, ubah, dan hapus.";
+        if (p.includes("/master/menu")) return "Konfigurasi struktur menu, penamaan, ikon material, dan urutan tampil.";
+        return "Akses menu pengelolaan dan pengaturan sistem.";
     };
 
     return (

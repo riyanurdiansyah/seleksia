@@ -19,10 +19,10 @@ interface MenuItem {
     submenus?: SubMenuItem[];
 }
 
-export default function ExamParentPage() {
+export default function HistoryParentPage() {
     const [submenus, setSubmenus] = useState<SubMenuItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [parentName, setParentName] = useState("Exam");
+    const [parentName, setParentName] = useState("Riwayat");
 
     useEffect(() => {
         const fetchMenus = async () => {
@@ -31,14 +31,16 @@ export default function ExamParentPage() {
                 const res = await fetch(`/api/menus/sidebar?role=${role}`);
                 if (res.ok) {
                     const data: MenuItem[] = await res.json();
-                    const examMenu = data.find(
+                    // Find the menu item that corresponds to 'history' (either has path '/history' or name matches 'History' or 'Riwayat')
+                    const historyMenu = data.find(
                         (m) =>
-                            (m.path && m.path.toLowerCase() === "/exam") ||
-                            m.name.toLowerCase() === "exam"
+                            (m.path && m.path.toLowerCase().includes("history")) ||
+                            m.name.toLowerCase() === "history" ||
+                            m.name.toLowerCase() === "riwayat"
                     );
-                    if (examMenu) {
-                        setParentName(examMenu.name);
-                        setSubmenus(examMenu.submenus || []);
+                    if (historyMenu) {
+                        setParentName(historyMenu.name);
+                        setSubmenus(historyMenu.submenus || []);
                     }
                 }
             } catch (err) {
@@ -51,13 +53,10 @@ export default function ExamParentPage() {
     }, []);
 
     const getMenuDescription = (path: string | null) => {
-        if (!path) return "Akses menu pengelolaan exam.";
+        if (!path) return "Akses menu log dan audit riwayat sistem.";
         const p = path.toLowerCase();
-        if (p.includes("/exam/instruction")) return "Kelola instruksi dan panduan ujian.";
-        if (p.includes("/exam/assignment")) return "Kelola penugasan ujian kepada kandidat.";
-        if (p.includes("/exam/monitoring")) return "Monitor sesi ujian secara real-time.";
-        if (p.includes("/exam/question")) return "Kelola soal dan pertanyaan ujian.";
-        return "Akses menu pengelolaan exam.";
+        if (p.includes("/history/activity")) return "Log aktivitas sistem, riwayat pengerjaan ujian, login, dan audit log lengkap.";
+        return "Akses menu log dan audit riwayat sistem.";
     };
 
     return (
@@ -71,7 +70,7 @@ export default function ExamParentPage() {
                     <Breadcrumb />
                 </div>
                 <p className="text-[var(--color-text-sub)] text-sm font-medium">
-                    Pilih salah satu menu di bawah ini untuk mengelola konfigurasi {parentName.toLowerCase()}.
+                    Pilih salah satu menu di bawah ini untuk melihat data {parentName.toLowerCase()}.
                 </p>
             </div>
 

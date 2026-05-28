@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import Breadcrumb from "../../components/Breadcrumb";
+import Select2 from "../../components/Select2";
 
 interface Test {
     id: string;
@@ -187,15 +188,16 @@ export default function InstructionsClient() {
             <div className="flex items-center justify-end mt-6">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Filter Type:</span>
-                    <select
+                    <Select2
                         value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
-                        className="h-10 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300"
-                    >
-                        <option value="all">All Types</option>
-                        <option value="general">General</option>
-                        <option value="specific">Specific</option>
-                    </select>
+                        onChange={(val) => setFilterType(val)}
+                        options={[
+                            { value: "all", label: "All Types" },
+                            { value: "general", label: "General" },
+                            { value: "specific", label: "Specific" }
+                        ]}
+                        className="w-40 text-left"
+                    />
                 </div>
             </div>
 
@@ -223,29 +225,27 @@ export default function InstructionsClient() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-5">
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Type</label>
-                                <select
+                                <Select2
                                     value={form.type}
-                                    onChange={(e) => setForm({ ...form, type: e.target.value as "general" | "specific" })}
-                                    className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] cursor-pointer focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300"
-                                >
-                                    <option value="general">General (For all tests)</option>
-                                    <option value="specific">Specific (For a specific test)</option>
-                                </select>
+                                    onChange={(val) => setForm({ ...form, type: val as "general" | "specific" })}
+                                    options={[
+                                        { value: "general", label: "General (For all tests)" },
+                                        { value: "specific", label: "Specific (For a specific test)" }
+                                    ]}
+                                    className="w-full text-left"
+                                />
                             </div>
 
                             {form.type === "specific" && (
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Target Test *</label>
-                                    <select
+                                    <Select2
                                         value={form.testId}
-                                        onChange={(e) => setForm({ ...form, testId: e.target.value })}
-                                        className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] cursor-pointer focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300"
-                                    >
-                                        <option value="">Select a test</option>
-                                        {tests.map(t => (
-                                            <option key={t.id} value={t.id}>{t.displayId} - {t.name}</option>
-                                        ))}
-                                    </select>
+                                        onChange={(val) => setForm({ ...form, testId: val })}
+                                        options={tests.map(t => ({ value: t.id, label: `${t.displayId} - ${t.name}` }))}
+                                        placeholder="Select a test"
+                                        className="w-full text-left"
+                                    />
                                 </div>
                             )}
 

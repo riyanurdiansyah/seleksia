@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import Breadcrumb from "../../components/Breadcrumb";
+import Select2 from "../../components/Select2";
 
 /* ===== Types ===== */
 type QuestionType = "multiple_choice" | "true_false" | "likert_scale" | "forced_choice" | "number_series" | "image_pattern" | "essay";
@@ -322,9 +323,12 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Type</label>
-                                        <select value={newQuestion.type} onChange={(e) => setNewQuestion((p) => ({ ...p, type: e.target.value as QuestionType }))} className="w-full h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                                            {Object.entries(questionTypeConfig).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
-                                        </select>
+                                        <Select2
+                                            value={newQuestion.type}
+                                            onChange={(val) => setNewQuestion((p) => ({ ...p, type: val as QuestionType }))}
+                                            options={Object.entries(questionTypeConfig).map(([k, v]) => ({ value: k, label: v.label }))}
+                                            className="w-full text-left"
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Time Limit (sec, 0 = none)</label>
@@ -400,9 +404,12 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     <div>
                                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Type</label>
-                                                        <select value={editQuestion.type} onChange={(e) => setEditQuestion((p) => ({ ...p, type: e.target.value as QuestionType }))} className="w-full h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                                                            {Object.entries(questionTypeConfig).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
-                                                        </select>
+                                                        <Select2
+                                                            value={editQuestion.type}
+                                                            onChange={(val) => setEditQuestion((p) => ({ ...p, type: val as QuestionType }))}
+                                                            options={Object.entries(questionTypeConfig).map(([k, v]) => ({ value: k, label: v.label }))}
+                                                            className="w-full text-left"
+                                                        />
                                                     </div>
                                                     <div>
                                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Time Limit (sec)</label>
@@ -497,15 +504,21 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Category</label>
-                            <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as TestCategory)} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                                {Object.entries(categoryConfig).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
-                            </select>
+                            <Select2
+                                value={editCategory}
+                                onChange={(val) => setEditCategory(val as TestCategory)}
+                                options={Object.entries(categoryConfig).map(([k, v]) => ({ value: k, label: v.label }))}
+                                className="w-full text-left"
+                            />
                         </div>
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Question Type</label>
-                            <select value={editQuestionType} onChange={(e) => setEditQuestionType(e.target.value as QuestionType)} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] cursor-pointer transition-all duration-300">
-                                {Object.entries(questionTypeConfig).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
-                            </select>
+                            <Select2
+                                value={editQuestionType}
+                                onChange={(val) => setEditQuestionType(val as QuestionType)}
+                                options={Object.entries(questionTypeConfig).map(([k, v]) => ({ value: k, label: v.label }))}
+                                className="w-full text-left"
+                            />
                         </div>
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Duration (minutes)</label>
