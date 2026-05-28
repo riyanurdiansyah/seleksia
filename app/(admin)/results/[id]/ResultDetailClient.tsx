@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Breadcrumb from "../../components/Breadcrumb";
 
 export default function ResultDetailClient({ data }: { data: any }) {
     const [viewMode, setViewMode] = useState<"overview" | "answers" | "violations">("overview");
@@ -11,13 +12,18 @@ export default function ResultDetailClient({ data }: { data: any }) {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-3">
-                <Link href="/admin/results" className="p-2 rounded-lg bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary transition-colors">
-                    <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-                </Link>
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Test Report</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Detailed performance and security insights.</p>
+            <div className="flex flex-col gap-4 animate-slide-in-up">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <Link href="/admin/results" className="p-2 rounded-lg bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary transition-colors">
+                            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Test Report</h1>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Detailed performance and security insights.</p>
+                        </div>
+                    </div>
+                    <Breadcrumb />
                 </div>
             </div>
 

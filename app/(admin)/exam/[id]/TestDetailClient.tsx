@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Breadcrumb from "../../components/Breadcrumb";
 
 /* ===== Types ===== */
 type QuestionType = "multiple_choice" | "true_false" | "likert_scale" | "forced_choice" | "number_series" | "image_pattern" | "essay";
@@ -255,10 +256,13 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         <>
             {/* Back + Header */}
             <div className="flex flex-col gap-4 animate-slide-in-up">
-                <button onClick={() => router.push("/admin/tests")} className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-primary transition-colors w-fit">
-                    <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                    Back to Tests
-                </button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <button onClick={() => router.push("/admin/tests")} className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-primary transition-colors w-fit">
+                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                        Back to Tests
+                    </button>
+                    <Breadcrumb />
+                </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-4">

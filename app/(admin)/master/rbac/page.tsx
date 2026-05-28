@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Fragment } from "react";
+import Breadcrumb from "../../components/Breadcrumb";
 
 interface Menu {
   id: string;
@@ -173,16 +174,19 @@ export default function RBACMatrixPage() {
   return (
     <div className="space-y-6 animate-slide-in-up">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-            Matriks Akses Menu
-          </h1>
-          <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
-            Kelola hak akses Read, Create, Update, dan Delete untuk setiap peran secara granular.
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
+              Matriks Akses Menu
+            </h1>
+            <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
+              Kelola hak akses Read, Create, Update, dan Delete untuk setiap peran secara granular.
+            </p>
+          </div>
+          <Breadcrumb />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 justify-end">
           <button
             onClick={fetchData}
             disabled={saving}

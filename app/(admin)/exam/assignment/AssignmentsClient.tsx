@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Breadcrumb from "../../components/Breadcrumb";
 
 /* ===== Types ===== */
 interface CandidateInfo {
@@ -208,15 +209,20 @@ export default function AssignmentsClient() {
     return (
         <>
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-slide-in-up">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">Assignments</h1>
-                    <p className="text-sm text-[var(--color-text-sub)] mt-1">Assign psychotest batteries to candidates.</p>
+            <div className="flex flex-col gap-4 animate-slide-in-up">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">Assignments</h1>
+                        <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">Assign psychotest batteries to candidates.</p>
+                    </div>
+                    <Breadcrumb />
                 </div>
-                <button onClick={() => { setSelectedCandidates(new Set()); setSelectedTests(new Set()); setCandidateSearch(""); setTestSearch(""); setShowAssignModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
-                    <span className="material-symbols-outlined text-[18px]">assignment_add</span>
-                    Assign Tests
-                </button>
+                <div className="flex justify-end">
+                    <button onClick={() => { setSelectedCandidates(new Set()); setSelectedTests(new Set()); setCandidateSearch(""); setTestSearch(""); setShowAssignModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
+                        <span className="material-symbols-outlined text-[18px]">assignment_add</span>
+                        Assign Tests
+                    </button>
+                </div>
             </div>
 
             {/* Stats */}

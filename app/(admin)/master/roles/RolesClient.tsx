@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import DataTable, { ColumnDef } from "../../components/DataTable";
+import Breadcrumb from "../../components/Breadcrumb";
 
 interface RoleStat {
     id: string;
@@ -85,17 +86,19 @@ export default function RolesClient() {
     return (
         <div className="space-y-6 animate-slide-in-up">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
+            <div className="flex flex-col gap-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
                         Manajemen Role
                     </h1>
-                    <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
-                        Lihat daftar role sistem dan statistik pengguna untuk masing-masing role.
-                    </p>
+                    <Breadcrumb />
                 </div>
                 
-                {/* Tambah Role Button (Disabled for Enum) */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-[var(--color-text-sub)] text-sm font-medium">
+                        Lihat daftar role sistem dan statistik pengguna untuk masing-masing role.
+                    </p>
+                    {/* Tambah Role Button (Disabled for Enum) */}
                 <button
                     onClick={() => alert("Penambahan role kustom memerlukan modifikasi skema database (enum Role). Silakan hubungi developer untuk mengubah struktur tabel menjadi dinamis.")}
                     className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[var(--color-text-muted)] opacity-80 cursor-not-allowed w-full md:w-auto"
@@ -103,6 +106,7 @@ export default function RolesClient() {
                     <span className="material-symbols-outlined text-[18px] font-bold">lock</span>
                     Tambah Role Kustom
                 </button>
+            </div>
             </div>
 
             <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Breadcrumb from "../components/Breadcrumb";
 
 /* ===== Types ===== */
 interface AdminUser {
@@ -129,14 +130,17 @@ export default function SettingsClient() {
     return (
         <>
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-slide-in-up">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-                        Settings
-                    </h1>
-                    <p className="text-sm text-[var(--color-text-sub)] mt-1">
-                        Manage admin accounts and system configuration.
-                    </p>
+            <div className="flex flex-col gap-4 animate-slide-in-up">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
+                            Settings
+                        </h1>
+                        <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
+                            Manage admin accounts and system configuration.
+                        </p>
+                    </div>
+                    <Breadcrumb />
                 </div>
             </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import DataTable, { ColumnDef } from "../../components/DataTable";
+import Breadcrumb from "../../components/Breadcrumb";
 
 interface Test {
     id: string;
@@ -161,21 +162,26 @@ export default function InstructionsClient() {
 
     return (
         <>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-slide-in-up">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">Instructions</h1>
-                    <p className="text-sm text-[var(--color-text-sub)] mt-1">Manage general and specific test instructions.</p>
+            <div className="flex flex-col gap-4 animate-slide-in-up">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">Instructions</h1>
+                        <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">Manage general and specific test instructions.</p>
+                    </div>
+                    <Breadcrumb />
                 </div>
-                <button
-                    onClick={() => {
-                        setForm({ id: "", type: "general", content: "", testId: "" });
-                        setShowModal(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press"
-                >
-                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                    Add Instruction
-                </button>
+                <div className="flex justify-end">
+                    <button
+                        onClick={() => {
+                            setForm({ id: "", type: "general", content: "", testId: "" });
+                            setShowModal(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                        Add Instruction
+                    </button>
+                </div>
             </div>
 
             <div className="flex items-center justify-end mt-6">

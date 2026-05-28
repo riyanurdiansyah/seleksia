@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import DataTable, { ColumnDef } from "../../components/DataTable";
+import Breadcrumb from "../../components/Breadcrumb";
 
 interface ActivityItem {
     id: string;
@@ -100,14 +101,17 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
     return (
         <div className="space-y-6 animate-slide-in-up">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-                        Activity Log
-                    </h1>
-                    <p className="text-sm text-[var(--color-text-sub)] mt-1">
-                        Monitor system events, completed tests, and flagged activities.
-                    </p>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
+                            Activity Log
+                        </h1>
+                        <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
+                            Monitor system events, completed tests, and flagged activities.
+                        </p>
+                    </div>
+                    <Breadcrumb />
                 </div>
             </div>
 

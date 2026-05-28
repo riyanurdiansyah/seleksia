@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import DataTable, { ColumnDef } from "../components/DataTable";
+import Breadcrumb from "../components/Breadcrumb";
 
 interface ResultData {
     id: string; // The assignment ID
@@ -127,14 +128,17 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
 
     return (
         <div className="space-y-6 animate-slide-in-up">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-                        Test Results
-                    </h1>
-                    <p className="text-sm text-[var(--color-text-sub)] mt-1">
-                        View detailed test scores, answers, and behavior logs for each candidate.
-                    </p>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
+                            Test Results
+                        </h1>
+                        <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
+                            View detailed test scores, answers, and behavior logs for each candidate.
+                        </p>
+                    </div>
+                    <Breadcrumb />
                 </div>
             </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Breadcrumb from "../components/Breadcrumb";
 
 interface CandidateResult {
     id: string;
@@ -97,12 +98,15 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
     return (
         <div className="space-y-6 animate-slide-in-up">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight flex items-center gap-2">
-                        WhatsApp Blast <span className="material-symbols-outlined text-green-500">campaign</span>
-                    </h1>
-                    <p className="text-sm text-[var(--color-text-sub)] mt-1">Broadcast instructions or access information to candidates instantly via WhatsApp.</p>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight flex items-center gap-2">
+                            WhatsApp Blast <span className="material-symbols-outlined text-green-500">campaign</span>
+                        </h1>
+                        <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">Broadcast instructions or access information to candidates instantly via WhatsApp.</p>
+                    </div>
+                    <Breadcrumb />
                 </div>
             </div>
 

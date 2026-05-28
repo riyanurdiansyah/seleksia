@@ -112,24 +112,7 @@ export default function DataTable<T>({
 
     return (
         <div className="flex flex-col h-full bg-transparent">
-            {/* Top Toolbar */}
-            <div className="pb-3 flex flex-col sm:flex-row gap-3 items-center justify-end bg-transparent">
-                <div className="relative w-full sm:w-64">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-400">
-                        <span className="material-symbols-outlined text-[16px]">search</span>
-                    </span>
-                    <input
-                        value={globalSearch}
-                        onChange={(e) => {
-                            setGlobalSearch(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        className="w-full h-8 pl-8 pr-3 rounded bg-white border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#33997A] focus:ring-1 focus:ring-[#33997A] transition-all"
-                        placeholder="Cari data di sini..."
-                        type="text"
-                    />
-                </div>
-            </div>
+
 
             {/* Table Container */}
             <div className="overflow-x-auto flex-1 bg-white rounded-t-md">

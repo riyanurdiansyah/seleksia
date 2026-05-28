@@ -23,7 +23,7 @@ export default function AdminSidebar() {
     const pathname = usePathname();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [menus, setMenus] = useState<MenuItem[]>([]);
-    const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchMenus = async () => {
@@ -41,9 +41,21 @@ export default function AdminSidebar() {
         fetchMenus();
     }, []);
 
+    // Expand the menu that contains the active submenu path on load/navigation
+    useEffect(() => {
+        if (menus.length > 0 && pathname) {
+            const activeMenu = menus.find(item => 
+                item.submenus && item.submenus.some(sub => sub.path && pathname.startsWith(sub.path))
+            );
+            if (activeMenu) {
+                setOpenMenuId(activeMenu.id);
+            }
+        }
+    }, [pathname, menus]);
+
     const toggleSubmenu = (id: string) => {
         if (isCollapsed) setIsCollapsed(false);
-        setOpenMenus((prev) => ({ ...prev, [id]: !prev[id] }));
+        setOpenMenuId((prev) => (prev === id ? null : id));
     };
 
     const renderMenu = (item: MenuItem) => {
@@ -56,7 +68,7 @@ export default function AdminSidebar() {
             
         const isChildActive = hasSubmenus && item.submenus!.some(sub => sub.path && pathname.startsWith(sub.path));
         const isActive = isSelfActive || isChildActive;
-        const isOpen = openMenus[item.id] || isChildActive;
+        const isOpen = openMenuId === item.id;
 
         const content = (
             <div className={`flex items-center justify-between relative rounded-[var(--radius-sm)] transition-all duration-200 group
@@ -92,7 +104,7 @@ export default function AdminSidebar() {
                         </span>
                     )}
                     {!isCollapsed && (
-                        <span className={`text-sm tracking-wide transition-colors font-medium flex-1 truncate
+                        <span className={`text-[13px] tracking-wide transition-colors font-medium flex-1 truncate
                             ${isActive ? "text-primary font-semibold" : "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]"}`}>
                             {item.name}
                         </span>
@@ -127,7 +139,7 @@ export default function AdminSidebar() {
                                 <Link 
                                     key={sub.id} 
                                     href={sub.path || "#"}
-                                    className={`flex items-center gap-2.5 py-2 px-3 rounded-md transition-colors text-sm
+                                    className={`flex items-center gap-2.5 py-2 px-3 rounded-md transition-colors text-[13px]
                                         ${isSubActive 
                                             ? "text-primary bg-[var(--color-primary-light)]/50 font-semibold" 
                                             : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-hover)]"
@@ -296,7 +308,7 @@ export default function AdminSidebar() {
                                     hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] hover:translate-x-1 transition-all"
                             >
                                 <span className="material-symbols-outlined text-[18px] text-[var(--color-text-muted)]">settings</span>
-                                <span className="text-sm font-medium">Settings</span>
+                                <span className="text-[13px] font-medium">Settings</span>
                             </Link>
                             <button
                                 onClick={() => { sessionStorage.clear(); window.location.href = "/"; }}
@@ -304,7 +316,7 @@ export default function AdminSidebar() {
                                     hover:bg-[var(--color-danger-light)] hover:text-danger hover:translate-x-1 transition-all cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-[18px] text-[var(--color-text-muted)]">logout</span>
-                                <span className="text-sm font-medium">Sign Out</span>
+                                <span className="text-[13px] font-medium">Sign Out</span>
                             </button>
                         </div>
                     )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Breadcrumb from "../../components/Breadcrumb";
 
 interface MenuItem {
     id: string;
@@ -204,14 +205,17 @@ export default function MenuManagementPage() {
     return (
         <div className="space-y-6 animate-slide-in-up">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-                        Kelola Menu
-                    </h1>
-                    <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
-                        Atur menu navigasi utama dan submenu (parent-child) untuk panel aplikasi.
-                    </p>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
+                            Kelola Menu
+                        </h1>
+                        <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
+                            Atur menu navigasi utama dan submenu (parent-child) untuk panel aplikasi.
+                        </p>
+                    </div>
+                    <Breadcrumb />
                 </div>
             </div>
 

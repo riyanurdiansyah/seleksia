@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import DataTable, { ColumnDef } from "../../components/DataTable";
+import Breadcrumb from "../../components/Breadcrumb";
 
 interface UserItem {
     id: string;
@@ -317,15 +318,19 @@ export default function UserClient() {
     return (
         <div className="space-y-6 animate-slide-in-up relative">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
+            <div className="flex flex-col gap-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
                         Manajemen Pengguna
                     </h1>
-                    <p className="text-[var(--color-text-sub)] text-sm mt-1 font-medium">
+                    <Breadcrumb />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-[var(--color-text-sub)] text-sm font-medium">
                         Kelola data kandidat, proctor, dan admin (terintegrasi RBAC).
                     </p>
-                </div>
+                    
                 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                     {currentRole === "superadmin" && (
@@ -352,6 +357,7 @@ export default function UserClient() {
                     )}
                 </div>
             </div>
+        </div>
 
             {/* Notification Alerts */}
             {successMsg && (
