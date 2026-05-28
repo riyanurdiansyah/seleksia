@@ -1,7 +1,7 @@
 import TestsClient from "../TestsClient";
 
 export const metadata = {
-    title: "Tests - Psikoest Admin",
+    title: "Tests - SELEKSIA Admin",
 };
 
 export default function TestsPage() {

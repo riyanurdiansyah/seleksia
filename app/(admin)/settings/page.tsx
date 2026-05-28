@@ -1,7 +1,7 @@
 import SettingsClient from "./SettingsClient";
 
 export const metadata = {
-    title: "Settings - Psikoest Admin",
+    title: "Settings - SELEKSIA Admin",
 };
 
 export default function SettingsPage() {

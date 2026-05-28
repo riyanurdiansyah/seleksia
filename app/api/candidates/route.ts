@@ -1,18 +1,38 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { getTenantPrisma, getCompanyId } from "@/lib/tenant";
 
 // GET all candidates
 export async function GET(req: NextRequest) {
     try {
-        const tenantPrisma = await getTenantPrisma();
-        const candidates = await tenantPrisma.candidate.findMany({
-            orderBy: { createdAt: "desc" },
+        const cookieStore = await cookies();
+        const role = cookieStore.get('userRole')?.value;
+        const companyIdFilter = req.nextUrl.searchParams.get('companyId');
+
+        if (role === 'superadmin') {
+            // Superadmin: optionally filter by companyId query param
+            const whereClause: any = {};
+            if (companyIdFilter && companyIdFilter !== 'all') {
+                whereClause.companyId = companyIdFilter;
+            }
+            const candidates = await prisma.candidate.findMany({
+                where: whereClause,
+                orderBy: { createdAt: "desc" },
+                include: { company: { select: { name: true } } },
+            });
+            return NextResponse.json(candidates);
+        }
+
+        // Regular user or admin: filter candidates by companyId from cookie
+        const companyId = await getCompanyId();
+        const candidates = await prisma.candidate.findMany({
+          where: { companyId },
+          orderBy: { createdAt: "desc" },
         });
         return NextResponse.json(candidates);
     } catch (error) {
-        console.error("GET /api/candidates error:", error);
         console.error("GET /api/candidates error:", error);
         return NextResponse.json(
             { error: "Failed to fetch candidates", details: error instanceof Error ? error.message : String(error) },

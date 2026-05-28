@@ -165,12 +165,18 @@ export default function TestsClient() {
     const [showTemplates, setShowTemplates] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
+    // Multi-tenant States
+    const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+    const [selectedCompany, setSelectedCompany] = useState<string>("all");
+    const [currentRole, setCurrentRole] = useState<string>("user");
+
     const [newTest, setNewTest] = useState({
         name: "",
         category: "intelligence" as TestCategory,
         questionType: "multiple_choice" as QuestionType,
         description: "",
         duration: 30,
+        companyId: "",
     });
 
     const [newQuestion, setNewQuestion] = useState({
@@ -181,10 +187,27 @@ export default function TestsClient() {
         timeLimit: 0,
     });
 
-    /* Fetch tests from API */
-    const fetchTests = useCallback(async () => {
+    /* Fetch companies (superadmin only) */
+    const fetchCompanies = useCallback(async () => {
         try {
-            const res = await fetch("/api/tests");
+            const res = await fetch("/api/companies");
+            if (res.ok) {
+                const data = await res.json();
+                setCompanies(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch companies", err);
+        }
+    }, []);
+
+    /* Fetch tests from API */
+    const fetchTests = useCallback(async (companyId: string = "all") => {
+        setLoading(true);
+        try {
+            const url = companyId && companyId !== "all"
+                ? `/api/tests?companyId=${companyId}`
+                : "/api/tests";
+            const res = await fetch(url);
             if (!res.ok) throw new Error("Failed to fetch");
             const data = await res.json();
             setTests(data);
@@ -196,7 +219,20 @@ export default function TestsClient() {
     }, []);
 
     useEffect(() => {
-        fetchTests();
+        const role = sessionStorage.getItem("candidateRole") || "user";
+        setCurrentRole(role);
+
+        if (role === "superadmin") {
+            fetchCompanies();
+        }
+
+        fetchTests("all");
+    }, [fetchCompanies, fetchTests]);
+
+    /* Handle company filter change */
+    const handleCompanyChange = useCallback((val: string) => {
+        setSelectedCompany(val);
+        fetchTests(val);
     }, [fetchTests]);
 
     /* Filtering */
@@ -212,16 +248,34 @@ export default function TestsClient() {
     /* Create test */
     const handleCreateTest = async () => {
         if (!newTest.name) return;
+
+        let targetCompanyId = newTest.companyId;
+        if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
+            targetCompanyId = selectedCompany !== "all" ? selectedCompany : "";
+        }
+
+        if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
+            alert("Silakan pilih perusahaan terlebih dahulu");
+            return;
+        }
+
         try {
             const res = await fetch("/api/tests", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newTest),
+                body: JSON.stringify({
+                    name: newTest.name,
+                    category: newTest.category,
+                    questionType: newTest.questionType,
+                    description: newTest.description,
+                    duration: newTest.duration,
+                    companyId: targetCompanyId || undefined
+                }),
             });
             if (!res.ok) throw new Error("Failed to create");
             const created = await res.json();
             setTests((prev) => [created, ...prev]);
-            setNewTest({ name: "", category: "intelligence", questionType: "multiple_choice", description: "", duration: 30 });
+            setNewTest({ name: "", category: "intelligence", questionType: "multiple_choice", description: "", duration: 30, companyId: "" });
             setShowCreateModal(false);
         } catch (err) {
             console.error(err);
@@ -230,11 +284,28 @@ export default function TestsClient() {
 
     /* Create from template */
     const handleCreateFromTemplate = async (tmpl: (typeof psikotestTemplates)[0]) => {
+        let targetCompanyId = newTest.companyId;
+        if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
+            targetCompanyId = selectedCompany !== "all" ? selectedCompany : "";
+        }
+
+        if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
+            alert("Silakan pilih perusahaan terlebih dahulu");
+            return;
+        }
+
         try {
             const res = await fetch("/api/tests", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: tmpl.name, category: tmpl.category, questionType: tmpl.questionType, description: tmpl.desc, duration: 30 }),
+                body: JSON.stringify({
+                    name: tmpl.name,
+                    category: tmpl.category,
+                    questionType: tmpl.questionType,
+                    description: tmpl.desc,
+                    duration: 30,
+                    companyId: targetCompanyId || undefined
+                }),
             });
             if (!res.ok) throw new Error("Failed to create");
             const created = await res.json();
@@ -317,16 +388,10 @@ export default function TestsClient() {
             <div className="flex flex-col gap-4 animate-slide-in-up">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">Tests</h1>
+                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">Question</h1>
                         <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">Manage psychotest batteries and question banks.</p>
                     </div>
                     <Breadcrumb />
-                </div>
-                <div className="flex justify-end">
-                    <button onClick={() => { setShowTemplates(true); setShowCreateModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
-                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                        Create Test
-                    </button>
                 </div>
             </div>
 
@@ -338,6 +403,18 @@ export default function TestsClient() {
                     </span>
                     <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] transition-all duration-300" placeholder="Search tests..." />
                 </div>
+                {currentRole === "superadmin" && (
+                    <Select2
+                        value={selectedCompany}
+                        onChange={handleCompanyChange}
+                        options={[
+                            { value: "all", label: "Semua Perusahaan" },
+                            ...companies.map(c => ({ value: c.id, label: c.name }))
+                        ]}
+                        placeholder="Pilih Perusahaan..."
+                        className="w-full sm:w-52 text-left"
+                    />
+                )}
                 <Select2
                     value={filterCategory}
                     onChange={(val) => setFilterCategory(val)}
@@ -361,6 +438,11 @@ export default function TestsClient() {
                     ]}
                     className="w-full sm:w-44 text-left"
                 />
+
+                <button onClick={() => { setShowTemplates(true); setShowCreateModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
+                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                        Create Test
+                    </button>
             </div>
 
             {/* Stats */}
@@ -410,7 +492,7 @@ export default function TestsClient() {
                                         </div>
                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${st.bg} ${st.text}`}>{st.label}</span>
                                     </div>
-                                    <Link href={`/admin/tests/${test.id}`} className="font-bold text-[var(--color-text-main)] text-sm leading-tight mb-1 hover:text-primary transition-colors block">{test.name}</Link>
+                                    <Link href={`/exam/question/${test.id}`} className="font-bold text-[var(--color-text-main)] text-sm leading-tight mb-1 hover:text-primary transition-colors block">{test.name}</Link>
                                     <p className="text-xs text-[var(--color-text-muted)] mb-3 line-clamp-2">{test.description}</p>
                                     <div className="flex flex-wrap gap-2 text-[10px]">
                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]">
@@ -427,7 +509,7 @@ export default function TestsClient() {
                                 <div className="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-hover)]">
                                     <span className="text-[10px] text-[var(--color-text-muted)] font-mono">{test.displayId}</span>
                                     <div className="flex items-center gap-1">
-                                        <Link href={`/admin/tests/${test.id}`} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="View & Edit">
+                                        <Link href={`/exam/question/${test.id}`} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="View & Edit">
                                             <span className="material-symbols-outlined text-[18px]">visibility</span>
                                         </Link>
                                         <button onClick={() => openAddQuestion(test.id)} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="Add Question">
@@ -471,6 +553,19 @@ export default function TestsClient() {
                             <button onClick={() => setShowTemplates(true)} className={`py-3 border-b-2 font-medium text-sm mr-6 transition-colors ${showTemplates ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)]"}`}>Psychotest Templates</button>
                             <button onClick={() => setShowTemplates(false)} className={`py-3 border-b-2 font-medium text-sm transition-colors ${!showTemplates ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)]"}`}>Custom Test</button>
                         </div>
+
+                        {currentRole === "superadmin" && (
+                            <div className="px-6 pt-4 flex-shrink-0">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Perusahaan Penerima Test *</label>
+                                <Select2
+                                    value={newTest.companyId || (selectedCompany !== "all" ? selectedCompany : "")}
+                                    onChange={(val) => setNewTest((prev) => ({ ...prev, companyId: val }))}
+                                    options={companies.map(c => ({ value: c.id, label: c.name }))}
+                                    placeholder="Pilih Perusahaan..."
+                                    className="w-full text-left"
+                                />
+                            </div>
+                        )}
 
                         <div className="flex-1 overflow-y-auto p-6">
                             {showTemplates ? (

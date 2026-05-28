@@ -10,12 +10,21 @@ export async function POST(
         const { id } = await params;
         const body = await req.json();
 
+        const test = await prisma.test.findUnique({
+            where: { id },
+            select: { companyId: true }
+        });
+        if (!test) {
+            return NextResponse.json({ error: "Test not found" }, { status: 404 });
+        }
+
         // Count existing questions for display ID
         const count = await prisma.question.count({ where: { testId: id } });
         const displayId = `q-${count + 1}`;
 
         const question = await prisma.question.create({
             data: {
+                companyId: test.companyId,
                 displayId,
                 type: body.type,
                 text: body.text,
@@ -32,7 +41,7 @@ export async function POST(
     } catch (error) {
         console.error("POST /api/tests/[id]/questions error:", error);
         return NextResponse.json(
-            { error: "Failed to add question" },
+            { error: "Failed to add question", details: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }

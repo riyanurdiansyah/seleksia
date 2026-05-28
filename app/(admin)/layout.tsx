@@ -3,8 +3,8 @@ import AdminHeader from "./components/AdminHeader";
 import AdminGuard from "./AdminGuard";
 
 export const metadata = {
-    title: "Admin Dashboard - Psikoest",
-    description: "Psikoest admin panel for managing CBT exams and monitoring.",
+    title: "Admin Dashboard - SELEKSIA",
+    description: "SELEKSIA admin panel for managing CBT exams and monitoring.",
 };
 
 export default function AdminLayout({

@@ -500,6 +500,18 @@ export default function UserClient() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                     {/* Left Actions: Export Buttons Group and optional Company Dropdown */}
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+
+                        {currentRole === "superadmin" && (
+                                <Select2
+                                    value={selectedCompany}
+                                    onChange={handleFilterChange}
+                                    options={[
+                                        { value: "all", label: "Semua" },
+                                        ...companies.map(c => ({ value: c.id, label: c.name }))
+                                    ]}
+                                    className="w-full sm:w-48 text-left"
+                                />
+                            )}
                         <div className="flex flex-wrap items-center gap-2">
                             {/* Excel Button */}
                             <button
@@ -507,22 +519,11 @@ export default function UserClient() {
                                 onClick={handleExportExcel}
                                 className="flex items-center gap-1.5 px-4 py-2 border border-gray-100 rounded-xl text-xs font-bold bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 cursor-pointer shadow-sm btn-press"
                             >
-                                <span className="material-symbols-outlined text-[14px] text-gray-400 font-bold">download</span>
+                                <span className="material-symbols-outlined text-[14px] text-gray-400 font-bold">cloud_download</span>
                                 Excel
                             </button>
                         </div>
 
-                        {currentRole === "superadmin" && (
-                            <Select2
-                                value={selectedCompany}
-                                onChange={handleFilterChange}
-                                options={[
-                                    { value: "all", label: "Semua" },
-                                    ...companies.map(c => ({ value: c.id, label: c.name }))
-                                ]}
-                                className="w-full sm:w-48 text-left"
-                            />
-                        )}
                     </div>
 
                     {/* Right Actions: Add Button */}

@@ -1,7 +1,7 @@
 import CandidatesClient from "./CandidatesClient";
 
 export const metadata = {
-    title: "Candidates - Psikoest Admin",
+    title: "Candidates - SELEKSIA Admin",
 };
 
 export default function CandidatesPage() {

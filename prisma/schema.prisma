@@ -19,6 +19,7 @@ model Company {
   candidates   Candidate[]
   tests        Test[]
   instructions Instruction[]
+  questions    Question[]
 
   @@map("companies")
 }
@@ -119,6 +120,7 @@ model Test {
 
 model Question {
   id            String       @id @default(cuid())
+  companyId     String
   displayId     String // q-1, q-2 within a test
   type          QuestionType
   text          String
@@ -131,6 +133,7 @@ model Question {
 
   testId String
   test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("questions")
 }

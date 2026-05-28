@@ -60,6 +60,11 @@ export default function AssignmentsClient() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; candidateName: string; testName: string } | null>(null);
 
+    // Multi-tenant States
+    const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+    const [selectedCompany, setSelectedCompany] = useState<string>("all");
+    const [currentRole, setCurrentRole] = useState<string>("user");
+
     // Assign form
     const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
     const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
@@ -71,12 +76,33 @@ export default function AssignmentsClient() {
     const [filterSearch, setFilterSearch] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
 
-    /* Fetch all data */
-    const fetchData = useCallback(async () => {
+    /* Fetch companies (superadmin only) */
+    const fetchCompanies = useCallback(async () => {
         try {
+            const res = await fetch("/api/companies");
+            if (res.ok) {
+                const data = await res.json();
+                setCompanies(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch companies", err);
+        }
+    }, []);
+
+    /* Fetch all data */
+    const fetchData = useCallback(async (companyId: string = "all") => {
+        setLoading(true);
+        try {
+            const assignmentsUrl = companyId && companyId !== "all"
+                ? `/api/assignments?companyId=${companyId}`
+                : "/api/assignments";
+            const candidatesUrl = companyId && companyId !== "all"
+                ? `/api/candidates?companyId=${companyId}`
+                : "/api/candidates";
+
             const [aRes, cRes, tRes] = await Promise.all([
-                fetch("/api/assignments"),
-                fetch("/api/candidates"),
+                fetch(assignmentsUrl),
+                fetch(candidatesUrl),
                 fetch("/api/tests"),
             ]);
             if (aRes.ok) setAssignments(await aRes.json());
@@ -93,7 +119,23 @@ export default function AssignmentsClient() {
         }
     }, []);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    /* Init: detect role, fetch companies if superadmin, then fetch data */
+    useEffect(() => {
+        const role = sessionStorage.getItem("candidateRole") || "user";
+        setCurrentRole(role);
+
+        if (role === "superadmin") {
+            fetchCompanies();
+        }
+
+        fetchData("all");
+    }, [fetchCompanies, fetchData]);
+
+    /* Handle company filter change */
+    const handleCompanyChange = useCallback((val: string) => {
+        setSelectedCompany(val);
+        fetchData(val);
+    }, [fetchData]);
 
     /* Filter assignments */
     const filtered = assignments.filter((a) => {
@@ -218,12 +260,6 @@ export default function AssignmentsClient() {
                     </div>
                     <Breadcrumb />
                 </div>
-                <div className="flex justify-end">
-                    <button onClick={() => { setSelectedCandidates(new Set()); setSelectedTests(new Set()); setCandidateSearch(""); setTestSearch(""); setShowAssignModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
-                        <span className="material-symbols-outlined text-[18px]">assignment_add</span>
-                        Assign Tests
-                    </button>
-                </div>
             </div>
 
             {/* Stats */}
@@ -254,6 +290,18 @@ export default function AssignmentsClient() {
                     </span>
                     <input value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] transition-all duration-300" placeholder="Search candidates or tests..." />
                 </div>
+                {currentRole === "superadmin" && (
+                    <Select2
+                        value={selectedCompany}
+                        onChange={handleCompanyChange}
+                        options={[
+                            { value: "all", label: "Semua Perusahaan" },
+                            ...companies.map(c => ({ value: c.id, label: c.name }))
+                        ]}
+                        placeholder="Pilih Perusahaan..."
+                        className="w-full sm:w-52 text-left"
+                    />
+                )}
                 <Select2
                     value={filterStatus}
                     onChange={(val) => setFilterStatus(val)}
@@ -266,6 +314,11 @@ export default function AssignmentsClient() {
                     ]}
                     className="w-full sm:w-44 text-left"
                 />
+
+                <button onClick={() => { setSelectedCandidates(new Set()); setSelectedTests(new Set()); setCandidateSearch(""); setTestSearch(""); setShowAssignModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
+                        <span className="material-symbols-outlined text-[18px]">assignment_add</span>
+                        Assign Tests
+                    </button>
             </div>
 
             {/* Assignments List - Grouped by Candidate */}

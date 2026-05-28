@@ -122,7 +122,7 @@ export default function ExamPage() {
 
     /* ===== Multi-tab detection via BroadcastChannel ===== */
     useEffect(() => {
-        const channel = new BroadcastChannel("psikoest_exam_tab");
+        const channel = new BroadcastChannel("seleksia_exam_tab");
         const myTabId = `tab_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
         // Announce this tab

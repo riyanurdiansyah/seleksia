@@ -74,11 +74,7 @@ export default function LoginPage() {
 
         {/* Header Branding */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="size-11 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
-            <span className="material-symbols-outlined text-primary text-2xl font-bold">
-              psychology
-            </span>
-          </div>
+          <img src="/logo.png" alt="SELEKSIA Logo" className="w-11 h-11 object-contain" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Selek<strong className="text-primary-mid">sia</strong>
           </span>
@@ -129,7 +125,7 @@ export default function LoginPage() {
 
         {/* Footer info inside branding */}
         <div className="relative z-10 text-xs text-white/50">
-          © {new Date().getFullYear()} Psikoest. All rights reserved.
+          © {new Date().getFullYear()} SELEKSIA. All rights reserved.
         </div>
       </div>
 
@@ -138,11 +134,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8 animate-slide-in-up">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-6">
-            <div className="size-11 bg-[var(--color-primary-light)] rounded-2xl flex items-center justify-center text-[var(--color-primary)] border border-[var(--color-border-accent)]">
-              <span className="material-symbols-outlined text-2xl font-bold">
-                psychology
-              </span>
-            </div>
+            <img src="/logo.png" alt="SELEKSIA Logo" className="w-11 h-11 object-contain" />
             <span className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
               Selek<strong className="text-[var(--color-primary)]">sia</strong>
             </span>
@@ -175,7 +167,7 @@ export default function LoginPage() {
                   Email atau ID Peserta
                 </label>
                 <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-xl transition-colors duration-200 group-focus-within:text-[var(--color-primary)]">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-xl z-10 transition-colors duration-200 group-focus-within:text-[var(--color-primary)]">
                     person
                   </span>
                   <input
@@ -197,7 +189,7 @@ export default function LoginPage() {
                   </label>
                 </div>
                 <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-xl transition-colors duration-200 group-focus-within:text-[var(--color-primary)]">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-xl z-10 transition-colors duration-200 group-focus-within:text-[var(--color-primary)]">
                     lock
                   </span>
                   <input

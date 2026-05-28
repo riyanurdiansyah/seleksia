@@ -75,7 +75,7 @@ export default function Select2({
                 className={`w-full min-h-10 px-4 py-2 flex items-center justify-between rounded-[var(--radius-sm)] border text-sm font-semibold transition-all duration-200 cursor-pointer shadow-sm
                     ${disabled 
                         ? "bg-gray-100 dark:bg-gray-800 text-[var(--color-text-muted)] border-[var(--color-border)] cursor-not-allowed opacity-60" 
-                        : "bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] border-[var(--color-border)] hover:border-primary/50"
+                        : "bg-[var(--color-bg-card)] text-[var(--color-text-main)] border-[var(--color-border)] hover:border-primary/50"
                     }
                     ${isOpen ? "border-primary ring-1 ring-primary" : ""}
                 `}
@@ -102,7 +102,7 @@ export default function Select2({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Cari..."
-                            className="w-full bg-transparent border-none text-xs text-[var(--color-text-main)] focus:outline-none placeholder-[var(--color-text-muted)]"
+                            className="w-full bg-[var(--color-bg-card)] border-none text-xs text-[var(--color-text-main)] focus:outline-none placeholder-[var(--color-text-muted)]"
                         />
                     </div>
 

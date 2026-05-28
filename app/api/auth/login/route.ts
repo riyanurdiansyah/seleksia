@@ -54,57 +54,24 @@ export async function POST(req: NextRequest) {
         }
 
         // Check role — only 'user' can take exams
-        if (candidate.role === "admin" || candidate.role === "proctor" || candidate.role === "superadmin") {
-            return NextResponse.json({
-                success: true,
-                candidate: {
-                    id: candidate.id,
-                    displayId: candidate.displayId,
-                    name: candidate.name,
-                    email: candidate.email,
-                    role: candidate.role,
-                },
-                redirectTo: "/dashboard",
-            });
-        }
-
-        // Check if there are any pending assignments
-        const pendingCount = await prisma.testAssignment.count({
-            where: { candidateId: candidate.id, status: "assigned" },
+        // Set authentication cookies for companyId and role
+        const response = NextResponse.json({
+          success: true,
+          candidate: {
+            id: candidate.id,
+            displayId: candidate.displayId,
+            name: candidate.name,
+            email: candidate.email,
+            role: candidate.role,
+          },
+          redirectTo: candidate.role === "admin" || candidate.role === "proctor" || candidate.role === "superadmin" ? "/dashboard" : "/system-check",
         });
+        // Add cookies (HttpOnly for security)
+        response.cookies.set("companyId", candidate.companyId, { path: "/", httpOnly: true });
+        response.cookies.set("userRole", candidate.role, { path: "/", httpOnly: true });
+        return response;
 
-        if (pendingCount === 0) {
-            // Check if they have completed all
-            const completedCount = await prisma.testAssignment.count({
-                where: { candidateId: candidate.id, status: "completed" },
-            });
 
-            if (completedCount > 0) {
-                return NextResponse.json({ error: "You have already completed all assigned tests." }, { status: 403 });
-            } else {
-                return NextResponse.json({ error: "No tests have been assigned to you yet. Please contact the administrator." }, { status: 403 });
-            }
-        }
-
-        // Update candidate status to testing
-        await prisma.candidate.update({
-            where: { id: candidate.id },
-            data: { status: "testing" },
-        });
-
-        return NextResponse.json({
-            success: true,
-            candidate: {
-                id: candidate.id,
-                displayId: candidate.displayId,
-                name: candidate.name,
-                email: candidate.email,
-                role: candidate.role,
-                batch: candidate.batch,
-            },
-            pendingTests: pendingCount,
-            redirectTo: "/system-check",
-        });
     } catch (error) {
         console.error("POST /api/auth/login error:", error);
         return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });

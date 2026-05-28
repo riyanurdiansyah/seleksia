@@ -8,7 +8,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata = {
-  title: "Psikoest - Computer Based Test",
+  title: "SELEKSIA - Computer Based Test",
   description:
     "Sistem CBT (Computer Based Test) psikotes dengan pengawasan kamera dan fitur anti-kecurangan.",
 };

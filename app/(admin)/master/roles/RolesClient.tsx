@@ -99,17 +99,35 @@ export default function RolesClient() {
                         Lihat daftar role sistem dan statistik pengguna untuk masing-masing role.
                     </p>
                     {/* Tambah Role Button (Disabled for Enum) */}
-                <button
-                    onClick={() => alert("Penambahan role kustom memerlukan modifikasi skema database (enum Role). Silakan hubungi developer untuk mengubah struktur tabel menjadi dinamis.")}
-                    className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[var(--color-text-muted)] opacity-80 cursor-not-allowed w-full md:w-auto"
-                >
-                    <span className="material-symbols-outlined text-[18px] font-bold">lock</span>
-                    Tambah Role Kustom
-                </button>
             </div>
             </div>
 
             <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6">
+                {/* Action Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        className="flex items-center gap-1.5 px-4 py-2 border border-gray-100 rounded-xl text-xs font-bold bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 cursor-pointer shadow-sm btn-press"
+                    >
+                        <span className="material-symbols-outlined text-[14px] text-gray-400 font-bold">cloud_download</span>
+                        Export
+                    </button>
+                    </div>
+                </div>
+                <div className="w-full sm:w-auto">
+                    <button
+                    onClick={() => alert("Penambahan role kustom memerlukan modifikasi skema database (enum Role). Silakan hubungi developer untuk mengubah struktur tabel menjadi dinamis.")}
+                    className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[#0f766e] hover:bg-[#115e59] transition-all shadow-[0_4px_15px_rgba(15,118,110,0.3)] hover:shadow-[0_6px_20px_rgba(15,118,110,0.4)] hover:translate-y-[-2px] active:translate-y-0 w-full sm:w-auto btn-press cursor-pointer"
+                    >
+                    <span className="material-symbols-outlined text-[18px] font-bold">add</span>
+                    Tambah Role
+                    </button>
+                </div>
+                </div>
+                
+                {/* Table */}
                 {loading ? (
                     <div className="flex flex-col items-center py-20 text-[var(--color-text-muted)] gap-3">
                         <div className="size-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -123,13 +141,7 @@ export default function RolesClient() {
                     />
                 )}
             </div>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-[var(--radius-md)] p-4 flex gap-3 text-blue-800">
-                <span className="material-symbols-outlined text-blue-500">info</span>
-                <p className="text-sm">
-                    <strong>Informasi:</strong> Saat ini Role dikelola sebagai tipe data <code>enum</code> di tingkat database untuk keamanan maksimal. Anda hanya dapat menggunakan role bawaan sistem. Untuk mengelola akses menu pada masing-masing role, silakan kunjungi menu <a href="/master/rbac" className="font-bold underline hover:text-blue-900">Role Access Matrix (RBAC)</a>.
-                </p>
-            </div>
+
         </div>
     );
 }

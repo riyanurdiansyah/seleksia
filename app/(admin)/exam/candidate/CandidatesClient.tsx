@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import ConfirmDialog from "../components/ConfirmDialog";
-import DataTable, { ColumnDef } from "../components/DataTable";
-import Breadcrumb from "../components/Breadcrumb";
-import Select2 from "../components/Select2";
+import ConfirmDialog from "../../components/ConfirmDialog";
+import DataTable, { ColumnDef } from "../../components/DataTable";
+import Breadcrumb from "../../components/Breadcrumb";
+import Select2 from "../../components/Select2";
 
 /* ===== Helpers ===== */
 function generatePassword(length = 10): string {
@@ -64,6 +64,9 @@ export default function CandidatesClient() {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [companies, setCompanies] = useState<{id: string, name: string}[]>([]);
+    const [selectedCompany, setSelectedCompany] = useState<string>("all");
+    const [currentRole, setCurrentRole] = useState<string>("user");
     const [showAddModal, setShowAddModal] = useState(false);
     const [copiedPw, setCopiedPw] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -79,10 +82,27 @@ export default function CandidatesClient() {
         accessEnd: "",
     });
 
-    /* Fetch candidates from API */
-    const fetchCandidates = useCallback(async () => {
+    /* Fetch companies (superadmin only) */
+    const fetchCompanies = useCallback(async () => {
         try {
-            const res = await fetch("/api/candidates");
+            const res = await fetch("/api/companies");
+            if (res.ok) {
+                const data = await res.json();
+                setCompanies(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch companies", err);
+        }
+    }, []);
+
+    /* Fetch candidates from API */
+    const fetchCandidates = useCallback(async (companyId: string = "all") => {
+        setLoading(true);
+        try {
+            const url = companyId && companyId !== "all"
+                ? `/api/candidates?companyId=${companyId}`
+                : "/api/candidates";
+            const res = await fetch(url);
             if (!res.ok) throw new Error("Failed to fetch");
             const data = await res.json();
             setCandidates(data);
@@ -93,8 +113,22 @@ export default function CandidatesClient() {
         }
     }, []);
 
+    /* Init: detect role, fetch companies if superadmin, then fetch candidates */
     useEffect(() => {
-        fetchCandidates();
+        const role = sessionStorage.getItem("candidateRole") || "user";
+        setCurrentRole(role);
+
+        if (role === "superadmin") {
+            fetchCompanies();
+        }
+
+        fetchCandidates("all");
+    }, [fetchCompanies, fetchCandidates]);
+
+    /* Handle company filter change */
+    const handleCompanyChange = useCallback((val: string) => {
+        setSelectedCompany(val);
+        fetchCandidates(val);
     }, [fetchCandidates]);
 
     const regeneratePassword = useCallback(() => {
@@ -268,6 +302,44 @@ export default function CandidatesClient() {
         }
     };
 
+    const handleExportExcel = () => {
+        const headers = ["ID", "Nama", "Email", "Telepon", "Role", "Status", "Batch", "Tanggal Dibuat"];
+        const rows = candidates.map(c => [
+            c.displayId,
+            c.name,
+            c.email,
+            c.phone || "—",
+            c.role,
+            c.status,
+            c.batch || "—",
+            c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"
+        ]);
+        let excelContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
+        excelContent += `<head><meta charset="utf-8" /><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Data Kandidat</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
+        excelContent += `<table><thead><tr>`;
+        headers.forEach(h => {
+            excelContent += `<th style="background-color: #0f766e; color: white; border: 1px solid #ddd; padding: 8px;">${h}</th>`;
+        });
+        excelContent += `</tr></thead><tbody>`;
+        rows.forEach(row => {
+            excelContent += `<tr>`;
+            row.forEach(val => {
+                excelContent += `<td style="border: 1px solid #ddd; padding: 6px;">${val}</td>`;
+            });
+            excelContent += `</tr>`;
+        });
+        excelContent += `</tbody></table></body></html>`;
+        const blob = new Blob([excelContent], { type: "application/vnd.ms-excel;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `candidates_${new Date().toISOString().split('T')[0]}.xls`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <>
             {/* Page Header */}
@@ -283,38 +355,14 @@ export default function CandidatesClient() {
                     </div>
                     <Breadcrumb />
                 </div>
-                <div className="flex justify-end">
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">
-                            person_add
-                        </span>
-                        Add Candidate
-                    </button>
-                </div>
+                
+        
             </div>
 
             {/* Filters Bar */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[var(--color-text-sub)]">Filter Status:</span>
-                    {/* Status filter */}
-                    <Select2
-                        value={filterStatus}
-                        onChange={(val) => setFilterStatus(val)}
-                        options={[
-                            { value: "all", label: "All Status" },
-                            { value: "registered", label: "Registered" },
-                            { value: "testing", label: "Testing" },
-                            { value: "completed", label: "Completed" },
-                            { value: "flagged", label: "Flagged" }
-                        ]}
-                        className="w-44 text-left"
-                    />
-                </div>
-            </div>
+    
+                {/* This section moved to Action Bar above */}
+            
 
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -376,9 +424,61 @@ export default function CandidatesClient() {
             </div>
 
             {/* Candidates Table */}
-            <div className="flex-1 min-h-0">
+            
+            {/* Card Container */}
+            <div className="bg-[var(--color-bg-card)] p-6 rounded-[var(--radius-md)] shadow-[var(--shadow-card)] border border-[var(--color-border)]">
+                
+                {/* Action Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    {/* Left: Filters and Excel */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Company Filter (superadmin only) */}
+                        {currentRole === "superadmin" && (
+                            <Select2
+                                value={selectedCompany}
+                                onChange={handleCompanyChange}
+                                options={[
+                                    { value: "all", label: "Semua Perusahaan" },
+                                    ...companies.map(c => ({ value: c.id, label: c.name }))
+                                ]}
+                                placeholder="Pilih Perusahaan..."
+                                className="w-52 text-left"
+                            />
+                        )}
+                        {/* Status Filter */}
+                        <Select2
+                            value={filterStatus}
+                            onChange={(val) => setFilterStatus(val)}
+                            options={[
+                                { value: "all", label: "All Status" },
+                                { value: "registered", label: "Registered" },
+                                { value: "testing", label: "Testing" },
+                                { value: "completed", label: "Completed" },
+                                { value: "flagged", label: "Flagged" }
+                            ]}
+                            className="w-44 text-left"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleExportExcel}
+                            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-100 rounded-md text-xs font-bold bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all"
+                        >
+                            <span className="material-symbols-outlined text-[14px]">cloud_download</span>
+                            Excel
+                        </button>
+                    </div>
+                    {/* Right: Add Button */}
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">person_add</span>
+                        Add Candidate
+                    </button>
+                </div>
                 <DataTable data={filtered} columns={columns} globalSearchPlaceholder="Search candidates..." />
             </div>
+                
 
             {/* Add Candidate Modal */}
             {showAddModal && (

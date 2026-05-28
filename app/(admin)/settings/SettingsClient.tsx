@@ -19,7 +19,7 @@ const initialAdmins: AdminUser[] = [
     {
         id: "ADM-001",
         name: "Admin User",
-        email: "admin@psikoest.com",
+        email: "admin@seleksia.com",
         role: "super_admin",
         status: "active",
         lastLogin: "2026-02-28 10:30",
@@ -28,7 +28,7 @@ const initialAdmins: AdminUser[] = [
     {
         id: "ADM-002",
         name: "Dr. Emily Chen",
-        email: "emily.chen@psikoest.com",
+        email: "emily.chen@seleksia.com",
         role: "admin",
         status: "active",
         lastLogin: "2026-02-28 09:15",
@@ -37,7 +37,7 @@ const initialAdmins: AdminUser[] = [
     {
         id: "ADM-003",
         name: "Prof. James Wilson",
-        email: "james.w@psikoest.com",
+        email: "james.w@seleksia.com",
         role: "proctor",
         status: "active",
         lastLogin: "2026-02-27 14:00",
@@ -46,7 +46,7 @@ const initialAdmins: AdminUser[] = [
     {
         id: "ADM-004",
         name: "Sari Dewi",
-        email: "sari.d@psikoest.com",
+        email: "sari.d@seleksia.com",
         role: "proctor",
         status: "inactive",
         lastLogin: "2026-02-20 08:45",
@@ -350,7 +350,7 @@ export default function SettingsClient() {
                                         }))
                                     }
                                     className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] focus:shadow-[0_8px_30px_rgba(0,0,0,0.15)] focus:translate-y-[-1px] transition-all duration-300"
-                                    placeholder="e.g. john@psikoest.com"
+                                    placeholder="e.g. john@seleksia.com"
                                     type="email"
                                 />
                             </div>

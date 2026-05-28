@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import ConfirmDialog from "../../components/ConfirmDialog";
-import Breadcrumb from "../../components/Breadcrumb";
-import Select2 from "../../components/Select2";
+import ConfirmDialog from "../../../components/ConfirmDialog";
+import Breadcrumb from "../../../components/Breadcrumb";
+import Select2 from "../../../components/Select2";
 
 /* ===== Types ===== */
 type QuestionType = "multiple_choice" | "true_false" | "likert_scale" | "forced_choice" | "number_series" | "image_pattern" | "essay";
@@ -174,12 +174,17 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     timeLimit: newQuestion.timeLimit || null,
                 }),
             });
-            if (!res.ok) throw new Error("Failed");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                console.error("API Error:", errData);
+                throw new Error(errData.details || errData.error || "Failed to add question");
+            }
             const q = await res.json();
             setTest((prev) => prev ? { ...prev, questions: [...prev.questions, q] } : prev);
             setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], correctAnswer: "", timeLimit: 0 });
         } catch (err) {
             console.error(err);
+            alert(err instanceof Error ? err.message : String(err));
         }
     };
 
@@ -244,7 +249,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             <div className="text-center py-24">
                 <span className="material-symbols-outlined text-5xl text-[var(--color-text-muted)] block mb-3">error</span>
                 <p className="text-[var(--color-text-sub)] mb-4">Test not found</p>
-                <button onClick={() => router.push("/admin/tests")} className="text-primary hover:underline text-sm">← Back to Tests</button>
+                <button onClick={() => router.push("/exam/question")} className="text-primary hover:underline text-sm">← Back to Tests</button>
             </div>
         );
     }
@@ -258,7 +263,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             {/* Back + Header */}
             <div className="flex flex-col gap-4 animate-slide-in-up">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <button onClick={() => router.push("/admin/tests")} className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-primary transition-colors w-fit">
+                    <button onClick={() => router.push("/exam/question")} className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-primary transition-colors w-fit">
                         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                         Back to Tests
                     </button>

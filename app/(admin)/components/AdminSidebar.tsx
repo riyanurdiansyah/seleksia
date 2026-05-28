@@ -73,36 +73,38 @@ export default function AdminSidebar() {
         const content = (
             <div className={`flex items-center justify-between relative rounded-[var(--radius-sm)] transition-all duration-200 group
                 ${isCollapsed ? "px-0 justify-center h-11 w-11 mx-auto" : "px-3.5 py-2.5"}
-                ${isActive && !hasSubmenus
-                    ? "bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] shadow-[0_4px_12px_rgba(0,0,0,0.05)]"
-                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] hover:translate-x-1"
+                ${isActive
+                    ? (isCollapsed 
+                        ? "" 
+                        : "bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] shadow-[0_4px_12px_rgba(0,0,0,0.05)]")
+                    : (isCollapsed 
+                        ? "" 
+                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] hover:translate-x-1")
                 }`}
             >
-                {/* Active left bar indicator (only for leaf nodes or open parent) */}
-                {(isActive && (!hasSubmenus || isCollapsed)) && (
+                {/* Active left bar indicator */}
+                {(isActive && !isCollapsed) && (
                     <span className="absolute left-0 top-[15%] h-[70%] w-1 bg-primary rounded-r-full shadow-[0_0_15px_var(--color-primary-glow)]" />
                 )}
 
-                <div className="flex items-center gap-3 w-full">
-                    {item.icon === "dashboard" ? (
-                        <svg className={`flex-shrink-0 transition-all duration-200 ${isActive ? "text-primary drop-shadow-[0_0_8px_var(--color-primary-glow)]" : "text-[var(--color-text-muted)] group-hover:text-primary"}`} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="8" height="6" rx="2" />
-                          <rect x="3" y="12" width="8" height="9" rx="2" />
-                          <rect x="14" y="3" width="8" height="9" rx="2" />
-                          <rect x="14" y="15" width="8" height="6" rx="2" />
-                        </svg>
-                    ) : (
-                        <span
-                            className={`material-symbols-outlined text-[20px] transition-all duration-200
-                                ${isActive
-                                    ? "text-primary drop-shadow-[0_0_8px_var(--color-primary-glow)]"
-                                    : "text-[var(--color-text-muted)] group-hover:text-primary"
-                                }`}
-                            style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}
-                        >
-                            {item.icon || "menu"}
-                        </span>
-                    )}
+                <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 w-full"}`}>
+                    <span 
+                        style={{
+                            maskImage: "url('/dashboard.png')",
+                            WebkitMaskImage: "url('/dashboard.png')",
+                            maskSize: "contain",
+                            WebkitMaskSize: "contain",
+                            maskRepeat: "no-repeat",
+                            WebkitMaskRepeat: "no-repeat",
+                            maskPosition: "center",
+                            WebkitMaskPosition: "center",
+                        }}
+                        className={`w-5 h-5 flex-shrink-0 transition-all duration-200
+                            ${isActive 
+                                ? "bg-primary drop-shadow-[0_0_8px_var(--color-primary-glow)]" 
+                                : "bg-[var(--color-text-muted)] group-hover:bg-primary group-hover/menu-item:bg-primary group-hover:scale-105"
+                            }`} 
+                    />
                     {!isCollapsed && (
                         <span className={`text-[13px] tracking-wide transition-colors font-medium flex-1 truncate
                             ${isActive ? "text-primary font-semibold" : "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)]"}`}>
@@ -119,15 +121,50 @@ export default function AdminSidebar() {
         );
 
         return (
-            <div key={item.id} className="space-y-1">
+            <div key={item.id} className="relative group/menu-item">
                 {hasSubmenus ? (
-                    <button onClick={() => toggleSubmenu(item.id)} className="w-full text-left" title={isCollapsed ? item.name : undefined}>
+                    <button onClick={() => toggleSubmenu(item.id)} className="w-full text-left">
                         {content}
                     </button>
                 ) : (
-                    <Link href={item.path || "#"} title={isCollapsed ? item.name : undefined} className="block">
+                    <Link href={item.path || "#"} className="block">
                         {content}
                     </Link>
+                )}
+                
+                {/* Tooltip for collapsed state */}
+                {isCollapsed && (
+                    <div className="absolute left-[65px] top-0 ml-2 w-48 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.2)] py-2.5 px-3.5 invisible opacity-0 translate-x-[-10px] group-hover/menu-item:visible group-hover/menu-item:opacity-100 group-hover/menu-item:translate-x-0 transition-all duration-200 z-50 pointer-events-auto">
+                        {!hasSubmenus ? (
+                            <Link href={item.path || "#"} className="block text-[13px] font-semibold text-[var(--color-text-main)] hover:text-primary transition-colors py-1">
+                                {item.name}
+                            </Link>
+                        ) : (
+                            <div className="space-y-1">
+                                <div className="text-[11px] font-black uppercase tracking-wider text-[var(--color-text-muted)] border-b border-[var(--color-border)] pb-1.5 mb-1.5 opacity-80">
+                                    {item.name}
+                                </div>
+                                <div className="space-y-1">
+                                    {item.submenus!.map(sub => {
+                                        const isSubActive = sub.path && pathname.startsWith(sub.path);
+                                        return (
+                                            <Link 
+                                                key={sub.id} 
+                                                href={sub.path || "#"}
+                                                className={`block py-1.5 px-2 rounded-lg text-[12px] font-medium transition-all
+                                                    ${isSubActive 
+                                                        ? "text-primary bg-[var(--color-primary-light)] font-semibold" 
+                                                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-hover)]"
+                                                    }`}
+                                            >
+                                                {sub.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 )}
                 
                 {/* Submenus Render */}
@@ -180,21 +217,14 @@ export default function AdminSidebar() {
                 </span>
             </button>
 
-            <div className="flex flex-col h-full overflow-hidden py-8 px-4">
+            <div className={`flex flex-col h-full py-8 px-4 ${isCollapsed ? "overflow-visible" : "overflow-hidden"}`}>
                 {/* Logo */}
                 <div className={`flex-shrink-0 flex items-center px-3.5 pb-9
                     ${isCollapsed ? "justify-center" : ""}`}>
                     <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
                         {/* Logo icon */}
                         <div className="relative flex-shrink-0 animate-float">
-                            <div className="size-9 rounded-xl flex items-center justify-center
-                                bg-gradient-to-br from-primary to-accent
-                                shadow-lg shadow-primary/20">
-                                <span className="material-symbols-outlined text-white text-[18px]"
-                                    style={{ fontVariationSettings: "'FILL' 1" }}>
-                                    psychology
-                                </span>
-                            </div>
+                            <img src="/logo.png" alt="SELEKSIA Logo" className="w-9 h-9 object-contain" />
                             {/* Online dot */}
                             <span className="absolute -bottom-0.5 -right-0.5 size-2.5 bg-emerald-400 rounded-full
                                 border-2 border-[var(--color-bg-surface)] shadow-sm" />
@@ -202,7 +232,7 @@ export default function AdminSidebar() {
                         {!isCollapsed && (
                             <div className="whitespace-nowrap">
                                 <h1 className="text-[var(--color-text-main)] text-[20px] font-black tracking-tighter leading-none">
-                                    Psikoest
+                                    SELEKSIA
                                 </h1>
                                 <p className="text-[var(--color-text-muted)] text-[10px] font-semibold tracking-widest uppercase mt-0.5">
                                     Admin Panel
@@ -213,7 +243,7 @@ export default function AdminSidebar() {
                 </div>
 
                 {/* Navigation */}
-                <div className="flex-1 overflow-y-auto space-y-6 no-scrollbar">
+                <div className={`flex-1 space-y-6 no-scrollbar ${isCollapsed ? "overflow-visible" : "overflow-y-auto"}`}>
                     {/* Main Menu */}
                     <div className="space-y-0.5">
                         {!isCollapsed && (
@@ -226,57 +256,12 @@ export default function AdminSidebar() {
                                 Memuat menu...
                             </div>
                         ) : (
-                            menus.map(renderMenu)
+                            <>
+                                {menus.map(renderMenu)}
+                               
+                            </>
                         )}
                     </div>
-                </div>
-
-                {/* Promo card */}
-                {!isCollapsed && (
-                    <div className="mb-3 flex-shrink-0">
-                        <div className="rounded-[var(--radius-sm)] p-4 relative overflow-hidden"
-                            style={{
-                                background: "linear-gradient(135deg, rgba(5,150,105,0.06) 0%, rgba(0,123,131,0.06) 100%)",
-                                border: "1.5px solid rgba(5,150,105,0.15)"
-                            }}
-                        >
-                            <div className="absolute -top-4 -right-4 size-16 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-                            <div className="relative z-10">
-                                <div className="size-7 rounded-lg bg-[var(--color-primary-light)] border border-primary/20 flex items-center justify-center mb-2">
-                                    <span className="material-symbols-outlined text-primary text-[14px]">laptop_mac</span>
-                                </div>
-                                <h4 className="text-[var(--color-text-main)] text-[11px] font-bold leading-tight">Download Client App</h4>
-                                <p className="text-[var(--color-text-sub)] text-[10px] mt-0.5 leading-snug">Premium lockdown browser tool</p>
-                                <button className="mt-3 w-full py-1.5 bg-gradient-to-br from-primary to-accent hover:shadow-[0_6px_25px_var(--color-primary-glow)]
-                                    text-white text-[10px] font-bold rounded-lg transition-all shadow-[0_4px_15px_var(--color-primary-glow)] cursor-pointer btn-press">
-                                    Download Now
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* User pill */}
-                <div className={`flex-shrink-0 mb-3 ${isCollapsed ? "flex justify-center" : ""}`}>
-                    {isCollapsed ? (
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center
-                            font-bold text-sm text-white shadow-[var(--shadow-sm)]">
-                            A
-                        </div>
-                    ) : (
-                        <div className="bg-[var(--color-bg-elevated)] rounded-[var(--radius-sm)] border border-[var(--color-border)] p-3
-                            flex items-center gap-3">
-                            <div className="w-[34px] h-[34px] bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center
-                                font-bold text-sm text-white shadow-[var(--shadow-sm)] flex-shrink-0">
-                                A
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[var(--color-text-main)] text-[12px] font-semibold leading-tight truncate">Admin User</p>
-                                <p className="text-[var(--color-text-muted)] text-[10px]">Super Admin</p>
-                            </div>
-                            <span className="size-2.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] flex-shrink-0" />
-                        </div>
-                    )}
                 </div>
 
                 {/* Bottom actions */}
@@ -321,6 +306,31 @@ export default function AdminSidebar() {
                         </div>
                     )}
                 </div>
+
+                {/* Promo card */}
+                {/* {!isCollapsed && (
+                    <div className="mt-3 flex-shrink-0">
+                        <div className="rounded-[var(--radius-sm)] p-4 relative overflow-hidden"
+                            style={{
+                                background: "linear-gradient(135deg, rgba(5,150,105,0.06) 0%, rgba(0,123,131,0.06) 100%)",
+                                border: "1.5px solid rgba(5,150,105,0.15)"
+                            }}
+                        >
+                            <div className="absolute -top-4 -right-4 size-16 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+                            <div className="relative z-10">
+                                <div className="size-7 rounded-lg bg-[var(--color-primary-light)] border border-primary/20 flex items-center justify-center mb-2">
+                                    <span className="material-symbols-outlined text-primary text-[14px]">laptop_mac</span>
+                                </div>
+                                <h4 className="text-[var(--color-text-main)] text-[11px] font-bold leading-tight">Download Client App</h4>
+                                <p className="text-[var(--color-text-sub)] text-[10px] mt-0.5 leading-snug">Premium lockdown browser tool</p>
+                                <button className="mt-3 w-full py-1.5 bg-gradient-to-br from-primary to-accent hover:shadow-[0_6px_25px_var(--color-primary-glow)]
+                                    text-white text-[10px] font-bold rounded-lg transition-all shadow-[0_4px_15px_var(--color-primary-glow)] cursor-pointer btn-press">
+                                    Download Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )} */}
             </div>
         </aside>
     );

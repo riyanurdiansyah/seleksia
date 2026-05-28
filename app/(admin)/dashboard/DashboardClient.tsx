@@ -131,7 +131,7 @@ export default function DashboardClient({
                 </div>
                 <div className="flex items-center gap-2.5">
                     <Link
-                        href="/admin/candidates"
+                        href="/exam/candidate"
                         className="flex items-center gap-1.5 px-4 py-2.5 rounded-[var(--radius-sm)] text-[13px] font-semibold text-white
                             bg-gradient-to-br from-primary to-accent shadow-[0_4px_15px_var(--color-primary-glow)] border-none
                             hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] active:translate-y-0

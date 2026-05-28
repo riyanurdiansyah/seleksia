@@ -163,7 +163,7 @@ async function main() {
             { testId: intelligenceTest.id, displayId: "q-8", type: "multiple_choice", text: "DOKTER : RUMAH SAKIT = GURU : ?", options: ["Universitas", "Sekolah", "Perpustakaan", "Laboratorium"], correctAnswer: "Sekolah", sortOrder: 7 },
             { testId: intelligenceTest.id, displayId: "q-9", type: "multiple_choice", text: "Manakah yang TIDAK termasuk dalam kelompok? Apel, Mangga, Wortel, Jeruk", options: ["Apel", "Mangga", "Wortel", "Jeruk"], correctAnswer: "Wortel", sortOrder: 8 },
             { testId: intelligenceTest.id, displayId: "q-10", type: "number_series", text: "Lanjutkan deret: 100, 95, 85, 70, 50, ...", options: ["30", "25", "20", "35"], correctAnswer: "25", sortOrder: 9 },
-        ],
+        ].map(q => ({ ...q, companyId: "default-company-id" })) as any,
     });
 
     // --- Personality Test ---
@@ -192,7 +192,7 @@ async function main() {
             { testId: personalityTest.id, displayId: "q-8", type: "forced_choice", text: "Ketika teman memiliki masalah, saya biasanya...", options: ["Memberikan solusi praktis", "Mendengarkan dengan empati", "Menganalisis masalahnya", "Mengalihkan perhatiannya"], sortOrder: 7 },
             { testId: personalityTest.id, displayId: "q-9", type: "forced_choice", text: "Saya menilai diri saya lebih sebagai orang yang...", options: ["Pemikir strategis", "Pelaksana yang efisien", "Inovator kreatif", "Penghubung antar orang"], sortOrder: 8 },
             { testId: personalityTest.id, displayId: "q-10", type: "forced_choice", text: "Dalam tekanan deadline, saya biasanya...", options: ["Tetap tenang dan fokus", "Merasa cemas tapi tetap produktif", "Bekerja lebih baik di bawah tekanan", "Delegasi tugas ke orang lain"], sortOrder: 9 },
-        ],
+        ].map(q => ({ ...q, companyId: "default-company-id" })) as any,
     });
 
     // --- Aptitude Test ---
@@ -223,7 +223,7 @@ async function main() {
             { testId: aptitudeTest.id, displayId: "q-10", type: "multiple_choice", text: "Manakah kesimpulan yang benar? Semua burung memiliki sayap. Penguin adalah burung.", options: ["Penguin bisa terbang", "Penguin memiliki sayap", "Semua yang bersayap adalah burung", "Penguin bukan burung"], correctAnswer: "Penguin memiliki sayap", sortOrder: 9 },
             { testId: aptitudeTest.id, displayId: "q-11", type: "multiple_choice", text: "Sebuah persegi panjang memiliki panjang 12 cm dan lebar 8 cm. Berapa luasnya?", options: ["80 cm²", "96 cm²", "100 cm²", "88 cm²"], correctAnswer: "96 cm²", sortOrder: 10 },
             { testId: aptitudeTest.id, displayId: "q-12", type: "multiple_choice", text: "KUPU-KUPU : KEPOMPONG = KATAK : ?", options: ["Telur", "Berudu", "Larva", "Nimfa"], correctAnswer: "Berudu", sortOrder: 11 },
-        ],
+        ].map(q => ({ ...q, companyId: "default-company-id" })) as any,
     });
 
     // --- Projective Test ---
@@ -247,7 +247,7 @@ async function main() {
             { testId: projectiveTest.id, displayId: "q-3", type: "essay", text: "Jika Anda bisa menjadi hewan apa saja, hewan apa yang akan Anda pilih dan mengapa?", options: [], sortOrder: 2 },
             { testId: projectiveTest.id, displayId: "q-4", type: "essay", text: "Gambarkan rumah impian Anda. Jelaskan detail tentang rumah tersebut — letaknya, ukurannya, siapa yang tinggal di sana, dan mengapa Anda memilih desain tersebut.", options: [], sortOrder: 3 },
             { testId: projectiveTest.id, displayId: "q-5", type: "essay", text: "Ceritakan tentang mimpi yang paling berkesan bagi Anda. Apa yang terjadi dalam mimpi tersebut dan bagaimana perasaan Anda saat terbangun?", options: [], sortOrder: 4 },
-        ],
+        ].map(q => ({ ...q, companyId: "default-company-id" })) as any,
     });
 
     // --- Additional Intelligence Test (Likert) ---
@@ -274,7 +274,7 @@ async function main() {
             { testId: likertTest.id, displayId: "q-6", type: "likert_scale", text: "Saya mudah beradaptasi dengan perubahan yang tiba-tiba.", options: ["Sangat Tidak Setuju", "Tidak Setuju", "Netral", "Setuju", "Sangat Setuju"], sortOrder: 5 },
             { testId: likertTest.id, displayId: "q-7", type: "likert_scale", text: "Saya mampu mengendalikan kemarahan saya.", options: ["Sangat Tidak Setuju", "Tidak Setuju", "Netral", "Setuju", "Sangat Setuju"], sortOrder: 6 },
             { testId: likertTest.id, displayId: "q-8", type: "likert_scale", text: "Saya sering memikirkan perasaan orang sebelum berbicara.", options: ["Sangat Tidak Setuju", "Tidak Setuju", "Netral", "Setuju", "Sangat Setuju"], sortOrder: 7 },
-        ],
+        ].map(q => ({ ...q, companyId: "default-company-id" })) as any,
     });
 
     console.log("   ✅ TST-001: Tes Intelegensi Umum (10 soal)");

@@ -5,7 +5,7 @@ import SystemCheckClient from "./SystemCheckClient";
 import AuthGuard from "../components/AuthGuard";
 
 export const metadata = {
-    title: "System Check - Psikoest",
+    title: "System Check - SELEKSIA",
 };
 
 export default function SystemCheckPage() {

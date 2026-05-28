@@ -1,10 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+import { cookies } from "next/headers";
+import { getCompanyId } from "@/lib/tenant";
+
 // GET all assignments with candidate & test info
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
+        const cookieStore = await cookies();
+        const role = cookieStore.get('userRole')?.value;
+        const companyIdFilter = req.nextUrl.searchParams.get('companyId');
+
+        const whereClause: any = {};
+
+        if (role === 'superadmin') {
+            if (companyIdFilter && companyIdFilter !== 'all') {
+                whereClause.candidate = { companyId: companyIdFilter };
+            }
+        } else {
+            const companyId = await getCompanyId();
+            whereClause.candidate = { companyId };
+        }
+
         const assignments = await prisma.testAssignment.findMany({
+            where: whereClause,
             include: {
                 candidate: {
                     select: { id: true, displayId: true, name: true, email: true, batch: true, role: true },

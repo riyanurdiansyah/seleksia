@@ -1,11 +1,28 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getCompanyId } from "@/lib/tenant";
 
 // GET all tests with question count
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
+        const cookieStore = await cookies();
+        const role = cookieStore.get('userRole')?.value;
+        const companyIdFilter = req.nextUrl.searchParams.get('companyId');
+
+        const whereClause: any = {};
+
+        if (role === 'superadmin') {
+            if (companyIdFilter && companyIdFilter !== 'all') {
+                whereClause.companyId = companyIdFilter;
+            }
+        } else {
+            const companyId = await getCompanyId();
+            whereClause.companyId = companyId;
+        }
+
         const tests = await prisma.test.findMany({
+            where: whereClause,
             include: { questions: true },
             orderBy: { createdAt: "desc" },
         });
@@ -27,7 +44,14 @@ export async function POST(req: NextRequest) {
         const count = await prisma.test.count();
         const displayId = `TST-${String(count + 1).padStart(3, "0")}`;
 
-        const companyId = await getCompanyId();
+        const cookieStore = await cookies();
+        const role = cookieStore.get('userRole')?.value;
+
+        // Determine companyId: if superadmin, can use companyId from request body
+        let companyId = await getCompanyId();
+        if (role === 'superadmin' && body.companyId) {
+            companyId = body.companyId;
+        }
 
         const test = await prisma.test.create({
             data: {

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
     "/dashboard": { title: "Dashboard", subtitle: "Welcome back! Here's what's happening today." },
-    "/candidate": { title: "Candidates", subtitle: "Manage and monitor all registered candidates." },
+    "/exam/candidate": { title: "Candidates", subtitle: "Manage and monitor all registered candidates." },
     "/exam": { title: "Exam Management", subtitle: "Akses menu pengelolaan exam." },
     "/exam/question": { title: "Exam Tests", subtitle: "Configure and manage assessment tests." },
     "/exam/assignment": { title: "Assignments", subtitle: "Track and manage test assignments." },
@@ -29,6 +29,28 @@ export default function AdminHeader() {
     const [searchFocused, setSearchFocused] = useState(false);
     const notifRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
+
+    // Admin session info
+    const [adminName, setAdminName] = useState("Admin");
+    const [adminId, setAdminId] = useState("---");
+    const [adminRole, setAdminRole] = useState("");
+
+    // Load admin data from sessionStorage
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const name = sessionStorage.getItem("candidateName");
+            const role = sessionStorage.getItem("candidateRole");
+            const displayId = sessionStorage.getItem("candidateDisplayId");
+            if (name) setAdminName(name);
+            if (role) setAdminRole(role);
+            if (displayId) setAdminId(displayId);
+            if (role === "superadmin") {
+                setAdminName("Superadmin");
+                const match = document.cookie.match(/companyId=([^;]+)/);
+                if (match) setAdminId(match[1]);
+            }
+        }
+    }, []);
 
     const pageInfo = pageTitles[pathname] || pageTitles["/dashboard"];
 
@@ -146,11 +168,11 @@ export default function AdminHeader() {
                         <div className="size-8 rounded-full flex items-center justify-center font-bold text-[13px] text-white
                             bg-gradient-to-br from-primary to-accent shadow-[var(--shadow-sm)]
                             hover:scale-105 hover:shadow-[0_4px_12px_var(--color-primary-glow)] transition-all">
-                            A
+                            {adminName?.charAt(0) ?? "A"}
                         </div>
                         <div className="hidden md:flex flex-col items-start">
-                            <span className="text-[var(--color-text-main)] text-[12px] font-semibold leading-tight">Admin User</span>
-                            <span className="text-[var(--color-text-muted)] text-[10px]">Super Admin</span>
+                            <span className="text-[var(--color-text-main)] text-[12px] font-semibold leading-tight">{adminName}</span>
+                            <span className="text-[var(--color-text-muted)] text-[10px]">{adminRole || adminId}</span>
                         </div>
                         <span className="material-symbols-outlined text-[14px] text-[var(--color-text-muted)] hidden md:block">expand_more</span>
                     </button>
@@ -160,8 +182,8 @@ export default function AdminHeader() {
                             bg-[var(--color-bg-card)] border border-[var(--color-border-strong)]
                             shadow-[0_10px_30px_rgba(0,0,0,0.4)] overflow-hidden">
                             <div className="px-4 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
-                                <p className="text-[var(--color-text-main)] text-[13px] font-semibold">Admin User</p>
-                                <p className="text-[var(--color-text-muted)] text-[11px]">admin@psikoest.com</p>
+                                <p className="text-[var(--color-text-main)] text-[13px] font-semibold">{adminName}</p>
+                                <p className="text-[var(--color-text-muted)] text-[11px]">{adminName}@seleksia.com</p>
                             </div>
                             <div className="py-1">
                                 {[
