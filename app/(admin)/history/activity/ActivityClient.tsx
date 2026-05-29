@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import Breadcrumb from "../../components/Breadcrumb";
 import Select2 from "../../components/Select2";
 
@@ -220,10 +220,9 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                                 paginatedData.map((row) => {
                                     const isExpanded = expandedRows.has(row.groupKey);
                                     return (
-                                        <>
+                                        <Fragment key={row.groupKey}>
                                             {/* Parent Row */}
                                             <tr
-                                                key={row.groupKey}
                                                 onClick={() => toggleRow(row.groupKey)}
                                                 className={`border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50/70 dark:hover:bg-slate-800/40 transition-colors cursor-pointer text-gray-800 dark:text-gray-200 ${
                                                     isExpanded ? "bg-slate-50/40 dark:bg-slate-800/20" : ""
@@ -276,14 +275,14 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                                                     <td colSpan={6} className="bg-slate-50/40 dark:bg-slate-800/10 px-8 py-5 border-b border-gray-100 dark:border-slate-800">
                                                         <div className="pl-6 border-l-2 border-[#1B835E]/40 space-y-4">
                                                             <div className="flex items-center justify-between">
-                                                                <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-text-muted)]">
+                                                                 <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-text-muted)]">
                                                                     Rincian Sesi Aktivitas ({row.items.length} aktivitas)
-                                                                </h4>
-                                                                {row.sessionId !== "no-session" && (
-                                                                    <span className="text-[10px] font-mono text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-2 py-0.5 rounded">
-                                                                        Session ID: {row.sessionId}
-                                                                    </span>
-                                                                )}
+                                                                 </h4>
+                                                                 {row.sessionId !== "no-session" && (
+                                                                     <span className="text-[10px] font-mono text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-2 py-0.5 rounded">
+                                                                         Session ID: {row.sessionId}
+                                                                     </span>
+                                                                 )}
                                                             </div>
                                                             <div className="space-y-2.5">
                                                                 {row.items.map((subItem) => (
@@ -313,7 +312,7 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                                                     </td>
                                                 </tr>
                                             )}
-                                        </>
+                                        </Fragment>
                                     );
                                 })
                             )}
@@ -363,10 +362,9 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                                         const prev = arr[idx - 1];
                                         const showEllipsis = prev && p - prev > 1;
                                         return (
-                                            <>
+                                            <Fragment key={p}>
                                                 {showEllipsis && <span className="px-1">...</span>}
                                                 <button
-                                                    key={p}
                                                     onClick={() => setCurrentPage(p)}
                                                     className={`size-7 rounded flex items-center justify-center font-medium transition-all ${
                                                         currentPage === p
@@ -376,7 +374,7 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                                                 >
                                                     {p}
                                                 </button>
-                                            </>
+                                            </Fragment>
                                         );
                                     })}
                             </div>

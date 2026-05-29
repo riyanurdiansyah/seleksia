@@ -1,15 +1,21 @@
 import DashboardClient from "./DashboardClient";
 import { prisma } from "@/lib/prisma";
+import { getCompanyId } from "@/lib/tenant";
 
 export default async function AdminDashboardPage() {
+    const companyId = await getCompanyId();
+
     // 1. Total Participants
     const totalParticipants = await prisma.candidate.count({
-        where: { role: "user" }
+        where: { role: "user", companyId }
     });
 
     const activeAssignments = await prisma.testAssignment.count({
         where: {
-            status: "in_progress"
+            status: "in_progress",
+            candidate: {
+                companyId
+            }
         }
     });
 
@@ -22,6 +28,9 @@ export default async function AdminDashboardPage() {
             status: "completed",
             completedAt: {
                 gte: today
+            },
+            candidate: {
+                companyId
             }
         }
     });
@@ -29,7 +38,8 @@ export default async function AdminDashboardPage() {
     // 4. Score Distribution (Basic Implementation: count ranges of scores)
     const completedAssignmentsWithScores = await prisma.candidate.findMany({
         where: {
-            score: { not: null }
+            score: { not: null },
+            companyId
         },
         select: {
             score: true
@@ -71,6 +81,13 @@ export default async function AdminDashboardPage() {
 
     // 5. Recent Activity (Mix of recent completions and violations)
     const recentViolations = await prisma.violation.findMany({
+        where: {
+            assignment: {
+                candidate: {
+                    companyId
+                }
+            }
+        },
         take: 5,
         orderBy: { detectedAt: 'desc' },
         include: {
@@ -81,7 +98,12 @@ export default async function AdminDashboardPage() {
     });
 
     const recentCompletions = await prisma.testAssignment.findMany({
-        where: { status: 'completed' },
+        where: {
+            status: 'completed',
+            candidate: {
+                companyId
+            }
+        },
         take: 5,
         orderBy: { completedAt: 'desc' },
         include: { candidate: true, test: true }
@@ -125,7 +147,12 @@ export default async function AdminDashboardPage() {
 
     // 6. Upcoming Sessions
     const upcomingSessions = await prisma.testAssignment.findMany({
-        where: { status: 'assigned' },
+        where: {
+            status: 'assigned',
+            candidate: {
+                companyId
+            }
+        },
         take: 5,
         orderBy: { assignedAt: 'desc' },
         include: { candidate: true, test: true }
