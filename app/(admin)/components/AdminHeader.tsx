@@ -23,6 +23,21 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
     "/settings": { title: "Settings", subtitle: "Configure your admin preferences." },
 };
 
+interface SubMenuItem {
+    id: string;
+    name: string;
+    path: string | null;
+    icon: string | null;
+}
+
+interface MenuItem {
+    id: string;
+    name: string;
+    path: string | null;
+    icon: string | null;
+    submenus?: SubMenuItem[];
+}
+
 export default function AdminHeader() {
     const pathname = usePathname();
     const [notifOpen, setNotifOpen] = useState(false);
@@ -30,6 +45,11 @@ export default function AdminHeader() {
     const [searchFocused, setSearchFocused] = useState(false);
     const notifRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLDivElement>(null);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [menus, setMenus] = useState<MenuItem[]>([]);
+    const [filteredMenus, setFilteredMenus] = useState<{name: string, path: string, subtitle?: string}[]>([]);
 
     // Admin session info
     const [adminName, setAdminName] = useState("Admin");
@@ -56,9 +76,51 @@ export default function AdminHeader() {
     const pageInfo = pageTitles[pathname] || pageTitles["/dashboard"];
 
     useEffect(() => {
+        const fetchMenus = async () => {
+            const role = sessionStorage.getItem("candidateRole") || "admin";
+            try {
+                const res = await fetch(`/api/menus/sidebar?role=${role}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setMenus(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch sidebar menus", err);
+            }
+        };
+        fetchMenus();
+    }, []);
+
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setFilteredMenus([]);
+            return;
+        }
+
+        const query = searchQuery.toLowerCase();
+        const results: { name: string; path: string; subtitle?: string }[] = [];
+
+        menus.forEach(menu => {
+            if (menu.name.toLowerCase().includes(query) && menu.path && menu.path !== "/admin" && menu.path !== "/") {
+                results.push({ name: menu.name, path: menu.path });
+            }
+            if (menu.submenus) {
+                menu.submenus.forEach(sub => {
+                    if (sub.name.toLowerCase().includes(query) && sub.path) {
+                        results.push({ name: sub.name, path: sub.path, subtitle: `in ${menu.name}` });
+                    }
+                });
+            }
+        });
+
+        setFilteredMenus(results);
+    }, [searchQuery, menus]);
+
+    useEffect(() => {
         const handleClick = (e: MouseEvent) => {
             if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
             if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+            if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchFocused(false);
         };
         document.addEventListener("mousedown", handleClick);
         return () => document.removeEventListener("mousedown", handleClick);
@@ -85,7 +147,7 @@ export default function AdminHeader() {
             </div>
 
             {/* Center: Search */}
-            <div className="hidden md:flex flex-1 max-w-sm mx-8">
+            <div className="hidden md:flex flex-1 max-w-sm mx-8 relative" ref={searchRef}>
                 <div className={`relative w-full transition-all duration-300 ${searchFocused ? "translate-y-[-1px]" : ""}`}>
                     <span className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                         <span className="material-symbols-outlined text-[18px] text-[var(--color-text-muted)]">search</span>
@@ -97,16 +159,49 @@ export default function AdminHeader() {
                             focus:bg-[var(--color-bg-card)] focus:border-primary
                             focus:shadow-[0_8px_30px_rgba(0,0,0,0.15),0_0_0_4px_var(--color-primary-light)]
                             focus:translate-y-[-1px]"
-                        placeholder="Search candidates, tests, IDs..."
+                        placeholder="Search menus..."
                         type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => setSearchFocused(true)}
-                        onBlur={() => setSearchFocused(false)}
                     />
                     <kbd className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5
                         bg-[var(--color-bg-hover)] border border-[var(--color-border)] rounded text-[10px] font-bold text-[var(--color-text-muted)] pointer-events-none">
                         ⌘F
                     </kbd>
                 </div>
+
+                {/* Search Dropdown */}
+                {searchFocused && searchQuery && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--color-bg-card)] border border-[var(--color-border-strong)] rounded-[var(--radius-md)] shadow-[0_10px_30px_rgba(0,0,0,0.4)] overflow-hidden z-50">
+                        {filteredMenus.length > 0 ? (
+                            <ul className="py-2 max-h-[300px] overflow-y-auto">
+                                {filteredMenus.map((item, idx) => (
+                                    <li key={idx}>
+                                        <Link href={item.path} 
+                                            onClick={() => { setSearchFocused(false); setSearchQuery(""); }}
+                                            className="block px-4 py-2.5 hover:bg-[var(--color-bg-hover)] transition-colors">
+                                            <div className="flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-[18px] text-[var(--color-text-muted)]">list_alt</span>
+                                                <div>
+                                                    <div className="text-[13px] font-semibold text-[var(--color-text-main)]">{item.name}</div>
+                                                    {item.subtitle && <div className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{item.subtitle}</div>}
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="px-4 py-6 flex flex-col items-center justify-center gap-2">
+                                <span className="material-symbols-outlined text-[24px] text-[var(--color-text-muted)]">search_off</span>
+                                <div className="text-[13px] text-[var(--color-text-muted)] text-center">
+                                    No menus found for "{searchQuery}"
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Right: Actions */}
