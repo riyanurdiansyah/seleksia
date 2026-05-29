@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seleksia-web
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+    # Next.js akan membaca DATABASE_URL langsung dari file .env Anda yang terhubung ke PostgreSQL lokal VPS
+
+  ws:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seleksia-ws
+    restart: always
+    command: node scripts/ws-server.js
+    ports:
+      - "6002:6002"
+    env_file:
+      - .env
+    environment:
+      - PUSHER_PORT=6002
+    depends_on:
+      - web

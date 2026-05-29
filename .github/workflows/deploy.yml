@@ -20,31 +20,20 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            echo "=== STARTING DEPLOYMENT ==="
-            cd /var/www/psikoest
+            echo "=== STARTING DOCKER DEPLOYMENT ==="
+            cd /var/www/seleksia
             
             # Reset local changes in production if any, and pull latest code
             git reset --hard
             git pull origin master
             
-            # Load Node.js & NPM via NVM (essential for non-interactive shell sessions)
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            # Build and launch all containers (web, ws, db) in detached mode
+            docker compose up --build -d
             
-            # Verify node & npm versions
-            node -v
-            npm -v
+            # Run Prisma database migrations inside the running Next.js container
+            docker compose exec -T web npx prisma migrate deploy
             
-            # Install new packages, generate prisma client, and apply DB migrations
-            npm install
-            npx prisma generate
-            npx prisma migrate deploy
+            # Clean up old unused Docker builds/images to prevent VPS disk space from running out
+            docker image prune -f
             
-            # Build Next.js
-            npm run build
-            
-            # Restart PM2 processes to apply changes
-            pm2 restart seleksia-web
-            pm2 restart seleksia-ws
-            
-            echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ==="
+            echo "=== DOCKER DEPLOYMENT COMPLETED SUCCESSFULLY ==="
