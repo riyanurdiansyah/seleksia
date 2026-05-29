@@ -15,6 +15,8 @@ interface ActivityItem {
     badgeClass: string;
     targetName: string;
     candidateId: string;
+    candidateDbId: string;
+    candidateName: string;
     relativeTime: string;
     rawTime: string;
     assignmentId: string;
@@ -26,6 +28,7 @@ interface GroupedActivity {
     sessionId: string;
     assignmentId: string;
     candidateId: string;
+    candidateName: string;
     targetName: string;
     title: string;
     description: string;
@@ -74,22 +77,24 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                     item.title.toLowerCase().includes(query) ||
                     item.description.toLowerCase().includes(query) ||
                     item.targetName.toLowerCase().includes(query) ||
-                    item.candidateId.toLowerCase().includes(query)
+                    item.candidateId.toLowerCase().includes(query) ||
+                    item.candidateName.toLowerCase().includes(query)
                 );
             });
         }
 
-        // Step C: Group by sessionId and assignmentId
+        // Step C: Group by candidateDbId (user)
         const groups: Record<string, GroupedActivity> = {};
 
         filtered.forEach((item) => {
-            const groupKey = `${item.assignmentId}_${item.sessionId}`;
+            const groupKey = item.candidateDbId || "unknown";
             if (!groups[groupKey]) {
                 groups[groupKey] = {
                     groupKey,
                     sessionId: item.sessionId,
                     assignmentId: item.assignmentId,
                     candidateId: item.candidateId,
+                    candidateName: item.candidateName,
                     targetName: item.targetName,
                     title: item.title,
                     description: item.description,
@@ -112,15 +117,20 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
             group.items.sort((a, b) => new Date(b.rawTime).getTime() - new Date(a.rawTime).getTime());
             const latest = group.items[0];
 
+            // Combine unique test names
+            const uniqueTests = Array.from(new Set(group.items.map((item) => item.targetName)));
+            const targetName = uniqueTests.join(", ");
+
             return {
                 ...group,
-                title: latest.title,
+                title: group.candidateName,
+                targetName,
                 description: group.items.length > 1
                     ? `${group.items.length} aktivitas terekam. Aktivitas terakhir: ${latest.title}`
                     : latest.description,
                 icon: latest.icon,
                 iconBg: latest.iconBg,
-                badge: group.items.length > 1 ? `${group.items.length} Events` : latest.badge,
+                badge: group.items.length > 1 ? `${group.items.length} Aktivitas` : latest.badge,
                 badgeClass: group.items.length > 1
                     ? "bg-brand-navy/15 dark:bg-brand-navy/35 text-brand-navy dark:text-brand-sky font-bold"
                     : latest.badgeClass,
@@ -149,7 +159,7 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                             Activity Log
                         </h1>
                         <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
-                            Pantau riwayat pengerjaan ujian, pelanggaran anti-cheat, dan aktivitas ujian terkelompok per sesi.
+                            Pantau riwayat pengerjaan ujian, pelanggaran anti-cheat, dan aktivitas ujian terkelompok per user.
                         </p>
                     </div>
                     <Breadcrumb />
@@ -199,7 +209,7 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                         <thead className="bg-[#E6F4EA] text-[#1B835E] uppercase tracking-wide border-b border-[#1C835F]/20">
                             <tr>
                                 <th className="px-5 py-3.5 text-[10px] font-bold w-10"></th>
-                                <th className="px-5 py-3.5 text-[10px] font-bold">Aktivitas Terakhir</th>
+                                <th className="px-5 py-3.5 text-[10px] font-bold">Kandidat</th>
                                 <th className="px-5 py-3.5 text-[10px] font-bold">Ujian</th>
                                 <th className="px-5 py-3.5 text-[10px] font-bold">ID Peserta</th>
                                 <th className="px-5 py-3.5 text-[10px] font-bold">Status</th>
@@ -276,13 +286,8 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                                                         <div className="pl-6 border-l-2 border-[#1B835E]/40 space-y-4">
                                                             <div className="flex items-center justify-between">
                                                                  <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-text-muted)]">
-                                                                    Rincian Sesi Aktivitas ({row.items.length} aktivitas)
+                                                                    Rincian Aktivitas {row.candidateName} ({row.items.length} aktivitas)
                                                                  </h4>
-                                                                 {row.sessionId !== "no-session" && (
-                                                                     <span className="text-[10px] font-mono text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-2 py-0.5 rounded">
-                                                                         Session ID: {row.sessionId}
-                                                                     </span>
-                                                                 )}
                                                             </div>
                                                             <div className="space-y-2.5">
                                                                 {row.items.map((subItem) => (
@@ -293,7 +298,14 @@ export default function ActivityClient({ initialData }: { initialData: ActivityI
                                                                             </div>
                                                                             <div>
                                                                                 <p className="font-bold text-xs text-[var(--color-text-main)]">{subItem.title}</p>
-                                                                                <p className="text-[11px] text-[var(--color-text-sub)] mt-0.5">{subItem.description}</p>
+                                                                                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                                                                    <p className="text-[11px] text-[var(--color-text-sub)]">{subItem.description}</p>
+                                                                                    {subItem.sessionId && subItem.sessionId !== "no-session" && (
+                                                                                        <span className="text-[9px] font-mono text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-1.5 py-0.5 rounded border border-[var(--color-border)]">
+                                                                                            Session: {subItem.sessionId}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                         <div className="flex items-center justify-between sm:justify-end gap-4 text-right">

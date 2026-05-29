@@ -22,6 +22,12 @@ model Company {
   questions    Question[]
   testGroups   TestGroup[]
 
+  smtpHost     String?
+  smtpPort     Int?
+  smtpUser     String?
+  smtpPass     String?
+  smtpSender   String?
+
   @@map("companies")
 }
 
