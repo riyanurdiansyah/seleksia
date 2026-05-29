@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { WebSocketServer } = require("ws");
 
 const port = process.env.PUSHER_PORT ? parseInt(process.env.PUSHER_PORT) : 6001;
