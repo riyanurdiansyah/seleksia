@@ -17,6 +17,7 @@ interface Instruction {
     type: "general" | "specific";
     content: string;
     testId: string | null;
+    companyId: string;
     test: {
         name: string;
     } | null;
@@ -37,13 +38,40 @@ export default function InstructionsClient() {
         type: "general" as "general" | "specific",
         content: "",
         testId: "",
+        companyId: "",
     });
 
-    const fetchData = useCallback(async () => {
+    // Multi-tenant States
+    const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+    const [selectedCompany, setSelectedCompany] = useState<string>("all");
+    const [currentRole, setCurrentRole] = useState<string>("user");
+
+    /* Fetch companies (superadmin only) */
+    const fetchCompanies = useCallback(async () => {
         try {
+            const res = await fetch("/api/companies");
+            if (res.ok) {
+                const data = await res.json();
+                setCompanies(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch companies", err);
+        }
+    }, []);
+
+    const fetchData = useCallback(async (companyId: string = "all") => {
+        setLoading(true);
+        try {
+            const instUrl = companyId && companyId !== "all"
+                ? `/api/instructions?companyId=${companyId}`
+                : "/api/instructions";
+            const testsUrl = companyId && companyId !== "all"
+                ? `/api/tests?companyId=${companyId}`
+                : "/api/tests";
+
             const [instRes, testsRes] = await Promise.all([
-                fetch("/api/instructions", { cache: "no-store" }),
-                fetch("/api/tests", { cache: "no-store" })
+                fetch(instUrl, { cache: "no-store" }),
+                fetch(testsUrl, { cache: "no-store" })
             ]);
 
             if (instRes.ok) setInstructions(await instRes.json());
@@ -56,7 +84,19 @@ export default function InstructionsClient() {
     }, []);
 
     useEffect(() => {
-        fetchData();
+        const role = sessionStorage.getItem("candidateRole") || "user";
+        setCurrentRole(role);
+
+        if (role === "superadmin") {
+            fetchCompanies();
+        }
+
+        fetchData("all");
+    }, [fetchCompanies, fetchData]);
+
+    const handleCompanyChange = useCallback((val: string) => {
+        setSelectedCompany(val);
+        fetchData(val);
     }, [fetchData]);
 
     const filtered = instructions.filter((i) => {
@@ -118,12 +158,29 @@ export default function InstructionsClient() {
 
     const handleSave = async () => {
         if (!form.content || (form.type === "specific" && !form.testId)) return;
+
+        let targetCompanyId = form.companyId;
+        if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
+            targetCompanyId = selectedCompany !== "all" ? selectedCompany : "";
+        }
+
+        if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
+            alert("Silakan pilih perusahaan terlebih dahulu");
+            return;
+        }
+
         try {
             const isEdit = !!form.id;
             const res = await fetch(`/api/instructions${isEdit ? `/${form.id}` : ""}`, {
                 method: isEdit ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form),
+                body: JSON.stringify({
+                    id: form.id,
+                    type: form.type,
+                    content: form.content,
+                    testId: form.type === "specific" ? form.testId : null,
+                    companyId: targetCompanyId || undefined,
+                }),
             });
             if (!res.ok) throw new Error("Failed to save");
             const saved = await res.json();
@@ -135,7 +192,7 @@ export default function InstructionsClient() {
             );
 
             setShowModal(false);
-            setForm({ id: "", type: "general", content: "", testId: "" });
+            setForm({ id: "", type: "general", content: "", testId: "", companyId: "" });
         } catch (err) {
             console.error(err);
         }
@@ -157,6 +214,7 @@ export default function InstructionsClient() {
             type: inst.type,
             content: inst.content,
             testId: inst.testId || "",
+            companyId: inst.companyId || "",
         });
         setShowModal(true);
     };
@@ -171,40 +229,56 @@ export default function InstructionsClient() {
                     </div>
                     <Breadcrumb />
                 </div>
-                <div className="flex justify-end">
-                    <button
-                        onClick={() => {
-                            setForm({ id: "", type: "general", content: "", testId: "" });
-                            setShowModal(true);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                        Add Instruction
-                    </button>
+            </div>
+
+            <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6">
+                    
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                    {/* Left Actions: Export Buttons Group and optional Company Dropdown */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        {currentRole === "superadmin" && (
+                            <Select2
+                                value={selectedCompany}
+                                onChange={handleCompanyChange}
+                                options={[
+                                    { value: "all", label: "Semua Perusahaan" },
+                                    ...companies.map(c => ({ value: c.id, label: c.name }))
+                                ]}
+                                placeholder="Pilih Perusahaan..."
+                                className="w-52 text-left"
+                            />
+                        )}
+                        <Select2
+                            value={filterType}
+                            onChange={(val) => setFilterType(val)}
+                            options={[
+                                { value: "all", label: "All" },
+                                { value: "general", label: "General" },
+                                { value: "specific", label: "Specific" }
+                            ]}
+                            className="w-40 text-left"
+                        />
+                    </div>
+
+                    {/* Right Actions: Add Button */}
+                    <div className="w-full sm:w-auto">
+                        <button
+                            onClick={() => {
+                                setForm({ id: "", type: "general", content: "", testId: "", companyId: selectedCompany !== "all" ? selectedCompany : "" });
+                                setShowModal(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                            Add Instruction
+                        </button>
+                    </div>
+                </div>
+                <div className="mt-4 flex-1 min-h-[400px]">
+                    <DataTable data={filtered} columns={columns} globalSearchPlaceholder="Search instructions..." />
                 </div>
             </div>
-
-            <div className="flex items-center justify-end mt-6">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Filter Type:</span>
-                    <Select2
-                        value={filterType}
-                        onChange={(val) => setFilterType(val)}
-                        options={[
-                            { value: "all", label: "All Types" },
-                            { value: "general", label: "General" },
-                            { value: "specific", label: "Specific" }
-                        ]}
-                        className="w-40 text-left"
-                    />
-                </div>
-            </div>
-
-            <div className="mt-4 flex-1 min-h-[400px]">
-                <DataTable data={filtered} columns={columns} globalSearchPlaceholder="Search instructions..." />
-            </div>
-
             {/* Modal Edit/Create */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-[8px] z-[9999] flex items-center justify-center p-4">
@@ -223,6 +297,19 @@ export default function InstructionsClient() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                            {currentRole === "superadmin" && (
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Perusahaan Penerima *</label>
+                                    <Select2
+                                        value={form.companyId || (selectedCompany !== "all" ? selectedCompany : "")}
+                                        onChange={(val) => setForm((prev) => ({ ...prev, companyId: val }))}
+                                        options={companies.map(c => ({ value: c.id, label: c.name }))}
+                                        placeholder="Pilih Perusahaan..."
+                                        className="w-full text-left"
+                                    />
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Type</label>
                                 <Select2

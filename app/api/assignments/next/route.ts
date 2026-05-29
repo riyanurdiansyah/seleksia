@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
                     },
                 },
                 candidate: {
-                    select: { id: true, displayId: true, name: true },
+                    select: { id: true, displayId: true, name: true, companyId: true },
                 },
                 answers: {
                     select: { questionId: true, answer: true },

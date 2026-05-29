@@ -38,6 +38,12 @@ interface Assignment {
     test: TestInfo;
 }
 
+interface TestGroupInfo {
+    id: string;
+    name: string;
+    tests: { id: string }[];
+}
+
 const categoryConfig: Record<string, { label: string; icon: string; color: string }> = {
     intelligence: { label: "Intelligence", icon: "psychology", color: "text-[var(--color-accent)] bg-[var(--color-accent-light)]" },
     personality: { label: "Personality", icon: "mood", color: "text-pink-600 bg-pink-50 dark:bg-pink-900/20" },
@@ -56,6 +62,7 @@ export default function AssignmentsClient() {
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [candidates, setCandidates] = useState<CandidateInfo[]>([]);
     const [tests, setTests] = useState<TestInfo[]>([]);
+    const [testGroups, setTestGroups] = useState<TestGroupInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; candidateName: string; testName: string } | null>(null);
@@ -99,11 +106,15 @@ export default function AssignmentsClient() {
             const candidatesUrl = companyId && companyId !== "all"
                 ? `/api/candidates?companyId=${companyId}`
                 : "/api/candidates";
+            const testGroupsUrl = companyId && companyId !== "all"
+                ? `/api/test-groups?companyId=${companyId}`
+                : "/api/test-groups";
 
-            const [aRes, cRes, tRes] = await Promise.all([
+            const [aRes, cRes, tRes, tgRes] = await Promise.all([
                 fetch(assignmentsUrl),
                 fetch(candidatesUrl),
                 fetch("/api/tests"),
+                fetch(testGroupsUrl),
             ]);
             if (aRes.ok) setAssignments(await aRes.json());
             if (cRes.ok) setCandidates(await cRes.json());
@@ -111,6 +122,9 @@ export default function AssignmentsClient() {
                 const allTests = await tRes.json();
                 // Only show published tests for assignment
                 setTests(allTests.filter((t: TestInfo) => t.status === "published"));
+            }
+            if (tgRes.ok) {
+                setTestGroups(await tgRes.json());
             }
         } catch (err) {
             console.error(err);
@@ -467,9 +481,9 @@ export default function AssignmentsClient() {
                                     ) : (
                                         modalCandidates.map((c) => (
                                             <button key={c.id} onClick={() => toggleCandidate(c.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-sm)] text-left transition-all ${selectedCandidates.has(c.id) ? "bg-[var(--color-primary-light)] border border-[var(--color-border-accent)]" : "hover:bg-[var(--color-bg-hover)] border border-transparent"}`}>
-                                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedCandidates.has(c.id) ? "bg-primary border-primary text-white" : "border-[var(--color-border)]"}`}>
-                                                    {selectedCandidates.has(c.id) && <span className="material-symbols-outlined text-[14px]">check</span>}
-                                                </div>
+                                                 <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${selectedCandidates.has(c.id) ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"}`}>
+                                                     {selectedCandidates.has(c.id) && <span className="material-symbols-outlined text-[14px] font-bold leading-none">check</span>}
+                                                 </div>
                                                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-[10px] flex-shrink-0 shadow-[var(--shadow-sm)]">
                                                     {c.name.charAt(0).toUpperCase()}
                                                 </div>
@@ -496,6 +510,30 @@ export default function AssignmentsClient() {
                                             {selectedTests.size === modalTests.length ? "Deselect All" : "Select All"}
                                         </button>
                                     </div>
+
+                                    {testGroups.length > 0 && (
+                                        <div className="mb-3">
+                                            <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Load from Group</label>
+                                            <Select2
+                                                value="none"
+                                                onChange={(val) => {
+                                                    if (val === "none") return;
+                                                    const group = testGroups.find(g => g.id === val);
+                                                    if (group) {
+                                                        const newSelected = new Set<string>();
+                                                        group.tests.forEach(t => newSelected.add(t.id));
+                                                        setSelectedTests(newSelected);
+                                                    }
+                                                }}
+                                                options={[
+                                                    { value: "none", label: "Select a group..." },
+                                                    ...testGroups.map(g => ({ value: g.id, label: g.name }))
+                                                ]}
+                                                className="w-full text-left"
+                                            />
+                                        </div>
+                                    )}
+
                                     <div className="relative">
                                         <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-[var(--color-text-muted)]">
                                             <span className="material-symbols-outlined text-[16px]">search</span>
@@ -511,9 +549,9 @@ export default function AssignmentsClient() {
                                             const cat = categoryConfig[t.category] || categoryConfig.intelligence;
                                             return (
                                                 <button key={t.id} onClick={() => toggleTest(t.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-sm)] text-left transition-all ${selectedTests.has(t.id) ? "bg-[var(--color-primary-light)] border border-[var(--color-border-accent)]" : "hover:bg-[var(--color-bg-hover)] border border-transparent"}`}>
-                                                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedTests.has(t.id) ? "bg-primary border-primary text-white" : "border-[var(--color-border)]"}`}>
-                                                        {selectedTests.has(t.id) && <span className="material-symbols-outlined text-[14px]">check</span>}
-                                                    </div>
+                                                     <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${selectedTests.has(t.id) ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"}`}>
+                                                         {selectedTests.has(t.id) && <span className="material-symbols-outlined text-[14px] font-bold leading-none">check</span>}
+                                                     </div>
                                                     <div className={`p-1.5 rounded-[var(--radius-sm)] ${cat.color} flex-shrink-0`}>
                                                         <span className="material-symbols-outlined text-[14px]">{cat.icon}</span>
                                                     </div>

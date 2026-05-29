@@ -91,7 +91,7 @@ export default function InstructionsPage() {
     const handleBeginTest = () => {
         // Safe it so the next exam page knows which one
         sessionStorage.setItem("selectedAssignmentId", selectedAssignmentId);
-        window.location.href = "/exam";
+        window.location.href = "/cbt";
     };
 
     const selectedAssignment = assignments.find(a => a.id === selectedAssignmentId);

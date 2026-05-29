@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Breadcrumb from "../components/Breadcrumb";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Breadcrumb from "../../components/Breadcrumb";
+import Select2 from "../../components/Select2";
 
 interface CandidateResult {
     id: string;
@@ -14,11 +16,52 @@ interface CandidateResult {
 }
 
 export default function WhatsappClient({ initialData }: { initialData: CandidateResult[] }) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
     const [templateText, setTemplateText] = useState("Halo {{name}},\n\nAnda telah dijadwalkan untuk mengikuti psikotes: {{test_name}}.\n\nSilakan login menggunakan ID Anda: {{displayId}} melalui situs kami.\n\nTerima kasih.");
-    const [isBlasting, setIsBlasting] = useState(false);
-    const [blastStatus, setBlastStatus] = useState<{ id: string, status: "pending" | "success" | "failed" }[]>([]);
     const [search, setSearch] = useState("");
+
+    // Sequential Wizard States
+    const [wizardOpen, setWizardOpen] = useState(false);
+    const [wizardIndex, setWizardIndex] = useState(0);
+    const [wizardStatuses, setWizardStatuses] = useState<Record<string, "pending" | "sent" | "skipped">>({});
+
+    const selectedUserIds = useMemo(() => Array.from(selectedUsers), [selectedUsers]);
+
+    // Multi-tenant States
+    const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+    const [selectedCompany, setSelectedCompany] = useState<string>(searchParams.get("companyId") || "all");
+    const [currentRole, setCurrentRole] = useState<string>("user");
+
+    const fetchCompanies = useCallback(async () => {
+        try {
+            const res = await fetch("/api/companies");
+            if (res.ok) {
+                const data = await res.json();
+                setCompanies(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch companies", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        const role = sessionStorage.getItem("candidateRole") || "user";
+        setCurrentRole(role);
+
+        if (role === "superadmin") {
+            fetchCompanies();
+        }
+    }, [fetchCompanies]);
+
+    const handleCompanyChange = (val: string) => {
+        setSelectedCompany(val);
+        setSelectedUsers(new Set());
+        setWizardStatuses({});
+        router.push(`/communication/whatsapp?companyId=${val}`);
+    };
 
     const filteredData = initialData.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,17 +87,16 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
     };
 
     const insertVariable = (variable: string) => {
-        setTemplateText(prev => prev + variable);
+        setTemplateText(prev => prev + " " + variable);
     };
 
-    // Replace variables in text for a specific user
-    const personalizeMessage = (user: CandidateResult, msg: string) => {
+    const personalizeMessage = useCallback((user: CandidateResult, msg: string) => {
         return msg
             .replace(/\{\{name\}\}/g, user.name)
             .replace(/\{\{test_name\}\}/g, user.assignedTests || "Test Assessment")
             .replace(/\{\{displayId\}\}/g, user.displayId)
             .replace(/\{\{email\}\}/g, user.email);
-    };
+    }, []);
 
     const formatPhoneNumber = (phone: string) => {
         if (!phone) return "";
@@ -65,34 +107,48 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
         return formatted;
     };
 
-    const generateWhatsappLink = (user: CandidateResult) => {
+    const generateWhatsappLink = useCallback((user: CandidateResult) => {
         const text = encodeURIComponent(personalizeMessage(user, templateText));
         const phone = formatPhoneNumber(user.phone);
         return `https://wa.me/${phone}?text=${text}`;
-    };
+    }, [templateText, personalizeMessage]);
 
     const handleSendIndividual = (user: CandidateResult) => {
         window.open(generateWhatsappLink(user), "_blank");
     };
 
-    const handleBlast = async () => {
-        if (selectedUsers.size === 0) return;
-        setIsBlasting(true);
+    const startWizard = () => {
+        if (selectedUserIds.length === 0) return;
+        const initial: Record<string, "pending"> = {};
+        selectedUserIds.forEach(id => {
+            initial[id] = "pending";
+        });
+        setWizardStatuses(initial);
+        setWizardIndex(0);
+        setWizardOpen(true);
+    };
 
-        const initialStatuses = Array.from(selectedUsers).map(id => ({ id, status: "pending" as const }));
-        setBlastStatus(initialStatuses);
-
-        // Simulate a blast process (batching typical for actual API delivery)
-        for (let i = 0; i < initialStatuses.length; i++) {
-            const userStatus = initialStatuses[i];
-
-            // Artificial delay to mimic API request
-            await new Promise(r => setTimeout(r, 800));
-
-            setBlastStatus(prev => prev.map(s => s.id === userStatus.id ? { ...s, status: "success" } : s));
+    const handleWizardSend = (user: CandidateResult) => {
+        window.open(generateWhatsappLink(user), "_blank");
+        setWizardStatuses(prev => ({ ...prev, [user.id]: "sent" }));
+        if (wizardIndex < selectedUserIds.length - 1) {
+            setWizardIndex(prev => prev + 1);
+        } else {
+            alert("Semua pesan telah selesai diproses!");
+            setWizardOpen(false);
+            setSelectedUsers(new Set());
         }
+    };
 
-        setIsBlasting(false);
+    const handleWizardSkip = (userId: string) => {
+        setWizardStatuses(prev => ({ ...prev, [userId]: "skipped" }));
+        if (wizardIndex < selectedUserIds.length - 1) {
+            setWizardIndex(prev => prev + 1);
+        } else {
+            alert("Semua pesan telah selesai diproses!");
+            setWizardOpen(false);
+            setSelectedUsers(new Set());
+        }
     };
 
     return (
@@ -113,7 +169,7 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
                 {/* Left Col: Target Select */}
-                <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] flex flex-col h-full max-h-[800px] relative overflow-hidden">
+                <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] flex flex-col h-[750px] relative overflow-hidden">
                     <div className="card-shimmer" />
                     <div className="p-5 border-b border-[var(--color-border)] flex justify-between items-center bg-[var(--color-bg-hover)]">
                         <h3 className="text-base font-bold text-[var(--color-text-main)] flex items-center gap-2">
@@ -122,13 +178,25 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
                         </h3>
                     </div>
 
-                    <div className="p-4 border-b border-[var(--color-border)]">
-                        <div className="relative">
+                    <div className="p-4 border-b border-[var(--color-border)] flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
                             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
                                 <span className="material-symbols-outlined text-[18px]">search</span>
                             </span>
                             <input value={search} onChange={(e) => setSearch(e.target.value)} type="text" placeholder="Search by name, ID, or phone..." className="w-full h-10 pl-9 pr-4 text-sm rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] focus:shadow-[0_8px_30px_rgba(0,0,0,0.15)] focus:translate-y-[-1px] transition-all duration-300 text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]" />
                         </div>
+                        {currentRole === "superadmin" && (
+                            <Select2
+                                value={selectedCompany}
+                                onChange={handleCompanyChange}
+                                options={[
+                                    { value: "all", label: "Semua Perusahaan" },
+                                    ...companies.map(c => ({ value: c.id, label: c.name }))
+                                ]}
+                                placeholder="Pilih Perusahaan..."
+                                className="w-52 text-left"
+                            />
+                        )}
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-2">
@@ -142,7 +210,7 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
                             {filteredData.map(c => {
                                 const hasPhone = !!c.phone;
                                 const isSelected = selectedUsers.has(c.id);
-                                const currentBlastState = blastStatus.find(s => s.id === c.id)?.status;
+                                const currentBlastState = wizardStatuses[c.id];
 
                                 return (
                                     <div key={c.id} onClick={() => toggleSelect(c.id, c.phone)} className={`p-3 rounded-[var(--radius-sm)] flex items-center gap-4 transition-all cursor-pointer ${isSelected ? "bg-[var(--color-success-light)] border-[var(--color-success)]/20 border" : "bg-transparent border border-transparent hover:bg-[var(--color-bg-hover)]"}`}>
@@ -155,10 +223,11 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
                                             <p className={`text-xs mt-0.5 truncate ${hasPhone ? "text-[var(--color-text-sub)] font-mono" : "text-[var(--color-danger)] italic font-medium"}`}>{hasPhone ? c.phone : "No Phone Number Recorded"}</p>
                                         </div>
 
-                                        {currentBlastState === "pending" && <span className="material-symbols-outlined text-[var(--color-warning)] animate-spin">refresh</span>}
-                                        {currentBlastState === "success" && <span className="material-symbols-outlined text-[var(--color-success)]">check_circle</span>}
+                                        {currentBlastState === "pending" && <span className="material-symbols-outlined text-[var(--color-warning)]">schedule</span>}
+                                        {currentBlastState === "sent" && <span className="material-symbols-outlined text-[var(--color-success)]">check_circle</span>}
+                                        {currentBlastState === "skipped" && <span className="material-symbols-outlined text-[var(--color-text-muted)]">block</span>}
 
-                                        {!isBlasting && hasPhone && (
+                                        {hasPhone && (
                                             <button onClick={(e) => { e.stopPropagation(); handleSendIndividual(c); }} className="p-1.5 rounded-[var(--radius-xs)] bg-[var(--color-success-light)] text-[var(--color-success)] hover:shadow-[0_2px_8px_var(--color-success-glow)] transition-all ml-auto btn-press" title="Send Individual WhatsApp Web">
                                                 <span className="material-symbols-outlined text-[18px]">send</span>
                                             </button>
@@ -201,21 +270,94 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
                         <div className="mt-4 p-4 bg-[var(--color-accent-light)] rounded-[var(--radius-md)] border border-[var(--color-accent)]/20 flex items-start gap-3">
                             <span className="material-symbols-outlined text-[var(--color-accent)] mt-0.5">info</span>
                             <div>
-                                <h4 className="text-sm font-semibold text-[var(--color-accent)]">How Blasting Works</h4>
-                                <p className="text-xs text-[var(--color-text-sub)] mt-1">If you configure an actual WA API server in the backend, clicking "Simulate API Blast" will send real messages. Alternatively, you can send manual messages sequentially by clicking the green arrow on each user row.</p>
+                                <h4 className="text-sm font-semibold text-[var(--color-accent)]">Sistem Pengiriman wa.me</h4>
+                                <p className="text-xs text-[var(--color-text-sub)] mt-1">
+                                    Karena aplikasi ini dirancang sebagai platform SaaS, pengiriman pesan bulk dilakukan dengan mengarahkan pengguna secara manual dan berurutan menggunakan layanan tautan WhatsApp Web (`wa.me`). Hal ini menghindari penggunaan nomor WA sentral pihak ketiga.
+                                </p>
                             </div>
                         </div>
 
                         <div className="mt-6 flex gap-4 border-t border-[var(--color-border)] pt-6">
-                            <button onClick={handleBlast} disabled={selectedUsers.size === 0 || isBlasting} className="flex-1 py-3 px-4 rounded-[var(--radius-sm)] bg-[#25D366] hover:bg-[#1da851] text-white font-bold text-sm transition-all shadow-md shadow-[#25D366]/20 hover:shadow-lg hover:shadow-[#25D366]/30 hover:translate-y-[-1px] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed btn-press">
-                                {isBlasting ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">campaign</span>}
-                                {isBlasting ? "Sending via API..." : `Simulate API Blast (${selectedUsers.size})`}
+                            <button onClick={startWizard} disabled={selectedUsers.size === 0} className="flex-1 py-3 px-4 rounded-[var(--radius-sm)] bg-[#25D366] hover:bg-[#1da851] text-white font-bold text-sm transition-all shadow-md shadow-[#25D366]/20 hover:shadow-lg hover:shadow-[#25D366]/30 hover:translate-y-[-1px] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed btn-press">
+                                <span className="material-symbols-outlined">campaign</span>
+                                Mulai Kirim Berurutan ({selectedUsers.size})
                             </button>
                         </div>
                     </div>
                 </div>
 
             </div>
+
+            {/* Sequential Sender Wizard Modal */}
+            {wizardOpen && selectedUserIds.length > 0 && (() => {
+                const currentId = selectedUserIds[wizardIndex];
+                const currentUser = filteredData.find(c => c.id === currentId);
+                if (!currentUser) return null;
+
+                return (
+                    <div className="fixed inset-0 bg-black/70 backdrop-blur-[8px] z-[9999] flex items-center justify-center p-4">
+                        <div className="absolute inset-0" onClick={() => setWizardOpen(false)} />
+                        <div className="relative w-full max-w-lg bg-[var(--color-bg-card)] rounded-3xl border border-[var(--color-border-strong)] shadow-[0_20px_40px_rgba(0,0,0,0.4)] animate-slide-in-up flex flex-col p-6 space-y-5">
+                            <div className="flex justify-between items-center border-b border-[var(--color-border)] pb-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-[var(--color-text-main)]">Kirim WhatsApp Web</h3>
+                                    <p className="text-xs text-[var(--color-text-muted)]">Kirim pesan manual berurutan dengan wa.me</p>
+                                </div>
+                                <button onClick={() => setWizardOpen(false)} className="p-1.5 rounded-[var(--radius-xs)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] transition-colors">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between text-xs font-bold text-[var(--color-text-muted)]">
+                                    <span>Pesan ke-{wizardIndex + 1} dari {selectedUserIds.length}</span>
+                                    <span>{Math.round(((wizardIndex) / selectedUserIds.length) * 100)}% Selesai</span>
+                                </div>
+                                <div className="w-full bg-[var(--color-bg-elevated)] h-1.5 rounded-full overflow-hidden">
+                                    <div className="bg-green-500 h-full transition-all duration-300" style={{ width: `${((wizardIndex) / selectedUserIds.length) * 100}%` }} />
+                                </div>
+                            </div>
+
+                            {/* Recipient card */}
+                            <div className="p-4 bg-[var(--color-bg-hover)] rounded-xl border border-[var(--color-border)] space-y-2">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-[var(--color-text-main)]">{currentUser.name}</h4>
+                                        <p className="text-xs text-[var(--color-text-muted)] font-mono">{currentUser.phone}</p>
+                                    </div>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase ${wizardStatuses[currentId] === "sent" ? "bg-green-100 text-green-800" : wizardStatuses[currentId] === "skipped" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}>
+                                        {wizardStatuses[currentId]}
+                                    </span>
+                                </div>
+                                <div className="border-t border-[var(--color-border)] pt-2 mt-2">
+                                    <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wider">Preview Pesan:</p>
+                                    <div className="bg-[var(--color-bg-elevated)] p-3 rounded-lg border border-[var(--color-border)] text-xs text-[var(--color-text-sub)] whitespace-pre-wrap font-sans mt-1 max-h-36 overflow-y-auto">
+                                        {personalizeMessage(currentUser, templateText)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Controls */}
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button 
+                                    onClick={() => handleWizardSkip(currentId)}
+                                    className="px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] border border-[var(--color-border)] font-medium text-sm hover:bg-[var(--color-bg-hover)] transition-all btn-press"
+                                >
+                                    Lewati
+                                </button>
+                                <button 
+                                    onClick={() => handleWizardSend(currentUser)}
+                                    className="flex-1 px-4 py-2.5 rounded-[var(--radius-sm)] bg-[#25D366] hover:bg-[#1da851] text-white font-bold text-sm transition-all shadow-md shadow-[#25D366]/20 hover:shadow-lg flex items-center justify-center gap-2 btn-press"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                                    Kirim & Lanjut
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

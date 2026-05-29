@@ -5,11 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { assignmentId, type, description, severity } = body as {
+        const { assignmentId, type, description, severity, sessionId } = body as {
             assignmentId: string;
             type: string;
             description?: string;
             severity?: number;
+            sessionId?: string;
         };
 
         if (!assignmentId || !type) {
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
                 type: type as never,
                 description: description || null,
                 severity: severity || 1,
+                sessionId: sessionId || null,
             },
         });
 

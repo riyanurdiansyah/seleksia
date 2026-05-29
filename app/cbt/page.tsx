@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import AuthGuard from "../components/AuthGuard";
+import Pusher from "pusher-js";
 
 /* ===== Types ===== */
 interface QuestionData {
@@ -31,7 +32,7 @@ interface AssignmentData {
     status?: string;
     startedAt?: string;
     test: TestData;
-    candidate: { id: string; displayId: string; name: string };
+    candidate: { id: string; displayId: string; name: string; companyId: string };
     answers?: { questionId: string; answer: string }[];
 }
 
@@ -80,10 +81,12 @@ export default function ExamPage() {
     const [submitted, setSubmitted] = useState(false);
     const [saved, setSaved] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const captureCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const [cameraActive, setCameraActive] = useState(false);
     const [faceDetected, setFaceDetected] = useState(true);
     const startTimeRef = useRef<number>(Date.now());
     const lastViolationTimeRef = useRef<number>(0); // debounce violations
+    const lastViolationsByTypeRef = useRef<Record<string, number>>({}); // track last time for each violation type
     const [isTabHidden, setIsTabHidden] = useState(false); // track if tab is out of focus
     const sessionTokenRef = useRef<string>(""); // unique session token for multi-tab lock
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -259,14 +262,193 @@ export default function ExamPage() {
         loadAssignment();
     }, [getDeviceFingerprint]);
 
-    /* ===== Record violation helper (with 2s debounce, NO auto-submit) ===== */
+    /* ===== Real-time Monitor State Sync ===== */
+    const monitorStateRef = useRef({
+        currentQ,
+        answers,
+        timeLeft,
+        violations,
+        faceDetected,
+        cameraActive,
+        isTabHidden,
+        isFullscreen,
+        submitted
+    });
+
+    useEffect(() => {
+        monitorStateRef.current = {
+            currentQ,
+            answers,
+            timeLeft,
+            violations,
+            faceDetected,
+            cameraActive,
+            isTabHidden,
+            isFullscreen,
+            submitted
+        };
+    }, [currentQ, answers, timeLeft, violations, faceDetected, cameraActive, isTabHidden, isFullscreen, submitted]);
+
+    useEffect(() => {
+        if (loadingData || !assignment) return;
+
+        const useSoketi = process.env.NEXT_PUBLIC_USE_SOKETI === "true";
+        let pusherClient: any = null;
+        let wsClient: WebSocket | null = null;
+        let channel: any = null;
+        const channelName = "presence-exam-monitoring";
+
+        if (useSoketi) {
+            const host = process.env.NEXT_PUBLIC_PUSHER_HOST || "127.0.0.1";
+            const port = process.env.NEXT_PUBLIC_PUSHER_PORT || "6001";
+            const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws";
+            const wsUrl = `${protocol}://${host}:${port}`;
+            
+            const connectWs = () => {
+                try {
+                    wsClient = new WebSocket(wsUrl);
+                    wsClient.onopen = () => {
+                        console.log("WebSocket connected to local monitor server");
+                    };
+                    wsClient.onclose = () => {
+                        console.log("WebSocket disconnected. Reconnecting in 3s...");
+                        setTimeout(connectWs, 3000);
+                    };
+                    wsClient.onerror = (err) => {
+                        console.warn("WebSocket connection error:", err);
+                    };
+                } catch (err) {
+                    console.error("Failed to connect to local monitor server", err);
+                }
+            };
+            connectWs();
+        } else {
+            const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+            const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+
+            if (pusherKey && pusherCluster) {
+                pusherClient = new Pusher(pusherKey, {
+                    cluster: pusherCluster,
+                    authEndpoint: "/api/pusher/auth",
+                    auth: {
+                        params: {
+                            candidateId: assignment.candidate.id,
+                        },
+                    },
+                });
+                channel = pusherClient.subscribe(channelName);
+            }
+        }
+
+        // === FAST CHANNEL: Snapshot frames at ~10 FPS (100ms) ===
+        const snapshotInterval = setInterval(() => {
+            const currentMonitorState = monitorStateRef.current;
+            if (currentMonitorState.submitted) return;
+            if (!videoRef.current || !currentMonitorState.cameraActive) return;
+
+            try {
+                if (!captureCanvasRef.current) {
+                    captureCanvasRef.current = document.createElement("canvas");
+                    captureCanvasRef.current.width = 240;
+                    captureCanvasRef.current.height = 180;
+                }
+                const canvas = captureCanvasRef.current;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+
+                ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                const snapshot = canvas.toDataURL("image/jpeg", 0.5);
+
+                const frameMsg = {
+                    type: "candidate-snapshot",
+                    payload: {
+                        candidateId: assignment.candidate.id,
+                        snapshot,
+                    },
+                };
+
+                if (useSoketi) {
+                    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
+                        wsClient.send(JSON.stringify(frameMsg));
+                    }
+                } else {
+                    if (channel) {
+                        channel.trigger("client-snapshot", frameMsg.payload);
+                    }
+                }
+            } catch (err) {
+                // Silently skip frame on error
+            }
+        }, 100);
+
+        // === SLOW CHANNEL: Metadata at 0.5 FPS (2000ms) ===
+        const metadataInterval = setInterval(() => {
+            const currentMonitorState = monitorStateRef.current;
+            if (currentMonitorState.submitted) return;
+
+            const payload = {
+                candidateId: assignment.candidate.id,
+                candidateName: assignment.candidate.name,
+                candidateDisplayId: assignment.candidate.displayId,
+                companyId: assignment.candidate.companyId,
+                testName: assignment.test.name,
+                currentQuestionIndex: currentMonitorState.currentQ,
+                totalQuestions: questions.length,
+                answersCount: Object.keys(currentMonitorState.answers).length,
+                timeLeft: currentMonitorState.timeLeft,
+                violationsCount: currentMonitorState.violations,
+                faceDetected: currentMonitorState.faceDetected,
+                cameraActive: currentMonitorState.cameraActive,
+                isTabHidden: currentMonitorState.isTabHidden,
+                isFullscreen: currentMonitorState.isFullscreen,
+                snapshot: null, // snapshot sent via fast channel
+                updatedAt: new Date().toISOString(),
+            };
+
+            if (useSoketi) {
+                if (wsClient && wsClient.readyState === WebSocket.OPEN) {
+                    wsClient.send(JSON.stringify({ type: "candidate-state", payload }));
+                }
+            } else {
+                if (channel) {
+                    channel.trigger("client-state-update", payload);
+                }
+            }
+        }, 2000);
+
+        return () => {
+            clearInterval(snapshotInterval);
+            clearInterval(metadataInterval);
+            if (useSoketi) {
+                if (wsClient) {
+                    wsClient.onclose = null; // prevent reconnect loop
+                    wsClient.close();
+                }
+            } else {
+                if (pusherClient) {
+                    pusherClient.unsubscribe(channelName);
+                    pusherClient.disconnect();
+                }
+            }
+        };
+    }, [loadingData, assignment, questions.length]);
+
+    /* ===== Record violation helper (with 2s debounce, 1 minute limit per type, NO auto-submit) ===== */
     const recordViolation = useCallback(async (type: string, description: string, severity: number = 1) => {
         if (!assignment || submitted) return;
 
-        // Debounce: skip if a violation was recorded less than 2 seconds ago
         const now = Date.now();
+
+        // Limit: skip if the SAME violation type was recorded less than 60 seconds (1 minute) ago
+        const lastTypeTime = lastViolationsByTypeRef.current[type] || 0;
+        if (now - lastTypeTime < 60000) return;
+
+        // Debounce: skip if any violation was recorded less than 2 seconds ago
         if (now - lastViolationTimeRef.current < 2000) return;
+
+        // Update timestamps
         lastViolationTimeRef.current = now;
+        lastViolationsByTypeRef.current[type] = now;
 
         try {
             const res = await fetch("/api/violations", {
@@ -277,6 +459,7 @@ export default function ExamPage() {
                     type,
                     description,
                     severity,
+                    sessionId: sessionTokenRef.current, // Session token from login
                 }),
             });
 
@@ -381,7 +564,8 @@ export default function ExamPage() {
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, [assignment, submitted, recordViolation]);
 
-    /* ===== Anti-cheat: Right-click ===== */
+    /* ===== Anti-cheat: Right-click (Temporarily disabled for debugging console) ===== */
+    /*
     useEffect(() => {
         if (!assignment) return;
         const handler = (e: MouseEvent) => {
@@ -393,6 +577,7 @@ export default function ExamPage() {
         document.addEventListener("contextmenu", handler);
         return () => document.removeEventListener("contextmenu", handler);
     }, [assignment, submitted, recordViolation]);
+    */
 
     /* ===== Anti-cheat: Copy/Paste detection ===== */
     useEffect(() => {
@@ -441,13 +626,15 @@ export default function ExamPage() {
                     recordViolation("screen_capture", "Print Screen key pressed", 3);
                 }
             }
-            // Block DevTools shortcuts
+            // Block DevTools shortcuts (Temporarily disabled for debugging console)
+            /*
             if (e.key === "F12" || (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C"))) {
                 e.preventDefault();
                 if (!submitted) {
                     recordViolation("devtools_open", "Developer tools shortcut detected", 3);
                 }
             }
+            */
             // Block Ctrl+C, Ctrl+V, Ctrl+A
             if (e.ctrlKey && (e.key === "c" || e.key === "v" || e.key === "a")) {
                 e.preventDefault();
@@ -489,13 +676,34 @@ export default function ExamPage() {
     /* ===== Anti-cheat: Cursor Leave ===== */
     useEffect(() => {
         if (!assignment) return;
+        let leaveTimeout: NodeJS.Timeout | null = null;
+
         const handleMouseLeave = (e: MouseEvent) => {
             if (!submitted && (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight)) {
-                recordViolation("cursor_leave", "Cursor left the exam window area", 1);
+                if (leaveTimeout) clearTimeout(leaveTimeout);
+                leaveTimeout = setTimeout(() => {
+                    recordViolation("cursor_leave", "Cursor left the exam window area for more than 10 seconds", 1);
+                }, 10000);
             }
         };
+
+        const handleMouseEnter = () => {
+            if (leaveTimeout) {
+                clearTimeout(leaveTimeout);
+                leaveTimeout = null;
+            }
+        };
+
         document.addEventListener("mouseleave", handleMouseLeave);
-        return () => document.removeEventListener("mouseleave", handleMouseLeave);
+        document.addEventListener("mouseenter", handleMouseEnter);
+        document.addEventListener("mousemove", handleMouseEnter);
+
+        return () => {
+            document.removeEventListener("mouseleave", handleMouseLeave);
+            document.removeEventListener("mouseenter", handleMouseEnter);
+            document.removeEventListener("mousemove", handleMouseEnter);
+            if (leaveTimeout) clearTimeout(leaveTimeout);
+        };
     }, [assignment, submitted, recordViolation]);
 
     /* ===== Anti-cheat: Multi Display Detection ===== */
@@ -869,39 +1077,58 @@ export default function ExamPage() {
 
                                     {/* Options */}
                                     <div className="space-y-3">
-                                        {question.options.map((optText, idx) => {
-                                            const key = OPTION_KEYS[idx] || String(idx);
-                                            const selected = answers[question.id] === key;
-                                            return (
-                                                <button
-                                                    key={key}
-                                                    onClick={() => selectAnswer(key)}
-                                                    className={`w-full text-left p-4 rounded-[var(--radius-sm)] border-2 transition-all duration-200 cursor-pointer group ${selected
-                                                        ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-[var(--shadow-sm)]"
-                                                        : "border-[var(--color-border)] dark:border-slate-700 hover:border-primary/40 hover:bg-[var(--color-bg-elevated)] dark:hover:bg-slate-800/50"
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div
-                                                            className={`size-8 rounded-full border-2 flex items-center justify-center text-sm font-bold flex-shrink-0 transition-all ${selected
-                                                                ? "border-primary bg-primary text-white"
-                                                                : "border-[var(--color-border-strong)] dark:border-slate-600 text-[var(--color-text-muted)] group-hover:border-primary/40"
-                                                                }`}
-                                                        >
-                                                            {key}
+                                        {(() => {
+                                            let options = question.options || [];
+                                            if (question.type === "true_false") {
+                                                const valid = options.filter(o => o && o.trim() !== "");
+                                                options = valid.length >= 2 ? valid : ["True", "False"];
+                                            } else if (question.type === "likert_scale") {
+                                                const valid = options.filter(o => o && o.trim() !== "");
+                                                options = valid.length > 0 ? valid : ["1", "2", "3", "4", "5"];
+                                            }
+
+                                            return options.map((optText, idx) => {
+                                                const key = question.type === "true_false"
+                                                    ? optText
+                                                    : question.type === "likert_scale"
+                                                    ? optText
+                                                    : (OPTION_KEYS[idx] || String(idx));
+                                                const selected = answers[question.id] === key;
+                                                return (
+                                                    <button
+                                                        key={key}
+                                                        onClick={() => selectAnswer(key)}
+                                                        className={`w-full text-left p-4 rounded-[var(--radius-sm)] border-2 transition-all duration-200 cursor-pointer group ${selected
+                                                            ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-[var(--shadow-sm)]"
+                                                            : "border-[var(--color-border)] dark:border-slate-700 hover:border-primary/40 hover:bg-[var(--color-bg-elevated)] dark:hover:bg-slate-800/50"
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div
+                                                                className={`size-8 rounded-full border-2 flex items-center justify-center text-sm font-bold flex-shrink-0 transition-all ${selected
+                                                                    ? "border-primary bg-primary text-white"
+                                                                    : "border-[var(--color-border-strong)] dark:border-slate-600 text-[var(--color-text-muted)] group-hover:border-primary/40"
+                                                                    }`}
+                                                            >
+                                                                {question.type === "true_false"
+                                                                    ? (optText === "True" ? "T" : "F")
+                                                                    : question.type === "likert_scale"
+                                                                    ? optText
+                                                                    : key}
+                                                            </div>
+                                                            <span
+                                                                className={`text-sm leading-relaxed ${selected
+                                                                    ? "text-[var(--color-text-main)] dark:text-white font-medium"
+                                                                    : "text-slate-700 dark:text-[var(--color-text-muted)]"
+                                                                    }`}
+                                                            >
+                                                                {optText}
+                                                            </span>
                                                         </div>
-                                                        <span
-                                                            className={`text-sm leading-relaxed ${selected
-                                                                ? "text-[var(--color-text-main)] dark:text-white font-medium"
-                                                                : "text-slate-700 dark:text-[var(--color-text-muted)]"
-                                                                }`}
-                                                        >
-                                                            {optText}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
+                                                    </button>
+                                                );
+                                            });
+                                        })()}
                                     </div>
                                 </div>
 

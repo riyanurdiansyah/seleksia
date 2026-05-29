@@ -1,12 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getCompanyId } from "@/lib/tenant";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
+        const cookieStore = await cookies();
+        const role = cookieStore.get('userRole')?.value;
+        const companyIdFilter = req.nextUrl.searchParams.get('companyId');
+
+        const whereClause: any = {};
+
+        if (role === 'superadmin') {
+            if (companyIdFilter && companyIdFilter !== 'all') {
+                whereClause.companyId = companyIdFilter;
+            }
+        } else {
+            const companyId = await getCompanyId();
+            whereClause.companyId = companyId;
+        }
+
         const instructions = await prisma.instruction.findMany({
+            where: whereClause,
             include: {
                 test: {
                     select: {
@@ -38,7 +55,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Test ID is required for specific instructions" }, { status: 400 });
         }
 
-        const companyId = await getCompanyId();
+        const cookieStore = await cookies();
+        const role = cookieStore.get('userRole')?.value;
+
+        // Determine companyId: if superadmin, can use companyId from request body
+        let companyId = await getCompanyId();
+        if (role === 'superadmin' && body.companyId) {
+            companyId = body.companyId;
+        }
 
         const instruction = await prisma.instruction.create({
             data: {

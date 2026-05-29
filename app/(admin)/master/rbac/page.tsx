@@ -157,7 +157,7 @@ export default function RBACMatrixPage() {
     return (
       <button
         onClick={() => handleToggle(role, menuId, perm)}
-        className={`flex flex-col items-center justify-between w-[28px] h-[42px] py-1 rounded-full border-[1.5px] transition-transform duration-200 cursor-pointer hover:scale-105 active:scale-95 ${style}`}
+        className={`flex flex-col items-center justify-between w-[28px] h-[44px] py-1 rounded-full border-[1.5px] transition-transform duration-200 cursor-pointer hover:scale-105 active:scale-95 ${style}`}
         title={`Toggle ${label} for ${role}`}
       >
         <span className="text-[11px] font-black leading-none mt-0.5">{label}</span>
@@ -268,7 +268,7 @@ export default function RBACMatrixPage() {
                     </td>
                     {data.roles.map((role) => (
                       <td key={`${role}-${menu.id}`} className="p-3 text-center align-middle">
-                        <div className="flex items-center justify-center gap-2 p-1.5 rounded-full bg-white shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-gray-100 inline-flex transition-transform hover:scale-[1.02]">
+                        <div className="flex items-center justify-center gap-2 p-1.5 inline-flex transition-transform hover:scale-[1.02]">
                           {renderPermButton(role, menu.id, "r", "R")}
                           {renderPermButton(role, menu.id, "c", "C")}
                           {renderPermButton(role, menu.id, "u", "U")}
@@ -295,7 +295,7 @@ export default function RBACMatrixPage() {
                       </td>
                       {data.roles.map((role) => (
                         <td key={`${role}-${child.id}`} className="p-3 text-center align-middle">
-                          <div className="flex items-center justify-center gap-2 p-1.5 rounded-full bg-white shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-gray-100 inline-flex opacity-90 group-hover:opacity-100 transition-all hover:scale-[1.02]">
+                        <div className="flex items-center justify-center gap-2 p-1.5 inline-flex transition-transform hover:scale-[1.02]">
                             {renderPermButton(role, child.id, "r", "R")}
                             {renderPermButton(role, child.id, "c", "C")}
                             {renderPermButton(role, child.id, "u", "U")}

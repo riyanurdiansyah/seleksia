@@ -47,6 +47,21 @@ interface Test {
     createdAt: string;
 }
 
+interface TestGroup {
+    id: string;
+    companyId: string;
+    name: string;
+    description: string | null;
+    createdAt: string;
+    tests: {
+        id: string;
+        displayId: string;
+        name: string;
+        category: string;
+        duration: number;
+    }[];
+}
+
 /* ===== Constants ===== */
 const questionTypeConfig: Record<
     QuestionType,
@@ -165,6 +180,16 @@ export default function TestsClient() {
     const [showTemplates, setShowTemplates] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
+    // Test Groups States
+    const [activeTab, setActiveTab] = useState<"tests" | "groups">("tests");
+    const [testGroups, setTestGroups] = useState<TestGroup[]>([]);
+    const [showGroupModal, setShowGroupModal] = useState(false);
+    const [selectedGroup, setSelectedGroup] = useState<TestGroup | null>(null);
+    const [groupName, setGroupName] = useState("");
+    const [groupDescription, setGroupDescription] = useState("");
+    const [groupTestIds, setGroupTestIds] = useState<Set<string>>(new Set());
+    const [deleteGroupTarget, setDeleteGroupTarget] = useState<{ id: string; name: string } | null>(null);
+
     // Multi-tenant States
     const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
     const [selectedCompany, setSelectedCompany] = useState<string>("all");
@@ -218,6 +243,22 @@ export default function TestsClient() {
         }
     }, []);
 
+    /* Fetch test groups from API */
+    const fetchTestGroups = useCallback(async (companyId: string = "all") => {
+        try {
+            const url = companyId && companyId !== "all"
+                ? `/api/test-groups?companyId=${companyId}`
+                : "/api/test-groups";
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setTestGroups(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch test groups:", err);
+        }
+    }, []);
+
     useEffect(() => {
         const role = sessionStorage.getItem("candidateRole") || "user";
         setCurrentRole(role);
@@ -227,13 +268,15 @@ export default function TestsClient() {
         }
 
         fetchTests("all");
-    }, [fetchCompanies, fetchTests]);
+        fetchTestGroups("all");
+    }, [fetchCompanies, fetchTests, fetchTestGroups]);
 
     /* Handle company filter change */
     const handleCompanyChange = useCallback((val: string) => {
         setSelectedCompany(val);
         fetchTests(val);
-    }, [fetchTests]);
+        fetchTestGroups(val);
+    }, [fetchTests, fetchTestGroups]);
 
     /* Filtering */
     const filtered = tests.filter((t) => {
@@ -380,7 +423,89 @@ export default function TestsClient() {
         setShowAddQuestionModal(true);
     };
 
+    /* Save Test Group */
+    const handleSaveGroup = async () => {
+        if (!groupName) return;
+
+        let targetCompanyId = "";
+        if (currentRole === "superadmin") {
+            targetCompanyId = selectedCompany !== "all" ? selectedCompany : "";
+            if (!targetCompanyId) {
+                alert("Silakan pilih perusahaan terlebih dahulu");
+                return;
+            }
+        }
+
+        try {
+            const isEditing = !!selectedGroup;
+            const url = isEditing ? `/api/test-groups/${selectedGroup.id}` : "/api/test-groups";
+            const method = isEditing ? "PATCH" : "POST";
+
+            const res = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: groupName,
+                    description: groupDescription,
+                    testIds: Array.from(groupTestIds),
+                    companyId: targetCompanyId || undefined,
+                }),
+            });
+
+            if (!res.ok) throw new Error("Failed to save group");
+
+            const saved = await res.json();
+            if (isEditing) {
+                setTestGroups(prev => prev.map(g => g.id === saved.id ? saved : g));
+            } else {
+                setTestGroups(prev => [saved, ...prev]);
+            }
+
+            setShowGroupModal(false);
+            setGroupName("");
+            setGroupDescription("");
+            setGroupTestIds(new Set());
+            setSelectedGroup(null);
+        } catch (err) {
+            console.error(err);
+            alert(err instanceof Error ? err.message : String(err));
+        }
+    };
+
+    /* Delete Test Group */
+    const handleDeleteGroup = async (id: string) => {
+        try {
+            const res = await fetch(`/api/test-groups/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to delete group");
+            setTestGroups(prev => prev.filter(g => g.id !== id));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    /* Open Edit Group */
+    const openEditGroup = (group: TestGroup) => {
+        setSelectedGroup(group);
+        setGroupName(group.name);
+        setGroupDescription(group.description || "");
+        setGroupTestIds(new Set(group.tests.map(t => t.id)));
+        setShowGroupModal(true);
+    };
+
+    /* Toggle test selection for group */
+    const toggleGroupTest = (testId: string) => {
+        setGroupTestIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(testId)) next.delete(testId); else next.add(testId);
+            return next;
+        });
+    };
+
     const selectedTest = tests.find((t) => t.id === selectedTestId);
+
+    const filteredGroups = testGroups.filter((g) => {
+        return g.name.toLowerCase().includes(search.toLowerCase());
+    });
 
     return (
         <>
@@ -395,13 +520,25 @@ export default function TestsClient() {
                 </div>
             </div>
 
+            {/* Tabs */}
+            <div className="flex border-b border-[var(--color-border)] flex-shrink-0">
+                <button onClick={() => setActiveTab("tests")} className={`py-3 border-b-2 font-semibold text-sm mr-6 transition-colors flex items-center gap-2 ${activeTab === "tests" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-sub)]"}`}>
+                    <span className="material-symbols-outlined text-[18px]">quiz</span>
+                    All Tests
+                </button>
+                <button onClick={() => setActiveTab("groups")} className={`py-3 border-b-2 font-semibold text-sm transition-colors flex items-center gap-2 ${activeTab === "groups" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-sub)]"}`}>
+                    <span className="material-symbols-outlined text-[18px]">folder_copy</span>
+                    Test Groups
+                </button>
+            </div>
+
             {/* Filters */}
             <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-4 flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
                         <span className="material-symbols-outlined text-[20px]">search</span>
                     </span>
-                    <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] transition-all duration-300" placeholder="Search tests..." />
+                    <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 pl-10 pr-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] transition-all duration-300" placeholder={activeTab === "tests" ? "Search tests..." : "Search groups..."} />
                 </div>
                 {currentRole === "superadmin" && (
                     <Select2
@@ -415,118 +552,193 @@ export default function TestsClient() {
                         className="w-full sm:w-52 text-left"
                     />
                 )}
-                <Select2
-                    value={filterCategory}
-                    onChange={(val) => setFilterCategory(val)}
-                    options={[
-                        { value: "all", label: "All Categories" },
-                        { value: "intelligence", label: "Intelligence" },
-                        { value: "personality", label: "Personality" },
-                        { value: "aptitude", label: "Aptitude" },
-                        { value: "projective", label: "Projective" }
-                    ]}
-                    className="w-full sm:w-48 text-left"
-                />
-                <Select2
-                    value={filterStatus}
-                    onChange={(val) => setFilterStatus(val)}
-                    options={[
-                        { value: "all", label: "All Status" },
-                        { value: "draft", label: "Draft" },
-                        { value: "published", label: "Published" },
-                        { value: "archived", label: "Archived" }
-                    ]}
-                    className="w-full sm:w-44 text-left"
-                />
+                {activeTab === "tests" && (
+                    <>
+                        <Select2
+                            value={filterCategory}
+                            onChange={(val) => setFilterCategory(val)}
+                            options={[
+                                { value: "all", label: "All Categories" },
+                                { value: "intelligence", label: "Intelligence" },
+                                { value: "personality", label: "Personality" },
+                                { value: "aptitude", label: "Aptitude" },
+                                { value: "projective", label: "Projective" }
+                            ]}
+                            className="w-full sm:w-48 text-left"
+                        />
+                        <Select2
+                            value={filterStatus}
+                            onChange={(val) => setFilterStatus(val)}
+                            options={[
+                                { value: "all", label: "All Status" },
+                                { value: "draft", label: "Draft" },
+                                { value: "published", label: "Published" },
+                                { value: "archived", label: "Archived" }
+                            ]}
+                            className="w-full sm:w-44 text-left"
+                        />
+                    </>
+                )}
 
-                <button onClick={() => { setShowTemplates(true); setShowCreateModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
+                {activeTab === "tests" ? (
+                    <button onClick={() => { setShowTemplates(true); setShowCreateModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
                         <span className="material-symbols-outlined text-[18px]">add_circle</span>
                         Create Test
                     </button>
+                ) : (
+                    <button onClick={() => { setSelectedGroup(null); setGroupName(""); setGroupDescription(""); setGroupTestIds(new Set()); setShowGroupModal(true); }} className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press">
+                        <span className="material-symbols-outlined text-[18px]">create_new_folder</span>
+                        Create Group
+                    </button>
+                )}
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                    { label: "Total Tests", count: tests.length, icon: "quiz", color: "text-primary bg-[var(--color-primary-light)]" },
-                    { label: "Published", count: tests.filter((t) => t.status === "published").length, icon: "check_circle", color: "text-[var(--color-success)] bg-[var(--color-success-light)]" },
-                    { label: "Draft", count: tests.filter((t) => t.status === "draft").length, icon: "edit_note", color: "text-[var(--color-warning)] bg-[var(--color-warning-light)]" },
-                    { label: "Total Questions", count: tests.reduce((acc, t) => acc + t.questions.length, 0), icon: "help", color: "text-primary bg-[var(--color-primary-light)] dark:bg-blue-900/20" },
-                ].map((s) => (
-                    <div key={s.label} className="bg-[var(--color-bg-card)] p-4 rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] flex items-center gap-3 transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] hover:translate-y-[-2px] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)]">
-                        <div className={`p-2 rounded-[var(--radius-sm)] ${s.color}`}>
-                            <span className="material-symbols-outlined">{s.icon}</span>
+                {activeTab === "tests" ? (
+                    [
+                        { label: "Total Tests", count: tests.length, icon: "quiz", color: "text-primary bg-[var(--color-primary-light)]" },
+                        { label: "Published", count: tests.filter((t) => t.status === "published").length, icon: "check_circle", color: "text-[var(--color-success)] bg-[var(--color-success-light)]" },
+                        { label: "Draft", count: tests.filter((t) => t.status === "draft").length, icon: "edit_note", color: "text-[var(--color-warning)] bg-[var(--color-warning-light)]" },
+                        { label: "Total Questions", count: tests.reduce((acc, t) => acc + t.questions.length, 0), icon: "help", color: "text-primary bg-[var(--color-primary-light)] dark:bg-blue-900/20" },
+                    ].map((s) => (
+                        <div key={s.label} className="bg-[var(--color-bg-card)] p-4 rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] flex items-center gap-3 transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] hover:translate-y-[-2px] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)]">
+                            <div className={`p-2 rounded-[var(--radius-sm)] ${s.color}`}>
+                                <span className="material-symbols-outlined">{s.icon}</span>
+                            </div>
+                            <div>
+                                <p className="text-xs text-[var(--color-text-muted)]">{s.label}</p>
+                                <p className="text-xl font-bold text-[var(--color-text-main)]">{s.count}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs text-[var(--color-text-muted)]">{s.label}</p>
-                            <p className="text-xl font-bold text-[var(--color-text-main)]">{s.count}</p>
+                    ))
+                ) : (
+                    [
+                        { label: "Total Test Groups", count: testGroups.length, icon: "folder_copy", color: "text-primary bg-[var(--color-primary-light)]" },
+                        { label: "Published Tests", count: tests.filter((t) => t.status === "published").length, icon: "check_circle", color: "text-[var(--color-success)] bg-[var(--color-success-light)]" },
+                        { label: "Total Mapped Tests", count: testGroups.reduce((acc, g) => acc + g.tests.length, 0), icon: "quiz", color: "text-primary bg-[var(--color-primary-light)] dark:bg-blue-900/20" },
+                    ].map((s) => (
+                        <div key={s.label} className="bg-[var(--color-bg-card)] p-4 rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] flex items-center gap-3 transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] hover:translate-y-[-2px] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)]">
+                            <div className={`p-2 rounded-[var(--radius-sm)] ${s.color}`}>
+                                <span className="material-symbols-outlined">{s.icon}</span>
+                            </div>
+                            <div>
+                                <p className="text-xs text-[var(--color-text-muted)]">{s.label}</p>
+                                <p className="text-xl font-bold text-[var(--color-text-main)]">{s.count}</p>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
 
-            {/* Test Cards Grid */}
+            {/* Content Lists */}
             {loading ? (
                 <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-12 text-center">
                     <span className="material-symbols-outlined text-4xl text-[var(--color-text-muted)] mb-2 block animate-spin">progress_activity</span>
-                    <p className="text-[var(--color-text-muted)]">Loading tests...</p>
+                    <p className="text-[var(--color-text-muted)]">Loading content...</p>
                 </div>
-            ) : filtered.length === 0 ? (
-                <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-12 text-center">
-                    <span className="material-symbols-outlined text-4xl text-[var(--color-text-muted)] mb-2 block">quiz</span>
-                    <p className="text-[var(--color-text-muted)]">No tests found.</p>
-                </div>
+            ) : activeTab === "tests" ? (
+                filtered.length === 0 ? (
+                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-12 text-center">
+                        <span className="material-symbols-outlined text-4xl text-[var(--color-text-muted)] mb-2 block">quiz</span>
+                        <p className="text-[var(--color-text-muted)]">No tests found.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filtered.map((test) => {
+                            const cat = categoryConfig[test.category];
+                            const st = statusConfig[test.status];
+                            const qt = questionTypeConfig[test.questionType];
+                            return (
+                                <div key={test.id} className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] hover:border-[var(--color-border-strong)] hover:translate-y-[-2px] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)] transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col relative overflow-hidden">
+                                    <div className="card-shimmer"></div>
+                                    <div className="p-5 flex-1">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className={`p-2 rounded-[var(--radius-sm)] ${cat.color}`}>
+                                                <span className="material-symbols-outlined text-[20px]">{cat.icon}</span>
+                                            </div>
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${st.bg} ${st.text}`}>{st.label}</span>
+                                        </div>
+                                        <Link href={`/exam/question/${test.id}`} className="font-bold text-[var(--color-text-main)] text-sm leading-tight mb-1 hover:text-primary transition-colors block">{test.name}</Link>
+                                        <p className="text-xs text-[var(--color-text-muted)] mb-3 line-clamp-2">{test.description}</p>
+                                        <div className="flex flex-wrap gap-2 text-[10px]">
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]">
+                                                <span className="material-symbols-outlined text-[12px]">{qt.icon}</span>{qt.label}
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]">
+                                                <span className="material-symbols-outlined text-[12px]">help</span>{test.questions.length} Questions
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]">
+                                                <span className="material-symbols-outlined text-[12px]">timer</span>{test.duration} min
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-hover)]">
+                                        <span className="text-[10px] text-[var(--color-text-muted)] font-mono">{test.displayId}</span>
+                                        <div className="flex items-center gap-1">
+                                            <Link href={`/exam/question/${test.id}`} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="View & Edit">
+                                                <span className="material-symbols-outlined text-[18px]">visibility</span>
+                                            </Link>
+                                            <button onClick={() => openAddQuestion(test.id)} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="Add Question">
+                                                <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                                            </button>
+                                            <button onClick={() => togglePublish(test.id)} className={`p-1.5 rounded-[var(--radius-sm)] transition-colors ${test.status === "published" ? "text-[var(--color-success)] hover:text-[var(--color-warning)] hover:bg-[var(--color-bg-hover)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)] hover:bg-[var(--color-bg-hover)]"}`} title={test.status === "published" ? "Unpublish" : "Publish"}>
+                                                <span className="material-symbols-outlined text-[18px]">{test.status === "published" ? "unpublished" : "publish"}</span>
+                                            </button>
+                                            <button onClick={() => setDeleteTarget({ id: test.id, name: test.name })} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors" title="Delete">
+                                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filtered.map((test) => {
-                        const cat = categoryConfig[test.category];
-                        const st = statusConfig[test.status];
-                        const qt = questionTypeConfig[test.questionType];
-                        return (
-                            <div key={test.id} className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] hover:border-[var(--color-border-strong)] hover:translate-y-[-2px] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)] transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col relative overflow-hidden">
+                filteredGroups.length === 0 ? (
+                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-12 text-center">
+                        <span className="material-symbols-outlined text-4xl text-[var(--color-text-muted)] mb-2 block">folder_copy</span>
+                        <p className="text-[var(--color-text-muted)]">No test groups found.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredGroups.map((group) => (
+                            <div key={group.id} className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] hover:border-[var(--color-border-strong)] hover:translate-y-[-2px] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)] transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col relative overflow-hidden animate-fade-in">
                                 <div className="card-shimmer"></div>
                                 <div className="p-5 flex-1">
                                     <div className="flex items-start justify-between mb-3">
-                                        <div className={`p-2 rounded-[var(--radius-sm)] ${cat.color}`}>
-                                            <span className="material-symbols-outlined text-[20px]">{cat.icon}</span>
+                                        <div className="p-2 rounded-[var(--radius-sm)] bg-primary/10 text-primary">
+                                            <span className="material-symbols-outlined text-[20px]">folder_copy</span>
                                         </div>
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${st.bg} ${st.text}`}>{st.label}</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">{group.tests.length} Tests</span>
                                     </div>
-                                    <Link href={`/exam/question/${test.id}`} className="font-bold text-[var(--color-text-main)] text-sm leading-tight mb-1 hover:text-primary transition-colors block">{test.name}</Link>
-                                    <p className="text-xs text-[var(--color-text-muted)] mb-3 line-clamp-2">{test.description}</p>
-                                    <div className="flex flex-wrap gap-2 text-[10px]">
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]">
-                                            <span className="material-symbols-outlined text-[12px]">{qt.icon}</span>{qt.label}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]">
-                                            <span className="material-symbols-outlined text-[12px]">help</span>{test.questions.length} Questions
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]">
-                                            <span className="material-symbols-outlined text-[12px]">timer</span>{test.duration} min
-                                        </span>
+                                    <h3 className="font-bold text-[var(--color-text-main)] text-sm leading-tight mb-1">{group.name}</h3>
+                                    <p className="text-xs text-[var(--color-text-muted)] mb-3 line-clamp-2">{group.description || "No description."}</p>
+                                    <div className="space-y-1 mt-2">
+                                        {group.tests.map((gt) => (
+                                            <div key={gt.id} className="flex items-center justify-between text-[10px] text-[var(--color-text-sub)] bg-[var(--color-bg-hover)] p-1.5 rounded border border-[var(--color-border)]">
+                                                <span className="font-medium truncate max-w-[150px]">{gt.name}</span>
+                                                <span className="font-mono text-slate-400">{gt.displayId}</span>
+                                            </div>
+                                        ))}
+                                        {group.tests.length === 0 && (
+                                            <p className="text-[10px] text-slate-400 italic">No tests added to this group.</p>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-between bg-[var(--color-bg-hover)]">
-                                    <span className="text-[10px] text-[var(--color-text-muted)] font-mono">{test.displayId}</span>
-                                    <div className="flex items-center gap-1">
-                                        <Link href={`/exam/question/${test.id}`} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="View & Edit">
-                                            <span className="material-symbols-outlined text-[18px]">visibility</span>
-                                        </Link>
-                                        <button onClick={() => openAddQuestion(test.id)} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="Add Question">
-                                            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                                        </button>
-                                        <button onClick={() => togglePublish(test.id)} className={`p-1.5 rounded-[var(--radius-sm)] transition-colors ${test.status === "published" ? "text-[var(--color-success)] hover:text-[var(--color-warning)] hover:bg-[var(--color-bg-hover)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)] hover:bg-[var(--color-bg-hover)]"}`} title={test.status === "published" ? "Unpublish" : "Publish"}>
-                                            <span className="material-symbols-outlined text-[18px]">{test.status === "published" ? "unpublished" : "publish"}</span>
-                                        </button>
-                                        <button onClick={() => setDeleteTarget({ id: test.id, name: test.name })} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors" title="Delete">
-                                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                                        </button>
-                                    </div>
+                                <div className="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-end bg-[var(--color-bg-hover)] gap-2">
+                                    <button onClick={() => openEditGroup(group)} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="Edit Group">
+                                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                                    </button>
+                                    <button onClick={() => setDeleteGroupTarget({ id: group.id, name: group.name })} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors" title="Delete Group">
+                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
+                        ))}
+                    </div>
+                )
             )}
 
             {/* =============== CREATE TEST MODAL =============== */}
@@ -751,7 +963,6 @@ export default function TestsClient() {
                     </div>
                 </div>
             )}
-
             {/* Delete Confirmation */}
             <ConfirmDialog
                 open={!!deleteTarget}
@@ -764,6 +975,90 @@ export default function TestsClient() {
                     if (deleteTarget) {
                         handleDeleteTest(deleteTarget.id);
                         setDeleteTarget(null);
+                    }
+                }}
+            />
+
+            {/* =============== CREATE/EDIT GROUP MODAL =============== */}
+            {showGroupModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-[8px] z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0" onClick={() => setShowGroupModal(false)} />
+                    <div className="relative w-full max-w-2xl bg-[var(--color-bg-card)] rounded-3xl border border-[var(--color-border-strong)] shadow-[0_20px_40px_rgba(0,0,0,0.4)] animate-slide-in-up max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)] flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[var(--color-primary-light)] rounded-[var(--radius-sm)] text-primary">
+                                    <span className="material-symbols-outlined">folder_copy</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-[var(--color-text-main)]">
+                                        {selectedGroup ? "Edit Test Group" : "Create New Test Group"}
+                                    </h3>
+                                    <p className="text-xs text-[var(--color-text-muted)]">Group multiple tests for simplified assignments</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowGroupModal(false)} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Group Name *</label>
+                                <input value={groupName} onChange={(e) => setGroupName(e.target.value)} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" placeholder="e.g. Standard Recruitment Package" />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Description</label>
+                                <textarea value={groupDescription} onChange={(e) => setGroupDescription(e.target.value)} rows={2} className="w-full px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300 resize-none" placeholder="Brief description of the test group..." />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Select Tests to Include</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto p-1 bg-[var(--color-bg-hover)] border border-[var(--color-border)] rounded-lg">
+                                    {tests.filter(t => t.status === "published").map((test) => {
+                                        const isSelected = groupTestIds.has(test.id);
+                                        return (
+                                            <button key={test.id} type="button" onClick={() => toggleGroupTest(test.id)} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all text-xs border ${isSelected ? "border-primary bg-[var(--color-primary-light)]" : "border-transparent hover:bg-[var(--color-bg-elevated)]"}`}>
+                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"}`}>
+                                                    {isSelected && <span className="material-symbols-outlined text-[14px] font-bold leading-none">check</span>}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-semibold text-[var(--color-text-main)] truncate">{test.name}</p>
+                                                    <p className="text-[10px] text-[var(--color-text-muted)] font-mono">{test.displayId}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                    {tests.filter(t => t.status === "published").length === 0 && (
+                                        <p className="text-xs text-[var(--color-text-muted)] text-center py-6 col-span-2">No published tests available. Publish some tests first.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 p-6 border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)] flex-shrink-0 rounded-b-3xl">
+                            <button onClick={() => setShowGroupModal(false)} className="px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] font-medium text-sm hover:bg-[var(--color-bg-hover)] transition-colors btn-press">Cancel</button>
+                            <button onClick={handleSaveGroup} disabled={!groupName} className="flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span className="material-symbols-outlined text-[18px]">check</span>
+                                Save Group
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Group Confirmation */}
+            <ConfirmDialog
+                open={!!deleteGroupTarget}
+                title="Delete Test Group"
+                message={`Are you sure you want to delete the test group "${deleteGroupTarget?.name}"? The tests themselves will not be deleted. This action cannot be undone.`}
+                confirmLabel="Delete Group"
+                variant="danger"
+                onCancel={() => setDeleteGroupTarget(null)}
+                onConfirm={() => {
+                    if (deleteGroupTarget) {
+                        handleDeleteGroup(deleteGroupTarget.id);
+                        setDeleteGroupTarget(null);
                     }
                 }}
             />

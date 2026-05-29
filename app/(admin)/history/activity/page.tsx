@@ -1,10 +1,31 @@
 import ActivityClient from "./ActivityClient";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { getCompanyId } from "@/lib/tenant";
 
 export default async function ActivityPage() {
+    const cookieStore = await cookies();
+    const role = cookieStore.get("userRole")?.value || "user";
+    const companyId = await getCompanyId();
+
+    const whereViolation: any = {};
+    const whereAssignment: any = {};
+
+    if (role !== "superadmin") {
+        whereViolation.assignment = {
+            candidate: {
+                companyId: companyId
+            }
+        };
+        whereAssignment.candidate = {
+            companyId: companyId
+        };
+    }
+
     // 1. Fetch recent violations
     const violations = await prisma.violation.findMany({
-        take: 30,
+        where: whereViolation,
+        take: 200,
         orderBy: { detectedAt: 'desc' },
         include: {
             assignment: {
@@ -15,16 +36,22 @@ export default async function ActivityPage() {
 
     // 2. Fetch recent completions
     const completions = await prisma.testAssignment.findMany({
-        where: { status: 'completed' },
-        take: 30,
+        where: {
+            ...whereAssignment,
+            status: 'completed'
+        },
+        take: 200,
         orderBy: { completedAt: 'desc' },
         include: { candidate: true, test: true }
     });
 
     // 3. Fetch recently started tests
     const startedStats = await prisma.testAssignment.findMany({
-        where: { status: 'in_progress' },
-        take: 30,
+        where: {
+            ...whereAssignment,
+            status: 'in_progress'
+        },
+        take: 200,
         orderBy: { startedAt: 'desc' },
         include: { candidate: true, test: true }
     });
@@ -36,13 +63,15 @@ export default async function ActivityPage() {
             type: "violation",
             icon: "warning",
             iconBg: "bg-red-100 dark:bg-red-900/30 text-red-600",
-            title: "Cheating Detected",
+            title: `Cheating: ${v.type?.replace(/_/g, ' ') || 'violation'}`,
             description: `${v.assignment?.candidate?.name || 'Unknown Candidate'} triggered: ${v.type?.replace(/_/g, ' ') || 'violation'}.`,
             time: v.detectedAt,
             badge: "Flagged",
             badgeClass: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
             targetName: v.assignment?.test?.name || "Unknown Test",
             candidateId: v.assignment?.candidate?.displayId || "-",
+            assignmentId: v.assignmentId,
+            sessionId: v.sessionId || "no-session",
         })),
         ...completions.map((c) => ({
             id: `c-${c.id}`,
@@ -56,6 +85,8 @@ export default async function ActivityPage() {
             badgeClass: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
             targetName: c.test?.name || "Unknown Test",
             candidateId: c.candidate?.displayId || "-",
+            assignmentId: c.id,
+            sessionId: "no-session",
         })),
         ...startedStats.map((s) => ({
             id: `s-${s.id}`,
@@ -69,6 +100,8 @@ export default async function ActivityPage() {
             badgeClass: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
             targetName: s.test?.name || "Unknown Test",
             candidateId: s.candidate?.displayId || "-",
+            assignmentId: s.id,
+            sessionId: "no-session",
         }))
     ];
 

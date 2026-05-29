@@ -20,6 +20,7 @@ model Company {
   tests        Test[]
   instructions Instruction[]
   questions    Question[]
+  testGroups   TestGroup[]
 
   @@map("companies")
 }
@@ -113,6 +114,7 @@ model Test {
   questions    Question[]
   assignments  TestAssignment[]
   instructions Instruction[]
+  testGroups   TestGroup[]      @relation("TestGroupTests")
 
   @@unique([companyId, displayId])
   @@map("tests")
@@ -229,6 +231,7 @@ model Violation {
   description  String?
   severity     Int            @default(1) // 1=low, 2=medium, 3=high
   detectedAt   DateTime       @default(now())
+  sessionId    String?
 
   @@map("violations")
 }
@@ -288,4 +291,18 @@ model RoleMenuAccess {
 
   @@unique([role, menuId])
   @@map("role_menu_access")
+}
+
+model TestGroup {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tests   Test[]  @relation("TestGroupTests")
+
+  @@map("test_groups")
 }
