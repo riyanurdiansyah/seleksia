@@ -1,0 +1,50 @@
+name: Node.js CI/CD Deploy to VPS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Only run this job if the commit message contains "#deploy#"
+    if: contains(github.event.head_commit.message, '#deploy#')
+
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "=== STARTING DEPLOYMENT ==="
+            cd /var/www/psikoest
+            
+            # Reset local changes in production if any, and pull latest code
+            git reset --hard
+            git pull origin master
+            
+            # Load Node.js & NPM via NVM (essential for non-interactive shell sessions)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            # Verify node & npm versions
+            node -v
+            npm -v
+            
+            # Install new packages, generate prisma client, and apply DB migrations
+            npm install
+            npx prisma generate
+            npx prisma migrate deploy
+            
+            # Build Next.js
+            npm run build
+            
+            # Restart PM2 processes to apply changes
+            pm2 restart seleksia-web
+            pm2 restart seleksia-ws
+            
+            echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ==="
