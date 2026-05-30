@@ -13,6 +13,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
     "/exam/instruction": { title: "Instructions", subtitle: "Manage exam instructions and guidelines." },
     "/exam/monitoring": { title: "Monitoring", subtitle: "Real-time exam session monitoring." },
     "/history/activity": { title: "Activity Log", subtitle: "View system-wide activity history." },
+    "/histories/result": { title: "Test Results", subtitle: "View detailed test scores, answers, and behavior logs for each candidate." },
     "/report": { title: "Reports", subtitle: "Analyze and export candidate results." },
     "/communication/whatsapp": { title: "WhatsApp Blast", subtitle: "Send bulk notifications to candidates." },
     "/communication/email": { title: "Email Invitation", subtitle: "Send bulk email invitations to candidates." },

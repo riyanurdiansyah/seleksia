@@ -269,7 +269,7 @@ export default function AdminSidebar() {
                     ${isCollapsed ? "flex flex-col items-center gap-2" : ""}`}>
                     {isCollapsed ? (
                         <>
-                            <Link href="/admin/settings"
+                            <Link href="/settings"
                                 className="size-9 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-muted)]
                                     hover:bg-[var(--color-bg-hover)] hover:text-primary transition-all"
                                 title="Settings"
@@ -288,7 +288,7 @@ export default function AdminSidebar() {
                     ) : (
                         <div className="space-y-0.5">
                             <Link
-                                href="/admin/settings"
+                                href="/settings"
                                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)]
                                     hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] hover:translate-x-1 transition-all"
                             >
