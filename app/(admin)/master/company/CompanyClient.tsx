@@ -9,6 +9,7 @@ interface CompanyItem {
   id: string;
   name: string;
   slug?: string;
+  smtpUser?: string | null;
 }
 
 export default function CompanyClient() {
@@ -19,7 +20,7 @@ export default function CompanyClient() {
   const [actionLoading, setActionLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [formData, setFormData] = useState({ id: "", name: "" });
+  const [formData, setFormData] = useState({ id: "", name: "", email: "", password: "", smtpUser: "" });
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -44,14 +45,14 @@ export default function CompanyClient() {
   }, []);
 
   const handleOpenCreate = () => {
-    setFormData({ id: "", name: "" });
+    setFormData({ id: "", name: "", email: "", password: "", smtpUser: "" });
     setIsEditing(false);
     setIsModalOpen(true);
     setErrorMsg("");
   };
 
   const handleOpenEdit = (company: CompanyItem) => {
-    setFormData({ id: company.id, name: company.name });
+    setFormData({ id: company.id, name: company.name, email: "", password: "", smtpUser: company.smtpUser || "" });
     setIsEditing(true);
     setIsModalOpen(true);
     setErrorMsg("");
@@ -80,19 +81,36 @@ export default function CompanyClient() {
     e.preventDefault();
     setActionLoading(true);
     setErrorMsg("");
+
+    // Validate email/password if email is filled (on create or edit without existing email)
+    const showMailFields = !isEditing || !formData.smtpUser;
+    if (showMailFields && formData.email && !formData.password) {
+      setErrorMsg("Password email wajib diisi jika alamat email diisi.");
+      setActionLoading(false);
+      return;
+    }
+
     try {
       const url = isEditing ? `/api/companies/${formData.id}` : "/api/companies";
       const method = isEditing ? "PUT" : "POST";
+      const payload = isEditing 
+        ? { 
+            id: formData.id, 
+            name: formData.name,
+            ...((!formData.smtpUser && formData.email) ? { email: formData.email, password: formData.password } : {})
+          }
+        : { name: formData.name, email: formData.email, password: formData.password };
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formData.name, ...(isEditing ? { id: formData.id } : {}) })
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Gagal menyimpan data.");
       }
-      showSuccess(isEditing ? "Perusahaan diperbarui." : "Perusahaan baru ditambahkan.");
+      showSuccess(isEditing ? "Perusahaan diperbarui." : "Perusahaan baru ditambahkan dan email didaftarkan.");
       setIsModalOpen(false);
       fetchCompanies();
     } catch (err: any) {
@@ -110,6 +128,19 @@ export default function CompanyClient() {
   const columns: ColumnDef<CompanyItem>[] = [
     { header: "ID", accessorKey: "id", sortable: true, filterable: true },
     { header: "Nama Perusahaan", accessorKey: "name", sortable: true, filterable: true },
+    {
+      header: "Email Seleksia",
+      cell: (row) => row.smtpUser ? (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
+          <span className="material-symbols-outlined text-[13px]">mail</span>
+          {row.smtpUser}
+        </span>
+      ) : (
+        <span className="text-[11px] text-[var(--color-text-muted)] italic">Tidak ada</span>
+      ),
+      sortable: false,
+      filterable: true,
+    },
     {
       header: "Aksi",
       cell: (row) => (
@@ -217,6 +248,33 @@ export default function CompanyClient() {
               required
             />
           </div>
+          {(!isEditing || !formData.smtpUser) && (
+            <>
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Alamat Email (Mailcow)</label>
+                <input
+                  type="email"
+                  placeholder="hrd-perusahaan@seleksia.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                />
+                <p className="text-[10px] text-[var(--color-text-muted)] font-medium">
+                  Kosongkan jika tidak ingin membuat akun email baru di Mailcow.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Password Email Mailcow</label>
+                <input
+                  type="password"
+                  placeholder="Password untuk email baru"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                />
+              </div>
+            </>
+          )}
           <div className="pt-4 border-t border-[var(--color-border)] flex justify-end gap-3">
             <button
               type="button"

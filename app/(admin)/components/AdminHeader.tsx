@@ -137,15 +137,7 @@ export default function AdminHeader() {
         <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 z-100
             bg-[rgba(255,255,255,0.7)] backdrop-blur-[12px] border-b border-[var(--color-border)] sticky top-0">
 
-            {/* Left: Page Title */}
-            <div className="flex flex-col justify-center">
-                <h2 className="text-[var(--color-text-main)] text-[15px] font-semibold leading-tight tracking-tight">
-                    {pageInfo.title}
-                </h2>
-                <p className="text-[var(--color-text-muted)] text-[11px] font-medium mt-0.5 hidden md:block">
-                    {pageInfo.subtitle}
-                </p>
-            </div>
+            {/* Left: Page Title Removed */}
 
             {/* Center: Search */}
             <div className="hidden md:flex flex-1 max-w-sm mx-8 relative" ref={searchRef}>

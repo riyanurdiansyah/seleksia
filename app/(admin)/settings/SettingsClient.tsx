@@ -79,7 +79,7 @@ const roleConfig: Record<
 };
 
 export default function SettingsClient() {
-    const [activeTab, setActiveTab] = useState<"admins" | "email">("admins");
+    const [activeTab, setActiveTab] = useState<"email">("email");
     const [admins, setAdmins] = useState(initialAdmins);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newAdmin, setNewAdmin] = useState({
@@ -254,14 +254,6 @@ export default function SettingsClient() {
                 <div className="border-b border-[var(--color-border)]">
                     <nav className="flex px-6 gap-6">
                         <button 
-                            onClick={() => setActiveTab("admins")}
-                            className={`py-3 border-b-2 font-medium text-sm transition-all ${
-                                activeTab === "admins" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
-                            }`}
-                        >
-                            Admin Accounts
-                        </button>
-                        <button 
                             onClick={() => setActiveTab("email")}
                             className={`py-3 border-b-2 font-medium text-sm transition-all ${
                                 activeTab === "email" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
@@ -280,127 +272,6 @@ export default function SettingsClient() {
                         </button>
                     </nav>
                 </div>
-
-                {/* Admin Accounts Section */}
-                {activeTab === "admins" && (
-                    <div className="p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h3 className="text-lg font-bold text-[var(--color-text-main)]">
-                                    Admin Accounts
-                                </h3>
-                                <p className="text-sm text-[var(--color-text-sub)]">
-                                    Manage who has access to the admin panel.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press btn-shine"
-                            >
-                                <span className="material-symbols-outlined text-[18px]">
-                                    person_add
-                                </span>
-                                Add Admin
-                            </button>
-                        </div>
-
-                        {/* Admin Cards */}
-                        <div className="space-y-3">
-                            {admins.map((admin) => {
-                                const r = roleConfig[admin.role];
-                                return (
-                                    <div
-                                        key={admin.id}
-                                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-[var(--radius-md)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:translate-y-[-1px] hover:shadow-[var(--shadow-sm)] transition-all duration-[250ms]"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            {/* Avatar */}
-                                            <div
-                                                className={`size-11 rounded-full flex items-center justify-center font-bold text-sm transition-all ${admin.status === "active"
-                                                        ? "bg-gradient-to-br from-primary to-accent text-white shadow-[var(--shadow-sm)]"
-                                                        : "bg-[var(--color-bg-hover)] text-[var(--color-text-muted)]"
-                                                    }`}
-                                            >
-                                                {admin.name
-                                                    .split(" ")
-                                                    .map((n) => n[0])
-                                                    .join("")
-                                                    .slice(0, 2)
-                                                    .toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-medium text-[var(--color-text-main)]">
-                                                        {admin.name}
-                                                    </p>
-                                                    {admin.status === "inactive" && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-bg-hover)] text-[var(--color-text-muted)]">
-                                                            Inactive
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-[var(--color-text-sub)]">
-                                                    {admin.email}
-                                                </p>
-                                                <div className="flex items-center gap-3 mt-1.5">
-                                                    <span
-                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${r.bg} ${r.text}`}
-                                                    >
-                                                        <span className="material-symbols-outlined text-[12px]">
-                                                            {r.icon}
-                                                        </span>
-                                                        {r.label}
-                                                    </span>
-                                                    <span className="text-[10px] text-[var(--color-text-muted)]">
-                                                        Last login: {admin.lastLogin}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-2 sm:flex-shrink-0">
-                                            <button
-                                                onClick={() =>
-                                                    toggleStatus(admin.id)
-                                                }
-                                                className={`px-3 py-1.5 rounded-[var(--radius-xs)] text-xs font-medium transition-all btn-press ${admin.status === "active"
-                                                        ? "bg-[var(--color-success-light)] text-[var(--color-success)] hover:shadow-[0_2px_8px_var(--color-success-glow)]"
-                                                        : "bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)]"
-                                                    }`}
-                                            >
-                                                {admin.status === "active"
-                                                    ? "Active"
-                                                    : "Inactive"}
-                                            </button>
-                                            <button
-                                                className="p-1.5 rounded-[var(--radius-xs)] text-[var(--color-text-muted)] hover:text-amber-600 hover:bg-[var(--color-bg-hover)] transition-all btn-press"
-                                                title="Edit"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">
-                                                    edit
-                                                </span>
-                                            </button>
-                                            {admin.role !== "super_admin" && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleDelete(admin.id)
-                                                    }
-                                                    className="p-1.5 rounded-[var(--radius-xs)] text-[var(--color-text-muted)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] transition-all btn-press"
-                                                    title="Delete"
-                                                >
-                                                    <span className="material-symbols-outlined text-[18px]">
-                                                        delete
-                                                    </span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
 
                 {/* Email Server (SMTP) Section */}
                 {activeTab === "email" && (
