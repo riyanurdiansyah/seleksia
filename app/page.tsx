@@ -73,11 +73,8 @@ export default function LoginPage() {
         <div className="absolute top-1/3 left-1/4 w-[280px] h-[280px] bg-[var(--color-primary)] opacity-10 rounded-full blur-[80px] pointer-events-none" />
 
         {/* Header Branding */}
-        <div className="relative z-10 flex items-center gap-3">
-          <img src="/logo.png" alt="SELEKSIA Logo" className="w-11 h-11 object-contain" />
-          <span className="text-2xl font-bold tracking-tight text-white">
-            Selek<strong className="text-primary-mid">sia</strong>
-          </span>
+        <div className="relative z-10 flex items-center">
+          <img src="/full-logo.png" alt="SELEKSIA Logo" className="h-16 w-[220px] object-contain brightness-0 invert" style={{ filter: "brightness(0) invert(1)" }} />
         </div>
 
         {/* Hero Content Block */}
@@ -133,11 +130,8 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center px-6 py-12 bg-[var(--color-bg-base)] transition-colors duration-300">
         <div className="w-full max-w-md space-y-8 animate-slide-in-up">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-6">
-            <img src="/logo.png" alt="SELEKSIA Logo" className="w-11 h-11 object-contain" />
-            <span className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-              Selek<strong className="text-[var(--color-primary)]">sia</strong>
-            </span>
+          <div className="lg:hidden flex items-center justify-center mb-6">
+            <img src="/full-logo.png" alt="SELEKSIA Logo" className="h-16 w-[220px] object-contain dark:brightness-0 dark:invert" />
           </div>
 
           <div className="bg-[var(--color-bg-card)] p-8 rounded-3xl border border-[var(--color-border)] shadow-[var(--shadow-card)] space-y-6 relative overflow-hidden">
@@ -235,12 +229,19 @@ export default function LoginPage() {
                 )}
               </button>
 
-              {/* Security footer */}
-              <div className="flex items-center justify-center gap-2 text-[10px] text-[var(--color-text-muted)] mt-4">
-                <span className="material-symbols-outlined text-xs">lock</span>
-                <span>SSL 256-bit Encrypted</span>
+              <div className="text-center text-xs text-[var(--color-text-sub)] mt-4">
+                Belum punya akun?{" "}
+                <a href="/register" className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-bold transition-all">
+                  Daftar & Berlangganan
+                </a>
               </div>
-            </form>
+ 
+               {/* Security footer */}
+               <div className="flex items-center justify-center gap-2 text-[10px] text-[var(--color-text-muted)] mt-4">
+                 <span className="material-symbols-outlined text-xs">lock</span>
+                 <span>SSL 256-bit Encrypted</span>
+               </div>
+             </form>
 
             {/* Footer links inside form card */}
             <div className="flex justify-between items-center text-xs text-[var(--color-text-muted)] pt-4 border-t border-[var(--color-border)]">

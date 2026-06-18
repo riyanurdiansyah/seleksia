@@ -221,23 +221,16 @@ export default function AdminSidebar() {
                 {/* Logo */}
                 <div className={`flex-shrink-0 flex items-center px-3.5 pb-9
                     ${isCollapsed ? "justify-center" : ""}`}>
-                    <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
-                        {/* Logo icon */}
-                        <div className="relative flex-shrink-0 animate-float">
-                            <img src="/logo.png" alt="SELEKSIA Logo" className="w-9 h-9 object-contain" />
-                            {/* Online dot */}
-                            <span className="absolute -bottom-0.5 -right-0.5 size-2.5 bg-emerald-400 rounded-full
-                                border-2 border-[var(--color-bg-surface)] shadow-sm" />
-                        </div>
-                        {!isCollapsed && (
-                            <div className="whitespace-nowrap">
-                                <h1 className="text-[var(--color-text-main)] text-[20px] font-black tracking-tighter leading-none">
-                                    SELEKSIA
-                                </h1>
-                                <p className="text-[var(--color-text-muted)] text-[10px] font-semibold tracking-widest uppercase mt-0.5">
-                                    Admin Panel
-                                </p>
+                    <Link href="/dashboard" className="flex items-center overflow-hidden">
+                        {isCollapsed ? (
+                            <div className="relative flex-shrink-0 animate-float">
+                                <img src="/logo.png" alt="SELEKSIA Logo" className="w-9 h-9 object-contain brightness-0 dark:brightness-100" />
+                                {/* Online dot */}
+                                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 bg-emerald-400 rounded-full
+                                    border-2 border-[var(--color-bg-surface)] shadow-sm" />
                             </div>
+                        ) : (
+                            <img src="/full-logo.png" alt="SELEKSIA Logo" className="h-16 w-[220px] object-contain dark:brightness-0 dark:invert" />
                         )}
                     </Link>
                 </div>

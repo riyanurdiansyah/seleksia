@@ -44,7 +44,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <img src="/logo.png" alt="SELEKSIA Logo" className="w-8 h-8 object-contain animate-float group-hover:scale-105 transition-all" />
+            <img src="/logo.png" alt="SELEKSIA Logo" className="w-8 h-8 object-contain animate-float group-hover:scale-105 transition-all brightness-0" />
             <span className="text-[var(--color-brand-navy)] text-xl font-serif font-semibold tracking-wider">
               SELEKSIA
             </span>

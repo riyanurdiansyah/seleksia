@@ -1078,6 +1078,18 @@ export default function ExamPage() {
                                     {/* Options */}
                                     <div className="space-y-3">
                                         {(() => {
+                                            if (question.type === "essay") {
+                                                return (
+                                                    <textarea
+                                                        className="w-full h-40 p-4 rounded-[var(--radius-sm)] border-2 border-[var(--color-border)] dark:border-slate-700 bg-[var(--color-bg-card)] dark:bg-slate-900 text-[var(--color-text-main)] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-y"
+                                                        placeholder="Ketik jawaban Anda di sini..."
+                                                        value={answers[question.id] || ""}
+                                                        onChange={(e) => setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))}
+                                                        onBlur={(e) => selectAnswer(e.target.value)}
+                                                    />
+                                                );
+                                            }
+
                                             let options = question.options || [];
                                             if (question.type === "true_false") {
                                                 const valid = options.filter(o => o && o.trim() !== "");
@@ -1116,14 +1128,18 @@ export default function ExamPage() {
                                                                     ? optText
                                                                     : key}
                                                             </div>
-                                                            <span
-                                                                className={`text-sm leading-relaxed ${selected
-                                                                    ? "text-[var(--color-text-main)] dark:text-white font-medium"
-                                                                    : "text-slate-700 dark:text-[var(--color-text-muted)]"
-                                                                    }`}
-                                                            >
-                                                                {optText}
-                                                            </span>
+                                                            {optText.startsWith("/") ? (
+                                                                <img src={optText} alt="Option pattern" className="max-h-20 object-contain rounded bg-[var(--color-bg-card)] dark:bg-slate-900 p-1 border border-[var(--color-border)]" />
+                                                            ) : (
+                                                                <span
+                                                                    className={`text-sm leading-relaxed ${selected
+                                                                        ? "text-[var(--color-text-main)] dark:text-white font-medium"
+                                                                        : "text-slate-700 dark:text-[var(--color-text-muted)]"
+                                                                        }`}
+                                                                >
+                                                                    {optText}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </button>
                                                 );

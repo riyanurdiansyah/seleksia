@@ -79,7 +79,7 @@ const roleConfig: Record<
 };
 
 export default function SettingsClient() {
-    const [activeTab, setActiveTab] = useState<"email">("email");
+    const [activeTab, setActiveTab] = useState<"email" | "midtrans">("email");
     const [admins, setAdmins] = useState(initialAdmins);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newAdmin, setNewAdmin] = useState({
@@ -105,6 +105,13 @@ export default function SettingsClient() {
     const [saveStatus, setSaveStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
     const [accordionOpen, setAccordionOpen] = useState<string | null>(null);
 
+    /* Midtrans settings state */
+    const [midtransServerKey, setMidtransServerKey] = useState("");
+    const [midtransClientKey, setMidtransClientKey] = useState("");
+    const [midtransMode, setMidtransMode] = useState("sandbox");
+    const [isSavingMidtrans, setIsSavingMidtrans] = useState(false);
+    const [midtransStatus, setMidtransStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+
     /* Fetch SMTP settings on activeTab change */
     useEffect(() => {
         if (activeTab === "email") {
@@ -127,6 +134,52 @@ export default function SettingsClient() {
                 .finally(() => setIsLoading(false));
         }
     }, [activeTab]);
+
+    /* Fetch Midtrans settings on activeTab change */
+    useEffect(() => {
+        if (activeTab === "midtrans") {
+            setIsLoading(true);
+            setMidtransStatus(null);
+            fetch("/api/settings/midtrans")
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        setMidtransServerKey(res.data.midtransServerKey);
+                        setMidtransClientKey(res.data.midtransClientKey);
+                        setMidtransMode(res.data.midtransMode);
+                    }
+                })
+                .catch(err => console.error("Error loading Midtrans settings:", err))
+                .finally(() => setIsLoading(false));
+        }
+    }, [activeTab]);
+
+    /* Save Midtrans configuration */
+    const handleSaveMidtrans = async () => {
+        setIsSavingMidtrans(true);
+        setMidtransStatus(null);
+        try {
+            const res = await fetch("/api/settings/midtrans", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    midtransServerKey,
+                    midtransClientKey,
+                    midtransMode,
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMidtransStatus({ type: "success", msg: "Kredensial Midtrans berhasil disimpan." });
+            } else {
+                setMidtransStatus({ type: "error", msg: data.error || "Gagal menyimpan kredensial." });
+            }
+        } catch (err: any) {
+            setMidtransStatus({ type: "error", msg: "Terjadi kesalahan jaringan." });
+        } finally {
+            setIsSavingMidtrans(false);
+        }
+    };
 
     /* Save SMTP configuration */
     const handleSaveSmtp = async () => {
@@ -260,6 +313,14 @@ export default function SettingsClient() {
                             }`}
                         >
                             Email Server (SMTP)
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab("midtrans")}
+                            className={`py-3 border-b-2 font-medium text-sm transition-all ${
+                                activeTab === "midtrans" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
+                            }`}
+                        >
+                            Payment Gateway (Midtrans)
                         </button>
                         <button className="py-3 border-b-2 border-transparent text-[var(--color-text-muted)] opacity-50 cursor-not-allowed font-medium text-sm">
                             General
@@ -530,6 +591,134 @@ export default function SettingsClient() {
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === "midtrans" && (
+                    <div className="p-6 space-y-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-border)] pb-5">
+                            <div>
+                                <h3 className="text-lg font-bold text-[var(--color-text-main)]">
+                                    Konfigurasi Payment Gateway (Midtrans)
+                                </h3>
+                                <p className="text-sm text-[var(--color-text-sub)]">
+                                    Hubungkan sistem CBT dengan akun Midtrans Anda untuk memproses pembayaran langganan (subscription) secara otomatis.
+                                </p>
+                            </div>
+                        </div>
+
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-12 gap-3 text-sm text-[var(--color-text-muted)]">
+                                <span className="material-symbols-outlined animate-spin text-3xl text-primary">autorenew</span>
+                                Memuat konfigurasi...
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div className="lg:col-span-2 space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
+                                            Midtrans Client Key *
+                                        </label>
+                                        <input
+                                            value={midtransClientKey}
+                                            onChange={(e) => setMidtransClientKey(e.target.value)}
+                                            className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all outline-none"
+                                            placeholder="e.g. SB-Mid-client-XXXXXX"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
+                                            Midtrans Server Key *
+                                        </label>
+                                        <input
+                                            value={midtransServerKey}
+                                            onChange={(e) => setMidtransServerKey(e.target.value)}
+                                            type="password"
+                                            className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all outline-none"
+                                            placeholder="e.g. SB-Mid-server-YYYYYY"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
+                                            Midtrans Environment Mode *
+                                        </label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[var(--color-text-main)]">
+                                                <input 
+                                                    type="radio" 
+                                                    name="midtransMode" 
+                                                    value="sandbox" 
+                                                    checked={midtransMode === "sandbox"}
+                                                    onChange={() => setMidtransMode("sandbox")}
+                                                    className="accent-primary"
+                                                />
+                                                Sandbox (Testing)
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[var(--color-text-main)]">
+                                                <input 
+                                                    type="radio" 
+                                                    name="midtransMode" 
+                                                    value="production" 
+                                                    checked={midtransMode === "production"}
+                                                    onChange={() => setMidtransMode("production")}
+                                                    className="accent-primary"
+                                                />
+                                                Production (Live)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {midtransStatus && (
+                                        <div className={`p-3.5 rounded-[var(--radius-sm)] text-xs font-semibold flex items-center gap-2 ${
+                                            midtransStatus.type === "success" ? "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400"
+                                        }`}>
+                                            <span className="material-symbols-outlined text-[18px]">
+                                                {midtransStatus.type === "success" ? "check_circle" : "error"}
+                                            </span>
+                                            {midtransStatus.msg}
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center gap-3 pt-3">
+                                        <button
+                                            onClick={handleSaveMidtrans}
+                                            disabled={isSavingMidtrans || !midtransServerKey || !midtransClientKey}
+                                            className="px-5 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press btn-shine disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                        >
+                                            {isSavingMidtrans ? (
+                                                <>
+                                                    <span className="material-symbols-outlined animate-spin text-[18px]">autorenew</span>
+                                                    Menyimpan...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="material-symbols-outlined text-[18px]">save</span>
+                                                    Simpan Kredensial
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3.5 shadow-sm">
+                                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-text-main)] flex items-center gap-1.5">
+                                            <span className="material-symbols-outlined text-[18px] text-primary">info</span>
+                                            Panduan Integrasi Midtrans
+                                        </h4>
+                                        <p className="text-[11px] text-[var(--color-text-sub)] leading-relaxed font-medium">
+                                            Dapatkan Server Key & Client Key Anda di Dashboard Midtrans Anda:
+                                        </p>
+                                        <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--color-text-sub)] font-medium">
+                                            <li>Daftar/Login ke <a href="https://midtrans.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">midtrans.com</a>.</li>
+                                            <li>Arahkan ke menu <strong>Settings &gt; Access Keys</strong>.</li>
+                                            <li>Salin <strong>Client Key</strong> dan <strong>Server Key</strong> Anda.</li>
+                                            <li>Tempelkan ke kolom isian sebelah kiri sesuai dengan mode environment (Sandbox untuk uji coba / Production untuk live transaksi).</li>
+                                        </ol>
                                     </div>
                                 </div>
                             </div>

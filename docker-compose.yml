@@ -15,6 +15,8 @@ services:
       - PORT=3000
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - ./public/uploads:/app/public/uploads
     # Next.js akan membaca DATABASE_URL langsung dari file .env Anda yang terhubung ke PostgreSQL lokal VPS
 
   ws:

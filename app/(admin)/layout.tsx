@@ -1,17 +1,37 @@
 import AdminSidebar from "./components/AdminSidebar";
 import AdminHeader from "./components/AdminHeader";
 import AdminGuard from "./AdminGuard";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export const metadata = {
     title: "Admin Dashboard - SELEKSIA",
     description: "SELEKSIA admin panel for managing CBT exams and monitoring.",
+    icons: {
+        icon: "/full-logo-only.png",
+    },
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const cookieStore = await cookies();
+    const companyId = cookieStore.get("companyId")?.value;
+
+    if (companyId) {
+        const company = await prisma.company.findUnique({
+            where: { id: companyId },
+            select: { subscriptionStatus: true }
+        });
+
+        if (company?.subscriptionStatus === "pending_payment") {
+            redirect("/payment");
+        }
+    }
+
     return (
         <AdminGuard>
             <div className="flex h-screen w-full overflow-hidden bg-[var(--color-bg-base)]">

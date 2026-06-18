@@ -4,10 +4,60 @@ import { Role } from "@prisma/client";
 
 export const dynamic = 'force-dynamic';
 
+async function ensureSubscriptionMenu() {
+    try {
+        // Check if menu with path '/subscription' exists
+        const existing = await prisma.menu.findFirst({
+            where: { path: "/subscription" }
+        });
+
+        if (!existing) {
+            // Create menu and set permissions for admin and superadmin
+            await prisma.menu.create({
+                data: {
+                    name: "Subscription",
+                    path: "/subscription",
+                    icon: "credit_card",
+                    isActive: true,
+                    parentId: null,
+                    sortOrder: 95,
+                    roleAccess: {
+                        createMany: {
+                            data: [
+                                {
+                                    role: Role.admin,
+                                    canRead: true,
+                                    canCreate: true,
+                                    canUpdate: true,
+                                    canDelete: true
+                                },
+                                {
+                                    role: Role.superadmin,
+                                    canRead: true,
+                                    canCreate: true,
+                                    canUpdate: true,
+                                    canDelete: true
+                                }
+                            ]
+                        }
+                    }
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Failed to ensure subscription menu exists:", err);
+    }
+}
+
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const role = (searchParams.get("role") || "admin") as Role;
+
+        // Auto-ensure the subscription menu is seeded for the user
+        if (role === Role.admin || role === Role.superadmin) {
+            await ensureSubscriptionMenu();
+        }
 
         // Fetch parent menus with their submenus where role has canRead
         const menus = await prisma.menu.findMany({

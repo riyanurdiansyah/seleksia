@@ -11,6 +11,9 @@ export const metadata = {
   title: "SELEKSIA - Computer Based Test",
   description:
     "Sistem CBT (Computer Based Test) psikotes dengan pengawasan kamera dan fitur anti-kecurangan.",
+  icons: {
+    icon: "/full-logo-only.png",
+  },
 };
 
 export default function RootLayout({

@@ -22,18 +22,30 @@ interface RbacData {
   roleAccess: MatrixData;
 }
 
+interface RBACAccess {
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
 export default function RBACMatrixPage() {
   const [data, setData] = useState<RbacData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [access, setAccess] = useState<RBACAccess>({
+    canRead: false,
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false
+  });
 
   // currentMatrix structure: { role: { menuId: { r: true, c: false, u: true, d: false } } }
   const [currentMatrix, setCurrentMatrix] = useState<MatrixData>({});
 
   const fetchData = async () => {
-    setLoading(true);
     try {
       const res = await fetch("/api/rbac");
       if (!res.ok) throw new Error("Gagal mengambil data RBAC");
@@ -83,10 +95,38 @@ export default function RBACMatrixPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    const checkAccess = async () => {
+      const role = sessionStorage.getItem("candidateRole") || "user";
+      try {
+        const accessRes = await fetch(`/api/rbac/check?path=/master/rbac&role=${role}`);
+        if (accessRes.ok) {
+          const accessData = await accessRes.json();
+          setAccess(accessData);
+          
+          if (accessData.canRead) {
+            await fetchData();
+          } else {
+            setLoading(false);
+          }
+        } else {
+          setError("Gagal memvalidasi hak akses (RBAC).");
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("RBAC Check error:", err);
+        setError("Gagal melakukan inisialisasi keamanan.");
+        setLoading(false);
+      }
+    };
+
+    checkAccess();
   }, []);
 
   const handleToggle = (role: string, menuId: string, perm: PermTypes) => {
+    if (!access.canUpdate) {
+      setError("Anda tidak memiliki izin untuk memperbarui matriks hak akses.");
+      return;
+    }
     setCurrentMatrix((prev) => {
       const currentRoleData = prev[role] || {};
       const currentMenuData = currentRoleData[menuId] || { r: false, c: false, u: false, d: false };
@@ -105,6 +145,10 @@ export default function RBACMatrixPage() {
   };
 
   const handleSave = async () => {
+    if (!access.canUpdate) {
+      setError("Anda tidak memiliki izin untuk menyimpan perubahan.");
+      return;
+    }
     setSaving(true);
     setError("");
     setSuccessMsg("");
@@ -137,6 +181,16 @@ export default function RBACMatrixPage() {
       <div className="flex flex-col items-center justify-center min-h-[400px] text-[var(--color-text-muted)] gap-4 animate-fade-in">
         <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         <span className="text-sm font-bold tracking-wider uppercase">Memuat Matriks Akses...</span>
+      </div>
+    );
+  }
+
+  if (!access.canRead) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+        <span className="material-symbols-outlined text-6xl text-[var(--color-danger)] mb-4">lock</span>
+        <h2 className="text-xl font-bold text-[var(--color-text-main)]">Akses Ditolak</h2>
+        <p className="text-[var(--color-text-sub)] mt-2">Anda tidak memiliki izin untuk melihat halaman ini berdasarkan Role Access Matrix (RBAC).</p>
       </div>
     );
   }
@@ -197,7 +251,7 @@ export default function RBACMatrixPage() {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !access.canUpdate}
             className="flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-sm)] text-[13px] font-bold text-white
               bg-gradient-to-br from-primary to-accent transition-all shadow-[0_4px_15px_var(--color-primary-glow)] 
               hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] cursor-pointer w-fit btn-press btn-shine disabled:opacity-50"

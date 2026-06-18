@@ -793,7 +793,7 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
                                     <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-5 shadow-xs max-w-md mx-auto flex flex-col gap-4">
                                         {/* Header band */}
                                         <div className="flex items-center gap-2 border-b border-[var(--color-border)] pb-2.5">
-                                            <img src="/logo.png" alt="Logo" className="w-5 h-5 object-contain" />
+                                            <img src="/logo.png" alt="Logo" className="w-5 h-5 object-contain brightness-0 dark:brightness-100" />
                                             <span className="text-[10px] font-black tracking-widest text-[var(--color-text-main)]">SELEKSIA CBT PLATFORM</span>
                                         </div>
                                         

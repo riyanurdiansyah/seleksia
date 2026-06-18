@@ -28,6 +28,18 @@ model Company {
   smtpPass     String?
   smtpSender   String?
 
+  // ===== Subscription System =====
+  subscriptionPlan      String                @default("Free") // "Free", "Starter", "Business", "Enterprise"
+  subscriptionStatus    String                @default("active") // "active", "expired", "pending"
+  subscriptionExpiresAt DateTime?
+  subscriptionStartedAt DateTime?
+  subscriptionPayments  SubscriptionPayment[]
+
+  // ===== Midtrans Settings =====
+  midtransServerKey String?
+  midtransClientKey String?
+  midtransMode      String                @default("sandbox") // "sandbox", "production"
+
   @@map("companies")
 }
 
@@ -311,4 +323,19 @@ model TestGroup {
   tests   Test[]  @relation("TestGroupTests")
 
   @@map("test_groups")
+}
+
+model SubscriptionPayment {
+  id            String   @id @default(cuid())
+  companyId     String
+  plan          String
+  amount        Float
+  status        String   // "pending", "success", "failed"
+  paymentMethod String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("subscription_payments")
 }

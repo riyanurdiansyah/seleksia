@@ -17,6 +17,7 @@ interface Question {
     text: string;
     options: string[];
     correctAnswer?: string | null;
+    imageUrl?: string | null;
     timeLimit?: number | null;
     sortOrder: number;
 }
@@ -79,6 +80,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         options: ["", "", "", "", ""],
         correctAnswer: "",
         timeLimit: 0,
+        imageUrl: "",
     });
 
     // Edit question
@@ -89,7 +91,48 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         options: ["", "", "", "", ""],
         correctAnswer: "",
         timeLimit: 0,
+        imageUrl: "",
     });
+
+    // Image uploading state
+    const [uploadingImage, setUploadingImage] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            alert("Only image files are allowed!");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Maximum file size is 5MB!");
+            return;
+        }
+
+        setUploadingImage(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!res.ok) throw new Error("Upload failed");
+            const data = await res.json();
+            if (isEdit) {
+                setEditQuestion((p) => ({ ...p, imageUrl: data.imageUrl }));
+            } else {
+                setNewQuestion((p) => ({ ...p, imageUrl: data.imageUrl }));
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to upload image.");
+        } finally {
+            setUploadingImage(false);
+        }
+    };
 
     // Delete question confirmation
     const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<{ id: string; text: string } | null>(null);
@@ -161,7 +204,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
 
     /* Add question */
     const handleAddQuestion = async () => {
-        if (!newQuestion.text || !test) return;
+        if ((!newQuestion.text && !newQuestion.imageUrl) || !test) return;
         try {
             const res = await fetch(`/api/tests/${test.id}/questions`, {
                 method: "POST",
@@ -172,6 +215,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     options: newQuestion.type === "essay" ? [] : newQuestion.options.filter((o) => o.trim() !== ""),
                     correctAnswer: newQuestion.correctAnswer || null,
                     timeLimit: newQuestion.timeLimit || null,
+                    imageUrl: newQuestion.imageUrl || null,
                 }),
             });
             if (!res.ok) {
@@ -181,7 +225,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             }
             const q = await res.json();
             setTest((prev) => prev ? { ...prev, questions: [...prev.questions, q] } : prev);
-            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], correctAnswer: "", timeLimit: 0 });
+            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], correctAnswer: "", timeLimit: 0, imageUrl: "" });
         } catch (err) {
             console.error(err);
             alert(err instanceof Error ? err.message : String(err));
@@ -209,12 +253,17 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             options: q.options.length > 0 ? [...q.options] : ["", "", "", "", ""],
             correctAnswer: q.correctAnswer || "",
             timeLimit: q.timeLimit || 0,
+            imageUrl: q.imageUrl || "",
         });
     };
 
     /* Save edited question */
     const handleSaveQuestion = async () => {
         if (!test || !editingQuestionId) return;
+        if (!editQuestion.text && !editQuestion.imageUrl) {
+            alert("Question must have either text or image!");
+            return;
+        }
         try {
             const res = await fetch(`/api/tests/${test.id}/questions/${editingQuestionId}`, {
                 method: "PATCH",
@@ -225,6 +274,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     options: editQuestion.type === "essay" ? [] : editQuestion.options.filter((o) => o.trim() !== ""),
                     correctAnswer: editQuestion.correctAnswer || null,
                     timeLimit: editQuestion.timeLimit || null,
+                    imageUrl: editQuestion.imageUrl || null,
                 }),
             });
             if (!res.ok) throw new Error("Failed");
@@ -341,23 +391,98 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Text *</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Text (Optional if image uploaded)</label>
                                     <textarea value={newQuestion.text} onChange={(e) => setNewQuestion((p) => ({ ...p, text: e.target.value }))} rows={2} className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300 resize-none" placeholder="Enter question..." />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Image (Optional)</label>
+                                    {newQuestion.imageUrl ? (
+                                        <div className="relative inline-block border border-[var(--color-border)] rounded-[var(--radius-sm)] p-1 bg-[var(--color-bg-elevated)]">
+                                            <img src={newQuestion.imageUrl} alt="Preview" className="max-h-32 object-contain rounded" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewQuestion(prev => ({ ...prev, imageUrl: "" }))}
+                                                className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 flex items-center justify-center shadow-lg transition-colors"
+                                                title="Remove Image"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">close</span>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <label className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] cursor-pointer hover:bg-[var(--color-bg-hover)] transition-colors">
+                                                <span className="material-symbols-outlined text-[18px]">image</span>
+                                                <span>Select Image</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => handleImageUpload(e, false)}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                            {uploadingImage && (
+                                                <span className="material-symbols-outlined text-[18px] text-[var(--color-text-muted)] animate-spin">
+                                                    progress_activity
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {newQuestion.type !== "essay" && newQuestion.type !== "likert_scale" && newQuestion.type !== "true_false" && (
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Options</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Options (Text or Image)</label>
                                         <div className="space-y-1.5">
-                                            {newQuestion.options.map((opt, i) => (
-                                                <div key={i} className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-bold text-[var(--color-text-muted)] w-4 text-center">{String.fromCharCode(65 + i)}</span>
-                                                    <input value={opt} onChange={(e) => { const o = [...newQuestion.options]; o[i] = e.target.value; setNewQuestion((p) => ({ ...p, options: o })); }} className="flex-1 h-8 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" placeholder={`Option ${String.fromCharCode(65 + i)}`} />
-                                                    <button type="button" onClick={() => setNewQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${newQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`} title="Correct">
-                                                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                                                    </button>
-                                                </div>
-                                            ))}
+                                            {newQuestion.options.map((opt, i) => {
+                                                const isImg = opt.startsWith("/");
+                                                return (
+                                                    <div key={i} className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold text-[var(--color-text-muted)] w-4 text-center">{String.fromCharCode(65 + i)}</span>
+                                                        {isImg ? (
+                                                            <div className="flex-1 flex items-center gap-2 p-1 border border-[var(--color-border)] rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] h-8">
+                                                                <img src={opt} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-full object-contain rounded" />
+                                                                <button type="button" onClick={() => { const o = [...newQuestion.options]; o[i] = ""; setNewQuestion((p) => ({ ...p, options: o })); }} className="text-red-500 hover:text-red-700 ml-auto p-1 flex items-center" title="Remove Option Image">
+                                                                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <input value={opt} onChange={(e) => { const o = [...newQuestion.options]; o[i] = e.target.value; setNewQuestion((p) => ({ ...p, options: o })); }} className="flex-1 h-8 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" placeholder={`Option ${String.fromCharCode(65 + i)}`} />
+                                                        )}
+
+                                                        {!isImg && (
+                                                            <label className="p-1 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] cursor-pointer flex items-center" title="Upload Option Image">
+                                                                <span className="material-symbols-outlined text-[18px]">image</span>
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    onChange={async (e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (!file) return;
+                                                                        const formData = new FormData();
+                                                                        formData.append("file", file);
+                                                                        try {
+                                                                            const res = await fetch("/api/upload", { method: "POST", body: formData });
+                                                                            if (!res.ok) throw new Error("Upload failed");
+                                                                            const data = await res.json();
+                                                                            const o = [...newQuestion.options];
+                                                                            o[i] = data.imageUrl;
+                                                                            setNewQuestion((p) => ({ ...p, options: o }));
+                                                                        } catch (err) {
+                                                                            alert("Upload failed");
+                                                                        }
+                                                                    }}
+                                                                    className="hidden"
+                                                                />
+                                                            </label>
+                                                        )}
+
+                                                        <button type="button" onClick={() => setNewQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${newQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`} title="Correct">
+                                                            <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
                                             {newQuestion.options.length < 8 && (
                                                 <button type="button" onClick={() => setNewQuestion((p) => ({ ...p, options: [...p.options, ""] }))} className="flex items-center gap-1 text-[10px] text-primary hover:underline ml-6">
                                                     <span className="material-symbols-outlined text-[12px]">add</span>Add Option
@@ -376,7 +501,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                 )}
 
                                 <div className="flex justify-end">
-                                    <button onClick={handleAddQuestion} disabled={!newQuestion.text} className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button onClick={handleAddQuestion} disabled={!newQuestion.text && !newQuestion.imageUrl} className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined text-[16px]">add</span>Add Question
                                     </button>
                                 </div>
@@ -422,20 +547,95 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Text</label>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Text (Optional if image uploaded)</label>
                                                     <textarea value={editQuestion.text} onChange={(e) => setEditQuestion((p) => ({ ...p, text: e.target.value }))} rows={2} className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300 resize-none" />
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Image (Optional)</label>
+                                                    {editQuestion.imageUrl ? (
+                                                        <div className="relative inline-block border border-[var(--color-border)] rounded-[var(--radius-sm)] p-1 bg-[var(--color-bg-elevated)]">
+                                                            <img src={editQuestion.imageUrl} alt="Preview" className="max-h-32 object-contain rounded" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEditQuestion(prev => ({ ...prev, imageUrl: "" }))}
+                                                                className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 flex items-center justify-center shadow-lg transition-colors"
+                                                                title="Remove Image"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[16px]">close</span>
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-sub)] cursor-pointer hover:bg-[var(--color-bg-hover)] transition-colors">
+                                                                <span className="material-symbols-outlined text-[18px]">image</span>
+                                                                <span>Select Image</span>
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    onChange={(e) => handleImageUpload(e, true)}
+                                                                    className="hidden"
+                                                                />
+                                                            </label>
+                                                            {uploadingImage && (
+                                                                <span className="material-symbols-outlined text-[18px] text-[var(--color-text-muted)] animate-spin">
+                                                                    progress_activity
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 {editQuestion.type !== "essay" && editQuestion.type !== "likert_scale" && editQuestion.type !== "true_false" && (
                                                     <div className="space-y-1.5">
-                                                        {editQuestion.options.map((opt, i) => (
-                                                            <div key={i} className="flex items-center gap-2">
-                                                                <span className="text-[10px] font-bold text-[var(--color-text-muted)] w-4 text-center">{String.fromCharCode(65 + i)}</span>
-                                                                <input value={opt} onChange={(e) => { const o = [...editQuestion.options]; o[i] = e.target.value; setEditQuestion((p) => ({ ...p, options: o })); }} className="flex-1 h-8 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" />
-                                                                <button type="button" onClick={() => setEditQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${editQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`}>
-                                                                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                                                                </button>
-                                                            </div>
-                                                        ))}
+                                                        {editQuestion.options.map((opt, i) => {
+                                                            const isImg = opt.startsWith("/");
+                                                            return (
+                                                                <div key={i} className="flex items-center gap-2">
+                                                                    <span className="text-[10px] font-bold text-[var(--color-text-muted)] w-4 text-center">{String.fromCharCode(65 + i)}</span>
+                                                                    {isImg ? (
+                                                                        <div className="flex-1 flex items-center gap-2 p-1 border border-[var(--color-border)] rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] h-8">
+                                                                            <img src={opt} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-full object-contain rounded" />
+                                                                            <button type="button" onClick={() => { const o = [...editQuestion.options]; o[i] = ""; setEditQuestion((p) => ({ ...p, options: o })); }} className="text-red-500 hover:text-red-700 ml-auto p-1 flex items-center" title="Remove Option Image">
+                                                                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <input value={opt} onChange={(e) => { const o = [...editQuestion.options]; o[i] = e.target.value; setEditQuestion((p) => ({ ...p, options: o })); }} className="flex-1 h-8 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" />
+                                                                    )}
+
+                                                                    {!isImg && (
+                                                                        <label className="p-1 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] cursor-pointer flex items-center" title="Upload Option Image">
+                                                                            <span className="material-symbols-outlined text-[18px]">image</span>
+                                                                            <input
+                                                                                type="file"
+                                                                                accept="image/*"
+                                                                                onChange={async (e) => {
+                                                                                    const file = e.target.files?.[0];
+                                                                                    if (!file) return;
+                                                                                    const formData = new FormData();
+                                                                                    formData.append("file", file);
+                                                                                    try {
+                                                                                        const res = await fetch("/api/upload", { method: "POST", body: formData });
+                                                                                        if (!res.ok) throw new Error("Upload failed");
+                                                                                        const data = await res.json();
+                                                                                        const o = [...editQuestion.options];
+                                                                                        o[i] = data.imageUrl;
+                                                                                        setEditQuestion((p) => ({ ...p, options: o }));
+                                                                                    } catch (err) {
+                                                                                        alert("Upload failed");
+                                                                                    }
+                                                                                }}
+                                                                                className="hidden"
+                                                                            />
+                                                                        </label>
+                                                                    )}
+
+                                                                    <button type="button" onClick={() => setEditQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${editQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`}>
+                                                                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                                 <div className="flex justify-end gap-2">
@@ -464,17 +664,29 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-sm text-[var(--color-text-main)] leading-relaxed">{q.text}</p>
+                                                        {q.text && <p className="text-sm text-[var(--color-text-main)] leading-relaxed">{q.text}</p>}
+                                                        {q.imageUrl && (
+                                                            <div className="mt-2">
+                                                                <img src={q.imageUrl} alt="Question Illustration" className="max-h-40 object-contain rounded border border-[var(--color-border)]" />
+                                                            </div>
+                                                        )}
 
                                                         {/* Options display */}
                                                         {q.options.length > 0 && q.type !== "essay" && (
                                                             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                                                {q.options.map((opt, oi) => (
-                                                                    <div key={oi} className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs ${q.correctAnswer === String.fromCharCode(65 + oi) ? "bg-[var(--color-success-light)] text-[var(--color-success)] border border-[var(--color-success)]" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]"}`}>
-                                                                        <span className="font-bold text-[10px]">{String.fromCharCode(65 + oi)}</span>
-                                                                        <span>{opt}</span>
-                                                                    </div>
-                                                                ))}
+                                                                {q.options.map((opt, oi) => {
+                                                                    const isImg = opt.startsWith("/");
+                                                                    return (
+                                                                        <div key={oi} className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs ${q.correctAnswer === String.fromCharCode(65 + oi) ? "bg-[var(--color-success-light)] text-[var(--color-success)] border border-[var(--color-success)]" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]"}`}>
+                                                                            <span className="font-bold text-[10px]">{String.fromCharCode(65 + oi)}</span>
+                                                                            {isImg ? (
+                                                                                <img src={opt} alt={`Option ${String.fromCharCode(65 + oi)}`} className="max-h-16 object-contain rounded" />
+                                                                            ) : (
+                                                                                <span>{opt}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         )}
                                                     </div>
