@@ -104,7 +104,23 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Assign display IDs sequentially (avoiding race conditions)
-        let count = await prisma.candidate.count();
+        const allCandidates = await prisma.candidate.findMany({
+            where: { companyId, displayId: { startsWith: 'PSK-' } },
+            select: { displayId: true }
+        });
+        
+        let maxNum = 0;
+        for (const c of allCandidates) {
+            const numPart = c.displayId.split('-')[1];
+            if (numPart) {
+                const num = parseInt(numPart, 10);
+                if (!isNaN(num) && num > maxNum) {
+                    maxNum = num;
+                }
+            }
+        }
+
+        let count = maxNum;
         const candidatesWithIds = validCandidates.map((c) => {
             count++;
             const displayId = `PSK-${String(count).padStart(3, "0")}`;

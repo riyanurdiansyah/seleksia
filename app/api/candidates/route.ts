@@ -46,14 +46,28 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
-        // Generate display ID
-        const count = await prisma.candidate.count();
-        const displayId = `PSK-${String(count + 1).padStart(3, "0")}`;
+        const companyId = await getCompanyId();
+
+        // Generate display ID safely based on company's max ID
+        const existingCandidates = await prisma.candidate.findMany({
+            where: { companyId, displayId: { startsWith: 'PSK-' } },
+            select: { displayId: true }
+        });
+        
+        let maxNum = 0;
+        for (const c of existingCandidates) {
+            const numPart = c.displayId.split('-')[1];
+            if (numPart) {
+                const num = parseInt(numPart, 10);
+                if (!isNaN(num) && num > maxNum) {
+                    maxNum = num;
+                }
+            }
+        }
+        const displayId = `PSK-${String(maxNum + 1).padStart(3, "0")}`;
 
         // Hash the password
         const hashedPassword = await bcrypt.hash(body.password, 10);
-
-        const companyId = await getCompanyId();
 
         const candidate = await prisma.candidate.create({
             data: {
@@ -75,7 +89,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error("POST /api/candidates error:", error);
         return NextResponse.json(
-            { error: "Failed to create candidate" },
+            { error: "Failed to create candidate", details: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }

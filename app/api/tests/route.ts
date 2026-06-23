@@ -41,17 +41,31 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
-        const count = await prisma.test.count();
-        const displayId = `TST-${String(count + 1).padStart(3, "0")}`;
-
         const cookieStore = await cookies();
         const role = cookieStore.get('userRole')?.value;
 
-        // Determine companyId: if superadmin, can use companyId from request body
         let companyId = await getCompanyId();
         if (role === 'superadmin' && body.companyId) {
             companyId = body.companyId;
         }
+
+        // Generate display ID safely based on company's max ID
+        const existingTests = await prisma.test.findMany({
+            where: { companyId, displayId: { startsWith: 'TST-' } },
+            select: { displayId: true }
+        });
+
+        let maxNum = 0;
+        for (const t of existingTests) {
+            const numPart = t.displayId.split('-')[1];
+            if (numPart) {
+                const num = parseInt(numPart, 10);
+                if (!isNaN(num) && num > maxNum) {
+                    maxNum = num;
+                }
+            }
+        }
+        const displayId = `TST-${String(maxNum + 1).padStart(3, "0")}`;
 
         const test = await prisma.test.create({
             data: {
