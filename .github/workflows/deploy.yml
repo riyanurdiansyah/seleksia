@@ -35,6 +35,12 @@ jobs:
             # Stop and remove old containers to guarantee port 3000 is released
             docker compose down
             
+            # Force stop any Docker container that is publishing port 3000 (just in case of orphaned containers)
+            docker ps -q --filter "publish=3000" | xargs -r docker stop || true
+            
+            # Kill any other process listening on port 3000 (e.g. native node process)
+            kill -9 $(lsof -t -i:3000) 2>/dev/null || true
+            
             # Launch new containers
             docker compose up -d
             
