@@ -8,7 +8,6 @@ var _baseUrl = (function () {
 
 var _ffMasterData = null;
 
-// Query params context — fallback empty jika tidak di-inject oleh view
 if (typeof _ffQueryParams === 'undefined') var _ffQueryParams = {};
 
 function f_BuildMobileListUrl() {
