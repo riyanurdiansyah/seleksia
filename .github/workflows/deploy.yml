@@ -29,8 +29,14 @@ jobs:
             git reset --hard
             git pull origin master
             
-            # Build and launch all containers (web, ws, db) in detached mode
-            docker compose up --build -d
+            # Build images first (keeps old container running during build to prevent downtime)
+            docker compose build
+            
+            # Stop and remove old containers to guarantee port 3000 is released
+            docker compose down
+            
+            # Launch new containers
+            docker compose up -d
             
             # Run Prisma database migrations inside the running Next.js container
             docker compose exec -T web npx prisma migrate deploy
