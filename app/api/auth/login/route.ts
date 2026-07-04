@@ -44,12 +44,22 @@ export async function POST(req: NextRequest) {
 
         // Check access period
         if (candidate.accessType === "range") {
-            const now = new Date();
-            if (candidate.accessStart && now < candidate.accessStart) {
-                return NextResponse.json({ error: "Your access period has not started yet." }, { status: 403 });
+            // Convert current time to WIB (UTC+7) for date comparison
+            const offset = 7 * 60 * 60 * 1000;
+            const localNow = new Date(Date.now() + offset);
+            const todayStr = localNow.toISOString().split('T')[0];
+
+            if (candidate.accessStart) {
+                const startStr = candidate.accessStart.toISOString().split('T')[0];
+                if (todayStr < startStr) {
+                    return NextResponse.json({ error: "Your access period has not started yet." }, { status: 403 });
+                }
             }
-            if (candidate.accessEnd && now > candidate.accessEnd) {
-                return NextResponse.json({ error: "Your access period has expired." }, { status: 403 });
+            if (candidate.accessEnd) {
+                const endStr = candidate.accessEnd.toISOString().split('T')[0];
+                if (todayStr > endStr) {
+                    return NextResponse.json({ error: "Your access period has expired." }, { status: 403 });
+                }
             }
         }
 

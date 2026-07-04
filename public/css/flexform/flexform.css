@@ -1,0 +1,291 @@
+﻿/* wwwroot/css/flexform/flexform.css */
+
+html {
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    background-color: #f8f7fa;
+    color: #5e5873;
+    -webkit-font-smoothing: antialiased;
+    font-size: clamp(0.875rem, 1.5vw + 0.25rem, 1rem);
+}
+
+:root {
+    --primary-color: #28c76f !important;
+    --primary-light: rgba(40, 199, 111, 0.12) !important;
+    --text-muted: #b9b9c3 !important;
+    --text-heading: #5e5873 !important;
+    --border-color: #ebe9f1 !important;
+    --bg-light: #f8f7fa !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-container {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0.5rem 0 6rem !important;
+}
+
+@media (min-width: 1200px) {
+    .form-container {
+        max-width: 960px !important;
+        padding: 1.5rem 1.5rem 6rem !important;
+    }
+}
+
+/* --- CARDS & TYPOGRAPHY --- */
+.g-form-card {
+    background: #fff !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 0 !important;
+    margin-bottom: 1px !important;
+    padding: 1.25rem 1rem !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    border-left: 6px solid transparent !important;
+}
+
+@media (min-width: 1024px) {
+    .g-form-card {
+        border-radius: 0.6rem !important;
+        margin-bottom: 1.5rem !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 1.5rem 2rem !important;
+    }
+}
+
+.g-header-card {
+    border-top: 10px solid var(--primary-color) !important;
+    border-left: none !important;
+}
+
+.g-form-card.focus-active {
+    border-left: 6px solid var(--primary-color) !important;
+    box-shadow: 0 4px 25px 0 rgba(34, 41, 47, 0.1) !important;
+}
+
+.form-label {
+    display: block !important;
+    font-weight: 600 !important;
+    color: var(--text-heading) !important;
+    font-size: clamp(0.9rem, 2vw, 1.05rem) !important;
+    margin-bottom: 0.75rem !important;
+    line-height: 1.4 !important;
+}
+
+/* --- INPUT STYLES --- */
+.custom-input {
+    border: none !important;
+    border-bottom: 1px solid #d8d6de !important;
+    border-radius: 0 !important;
+    padding: 0.6rem 0 !important;
+    background-color: transparent !important;
+    width: 100% !important;
+    font-size: clamp(0.875rem, 1.5vw + 0.25rem, 1rem) !important;
+    color: #444 !important;
+    transition: border-color 0.2s ease !important;
+}
+
+.custom-input:focus {
+    box-shadow: none !important;
+    border-bottom: 2px solid var(--primary-color) !important;
+    outline: none !important;
+}
+
+.custom-input::placeholder {
+    color: #b9b9c3 !important;
+    font-size: clamp(0.8rem, 1.5vw + 0.2rem, 0.95rem) !important;
+}
+
+/* --- CHECKBOX & RADIO --- */
+.form-check {
+    padding: 0.85rem 1rem 0.85rem 2.8rem !important;
+    border: 1px solid var(--border-color) !important;
+    margin-bottom: 10px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.form-check:hover {
+    background-color: var(--bg-light) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.form-check-input {
+    width: 1.3rem !important;
+    height: 1.3rem !important;
+    margin-left: -1.8rem !important;
+    cursor: pointer !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.form-check-label {
+    cursor: pointer !important;
+    width: 100% !important;
+    color: #6e6b7b !important;
+    font-weight: 500 !important;
+}
+
+/* --- SELECT2 CUSTOM --- */
+.select2-container--default .select2-selection--single {
+    border: none !important;
+    border-bottom: 1px solid #d8d6de !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    height: auto !important;
+    padding: 0.6rem 0 !important;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-bottom: 2px solid var(--primary-color) !important;
+    box-shadow: none !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    padding-left: 0 !important;
+    color: #444 !important;
+    font-size: 1rem !important;
+}
+
+/* --- PREMIUM RANGE SLIDER --- */
+.premium-slider {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 100% !important;
+    height: 8px !important;
+    border-radius: 5px !important;
+    background: #d8d6de !important;
+    outline: none !important;
+    transition: background 0.1s !important;
+}
+
+.premium-slider::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: #fff !important;
+    border: 4px solid var(--primary-color) !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.1s ease-in-out !important;
+}
+
+.premium-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15) !important;
+}
+
+.premium-slider::-moz-range-thumb {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: #fff !important;
+    border: 4px solid var(--primary-color) !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* --- CKEDITOR --- */
+.ck-editor__editable_inline {
+    min-height: 150px;
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    padding: 1rem 1.5rem !important;
+}
+
+.ck.ck-toolbar {
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+    background-color: var(--bg-light) !important;
+    border-color: var(--border-color) !important;
+    padding: 0.5rem !important;
+}
+
+.ck.ck-editor__main>.ck-editor__editable {
+    border-color: var(--border-color) !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease;
+}
+
+.ck.ck-editor__main>.ck-editor__editable.ck-focused {
+    border-color: var(--primary-color) !important;
+}
+
+/* --- BUTTONS & RESPONSIVE --- */
+.nav-buttons-container {
+    display: flex !important;
+    justify-content: flex-end !important;
+    margin-top: 2rem !important;
+}
+
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    padding: 0.8rem 2rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+}
+
+@media (max-width: 1023px) {
+    .nav-buttons-container {
+        flex-direction: column-reverse !important;
+        gap: 12px !important;
+    }
+
+    .btn {
+        width: 100% !important;
+    }
+}
+
+.modal-backdrop {
+    z-index: 999990 !important;
+}
+
+.modal {
+    z-index: 999999 !important;
+}
+
+.flatpickr-calendar {
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 24px 0 rgba(34, 41, 47, 0.1) !important;
+    border: 1px solid var(--border-color) !important;
+    z-index: 9999 !important;
+    border-radius: 8px !important;
+}
+
+/* --- SELECT2 DROPDOWN HEIGHT OVERRIDE --- */
+/* Increase dropdown height to show 4-5 rows before scrolling */
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__options:not(.select2-results__options--nested),
+.select2-results__options {
+    max-height: 300px !important;
+    /* Increased from default 15rem/240px to fit 4-5 rows */
+}
+
+/* For Select2 table view (multi-column dropdown) */
+.select2-results__options .s2-tbl-row {
+    min-height: 42px;
+}

@@ -1,0 +1,230 @@
+
+:root {
+    --primary-color: #28c76f;
+    --primary-light: rgba(40, 199, 111, 0.08);
+    --bg-system: #f2f2f7; /* Native iOS/Android light background */
+    --bg-card: #ffffff;
+    --text-title: #1c1c1e;
+    --text-body: #3a3a3c;
+    --text-muted: #8e8e93;
+    --border-color: #e5e5ea;
+    --active-gray: #e5e5ea;
+}
+
+body {
+    background-color: var(--bg-system) !important;
+    color: var(--text-body);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0 !important;
+    padding: 0 !important;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Container spacing */
+.list-container {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 0 calc(80px + env(safe-area-inset-bottom)) 0 !important; /* Extra bottom padding + safe area */
+}
+
+/* Native-style Navigation Bar */
+.sticky-header-wrapper {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    border-bottom: 0.5px solid var(--border-color);
+    padding: 12px 16px 14px 16px !important;
+    margin-bottom: 8px !important;
+    transition: all 0.3s ease;
+}
+
+.header-app {
+    margin-bottom: 12px !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+}
+
+.header-app h3 {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.5px;
+    color: var(--text-title) !important;
+}
+
+.header-app span {
+    font-size: 13px !important;
+    color: var(--text-muted) !important;
+}
+
+/* Native Search Bar (iOS style) */
+.search-wrapper {
+    position: relative;
+    margin-bottom: 0;
+}
+
+.search-box {
+    background-color: rgba(118, 118, 128, 0.12) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 8px 12px 8px 36px !important;
+    font-size: 15px !important;
+    height: 38px !important;
+    color: var(--text-title) !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.search-box::placeholder {
+    color: #8e8e93;
+    opacity: 1;
+}
+
+.search-box:focus {
+    background-color: rgba(118, 118, 128, 0.18) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8e8e93;
+    font-size: 16px;
+    pointer-events: none;
+}
+
+/* Native List Item Cards */
+.g-list-card {
+    background: var(--bg-card) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    margin: 0 16px 10px 16px !important;
+    padding: 16px !important;
+    cursor: pointer;
+    position: relative !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    transition: background-color 0.1s ease-out, transform 0.15s ease !important;
+    border-left: none !important; /* Remove desktop left-accent border */
+    border-bottom: 0.5px solid rgba(0,0,0,0.06) !important;
+}
+
+/* Native Active Touch State (Very Important for native app feel!) */
+.g-list-card:active {
+    background-color: var(--active-gray) !important;
+    transform: scale(0.985);
+}
+
+.card-title-text {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.3px;
+    color: var(--text-title);
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.card-desc {
+    font-size: 13px !important;
+    color: #5e5e62;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Badge for department squad */
+.dept-info {
+    font-size: 11px !important;
+    color: #48484a;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    background-color: #f2f2f7;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border-top: none !important;
+    margin-top: 8px !important;
+    padding-top: 4px !important;
+    gap: 4px;
+}
+
+.dept-info i {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Native-style chevron */
+.g-list-card .ti-chevron-right {
+    font-size: 18px !important;
+    color: #c7c7cc !important;
+    transition: color 0.2s ease;
+}
+
+.g-list-card:active .ti-chevron-right {
+    color: #8e8e93 !important;
+}
+
+/* Empty State Styling */
+.empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 48px;
+    color: #c7c7cc;
+    margin-bottom: 12px;
+}
+
+.empty-state h5 {
+    font-weight: 600;
+    color: var(--text-title);
+    font-size: 17px;
+    margin-bottom: 4px;
+}
+
+.empty-state p {
+    font-size: 13px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes ffFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+

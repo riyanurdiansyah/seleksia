@@ -1,0 +1,533 @@
+:root {
+    --primary-color: #28c76f;
+    --primary-light: rgba(40, 199, 111, 0.08);
+    --bg-system: #f2f2f7;
+    /* Native iOS/Android background */
+    --bg-card: #ffffff;
+    --text-title: #1c1c1e;
+    --text-body: #3a3a3c;
+    --text-muted: #8e8e93;
+    --border-color: #e5e5ea;
+    --active-gray: #e5e5ea;
+    --danger-color: #ff3b30;
+}
+
+body {
+    background-color: var(--bg-system) !important;
+    color: var(--text-body);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    margin: 0 !important;
+    padding: 0 !important;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes ffFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Container */
+.form-container {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 12px 16px 140px 16px !important;
+    /* Large bottom padding for submit bar + safe area */
+}
+
+/* Sticky Navigation Bar */
+.sticky-header-wrapper {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    border-bottom: 0.5px solid var(--border-color);
+    padding: 12px 16px 12px 16px !important;
+    margin-bottom: 12px !important;
+}
+
+.header-app {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+}
+
+.header-app h3 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.5px;
+    color: var(--text-title) !important;
+}
+
+/* Description Card */
+.native-form-desc-card {
+    background: transparent !important;
+    padding: 0 4px 12px 4px !important;
+    margin-bottom: 8px;
+    border-bottom: none !important;
+}
+
+.native-form-desc-card p {
+    font-size: 14px !important;
+    color: var(--text-muted) !important;
+    line-height: 1.4;
+}
+
+/* Premium native-looking cards */
+.g-form-card {
+    background: var(--bg-card) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    margin-bottom: 16px !important;
+    padding: 16px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    border-left: none !important;
+    /* Omit desktop left-stripe */
+}
+
+.g-form-card.focus-active {
+    border-left: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Omit desktop header stripe */
+.g-header-card {
+    border-top: none !important;
+}
+
+.form-label {
+    display: block !important;
+    font-weight: 600 !important;
+    color: var(--text-title) !important;
+    font-size: 15px !important;
+    margin-bottom: 8px !important;
+    letter-spacing: -0.2px;
+}
+
+/* Input Fields (iOS Rounded Background Style) */
+.custom-input,
+.form-control:not(.search-box) {
+    background-color: #f2f2f7 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    font-size: 15px !important;
+    color: var(--text-title) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    transition: background-color 0.15s ease;
+    border-bottom: none !important;
+    /* Remove desktop bottom border line */
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.custom-input:focus,
+.form-control:not(.search-box):focus {
+    background-color: #e5e5ea !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+}
+
+.custom-input::placeholder,
+.form-control::placeholder {
+    color: #a9a9b0 !important;
+    font-size: 15px !important;
+}
+
+.form-select {
+    background-color: #f2f2f7 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    font-size: 15px !important;
+    color: var(--text-title) !important;
+    height: 44px !important;
+}
+
+textarea.form-control {
+    height: auto !important;
+    min-height: 80px !important;
+}
+
+/* Native List Item Grouping for Checkboxes and Radios */
+.native-option-list {
+    background-color: #f2f2f7;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* Tappable native list items */
+.native-option-item {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 12px 16px !important;
+    background-color: #f2f2f7 !important;
+    border-bottom: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+    cursor: pointer !important;
+    transition: background-color 0.1s ease !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+}
+
+.native-option-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Active tap feedback */
+.native-option-item:active {
+    background-color: #d1d1d6 !important;
+}
+
+/* Input element hidden, styled via indicators */
+.native-option-item input[type="checkbox"],
+.native-option-item input[type="radio"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.native-option-label {
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: var(--text-title) !important;
+    flex-grow: 1;
+}
+
+/* Checkbox visual indicator (iOS green circle) */
+.native-checkbox-indicator {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #c7c7cc;
+    position: relative;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.native-option-item input[type="checkbox"]:checked+.native-option-label+.native-checkbox-indicator {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.native-option-item input[type="checkbox"]:checked+.native-option-label+.native-checkbox-indicator::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Radio visual indicator (iOS style: checkmark on selected item) */
+.native-radio-indicator {
+    width: 20px;
+    height: 20px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.native-option-item input[type="radio"]:checked+.native-option-label+.native-radio-indicator::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 12px;
+    border: solid var(--primary-color);
+    border-width: 0 2.5px 2.5px 0;
+    transform: rotate(45deg);
+}
+
+/* Y/N Buttons container (Horizontal pills) */
+.native-yn-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.native-yn-item {
+    flex: 1;
+    position: relative;
+}
+
+.native-yn-item input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.native-yn-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f2f2f7;
+    color: var(--text-title);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.native-yn-label:active {
+    background-color: #d1d1d6;
+}
+
+.native-yn-item input[type="radio"]:checked+.native-yn-label {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+/* Remarks block */
+.remarks-block {
+    margin-top: 10px;
+}
+
+.remarks-block input {
+    border: 1px solid #ff3b30 !important;
+    background-color: #fff3f2 !important;
+}
+
+/* Native Sliders */
+.premium-slider,
+.form-range {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 100% !important;
+    height: 4px !important;
+    border-radius: 2px !important;
+    background: #d1d1d6 !important;
+    outline: none !important;
+}
+
+.premium-slider::-webkit-slider-thumb,
+.form-range::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15) !important;
+    cursor: pointer !important;
+}
+
+/* Select2 mobile override */
+.select2-container--default .select2-selection--single {
+    background-color: #f2f2f7 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    height: 44px !important;
+    padding: 8px 14px !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-title) !important;
+    font-size: 15px !important;
+    line-height: 28px !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 42px !important;
+    right: 10px !important;
+}
+
+/* Native Attachment File Slots */
+.native-file-slot {
+    border: 1px dashed var(--primary-color) !important;
+    background-color: var(--bg-card) !important;
+    border-radius: 10px !important;
+    width: 80px !important;
+    height: 80px !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: background-color 0.1s ease;
+    cursor: pointer;
+}
+
+.native-file-slot:active {
+    background-color: rgba(40, 199, 111, 0.08) !important;
+}
+
+.native-file-slot i {
+    font-size: 20px;
+    color: var(--primary-color);
+    margin-bottom: 2px;
+}
+
+.native-file-slot span {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.native-file-slot+div {
+    border-radius: 10px !important;
+}
+
+/* Sticky Native Bottom Submit Bar */
+.nav-buttons-container,
+.ff-submit-bar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+    border-top: 0.5px solid var(--border-color) !important;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 22px)) 16px !important;
+    /* Bottom padding accounts for iOS safe area */
+    z-index: 999 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Large native submit button */
+.btn-success {
+    background-color: var(--primary-color) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    height: 48px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: transform 0.1s ease !important;
+}
+
+.btn-success:active {
+    transform: scale(0.97) !important;
+    background-color: #21a85c !important;
+}
+
+/* Native Group / Accordion styling (Child forms) */
+.accordion-item {
+    border: none !important;
+    border-radius: 12px !important;
+    background-color: var(--bg-card) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    margin-bottom: 16px !important;
+    overflow: hidden;
+}
+
+.accordion-header button {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: var(--text-title) !important;
+    border-bottom: 0.5px solid var(--border-color) !important;
+    padding: 14px 16px !important;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Native outline dashed add row button */
+.btn-outline-primary {
+    border: 1px dashed var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    background-color: transparent !important;
+    border-radius: 10px !important;
+    padding: 12px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    width: 100% !important;
+    transition: background-color 0.1s;
+    box-shadow: none !important;
+}
+
+.btn-outline-primary:active {
+    background-color: var(--primary-light) !important;
+    color: var(--primary-color) !important;
+}
+
+/* Date/timepicker system integration */
+.native-date-input,
+.native-datetime-input {
+    background-color: #f2f2f7 !important;
+    color: var(--text-title) !important;
+    font-size: 15px !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    width: 100% !important;
+    height: 44px !important;
+}
+
+/* Validation feedback */
+.was-validated .form-control:invalid,
+.was-validated .native-date-input:invalid,
+.was-validated .native-datetime-input:invalid {
+    background-color: #fff5f5 !important;
+    border: 1px solid #ff3b30 !important;
+}
+
+/* Delete button (child forms) */
+.btn-outline-danger {
+    border: none !important;
+    color: #ff3b30 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.btn-outline-danger:active {
+    background-color: rgba(255, 59, 48, 0.1) !important;
+}
+
+/* Modal z-index overrides */
+.modal-backdrop {
+    z-index: 999990 !important;
+}
+
+.modal {
+    z-index: 999999 !important;
+}
+
+/* --- SELECT2 DROPDOWN HEIGHT OVERRIDE --- */
+/* Increase dropdown height to show 4-5 rows before scrolling */
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__options:not(.select2-results__options--nested),
+.select2-results__options {
+    max-height: 300px !important;
+    /* Increased from default 15rem/240px to fit 4-5 rows */
+}
+
+/* For Select2 table view (multi-column dropdown) */
+.select2-results__options .s2-tbl-row {
+    min-height: 42px;
+}

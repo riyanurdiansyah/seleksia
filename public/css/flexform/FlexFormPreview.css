@@ -1,0 +1,331 @@
+/* ================================================================
+   FlexFormPreview.css — Live Preview Modal
+   All form styles scoped inside .ff-scope — mirrors flexform.css
+   exactly without polluting the admin page.
+   ================================================================ */
+
+/* ── Modal sizing (modal-xl handles width) ──────────────────── */
+#modalLivePreview .modal-body {
+    background: #f8f7fa;
+}
+
+/* ── Live indicator dot ─────────────────────────────────────── */
+.ff-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #28c76f;
+    display: inline-block;
+    margin-right: 6px;
+    animation: ffPulse 1.5s infinite;
+}
+
+@keyframes ffPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+    }
+}
+
+/* ── Scope wrapper — defines CSS vars used by child rules ────── */
+.ff-scope {
+    background: #f8f7fa;
+    color: #5e5873;
+    padding: 1.5rem 1.5rem 2rem;
+    font-size: 1rem;
+    --primary-color: #28c76f;
+    --border-color: #ebe9f1;
+    --bg-light: #f8f7fa;
+    --text-heading: #5e5873;
+}
+
+/* ── Inner container — matches real .form-container (800px max) ─ */
+.ff-scope .form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding-bottom: 2rem;
+}
+
+/* ── Nav buttons container ───────────────────────────────────── */
+.ff-scope .nav-buttons-container {
+    display: flex !important;
+    justify-content: flex-end !important;
+    margin-top: 1.5rem !important;
+}
+
+/* ── Card base ──────────────────────────────────────────────── */
+.ff-scope .g-form-card {
+    background: #fff !important;
+    border: 1px solid #ebe9f1 !important;
+    border-radius: 0.6rem !important;
+    margin-bottom: 1.5rem !important;
+    padding: 1.5rem 2rem !important;
+    position: relative !important;
+    border-left: 6px solid transparent !important;
+    transition: border-left-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.ff-scope .g-form-card:not(.g-header-card):hover {
+    border-left-color: #28c76f !important;
+    box-shadow: 0 4px 25px 0 rgba(34, 41, 47, 0.1) !important;
+}
+
+.ff-scope .g-header-card {
+    border-top: 10px solid #28c76f !important;
+    border-left: 1px solid #ebe9f1 !important;
+}
+
+/* ── Labels ─────────────────────────────────────────────────── */
+.ff-scope .form-label {
+    display: block !important;
+    font-weight: 600 !important;
+    color: #5e5873 !important;
+    font-size: 1.05rem !important;
+    margin-bottom: 1rem !important;
+    line-height: 1.4 !important;
+}
+
+/* ── Inputs ─────────────────────────────────────────────────── */
+.ff-scope .form-control,
+.ff-scope .form-select {
+    border-color: #d8d6de !important;
+    color: #444 !important;
+    font-size: 0.95rem !important;
+    background-color: #fff !important;
+}
+
+.ff-scope .form-control:focus,
+.ff-scope .form-select:focus {
+    border-color: #28c76f !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 199, 111, 0.15) !important;
+    outline: none !important;
+}
+
+.ff-scope .form-control::placeholder {
+    color: #b9b9c3 !important;
+}
+
+/* ── Checkboxes & Radios ────────────────────────────────────── */
+.ff-scope .form-check {
+    padding: 0.85rem 1rem 0.85rem 2.8rem !important;
+    border: 1px solid #ebe9f1 !important;
+    margin-bottom: 10px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    background: #fff !important;
+}
+
+.ff-scope .form-check:hover {
+    background-color: #f0fdf4 !important;
+    border-color: #28c76f !important;
+}
+
+.ff-scope .form-check-input {
+    width: 1.3rem !important;
+    height: 1.3rem !important;
+    margin-left: -1.8rem !important;
+    cursor: pointer !important;
+    accent-color: #28c76f !important;
+    flex-shrink: 0 !important;
+}
+
+.ff-scope .form-check-input:checked {
+    background-color: #28c76f !important;
+    border-color: #28c76f !important;
+}
+
+.ff-scope .form-check-label {
+    cursor: pointer !important;
+    width: 100% !important;
+    color: #6e6b7b !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 0 !important;
+}
+
+/* ── Slider ─────────────────────────────────────────────────── */
+.ff-scope .premium-slider {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 100% !important;
+    height: 8px !important;
+    border-radius: 5px !important;
+    background: #d8d6de !important;
+    outline: none !important;
+    cursor: pointer !important;
+    display: block !important;
+}
+
+.ff-scope .premium-slider::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: #fff !important;
+    border: 4px solid #28c76f !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.ff-scope .premium-slider::-moz-range-thumb {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: #fff !important;
+    border: 4px solid #28c76f !important;
+}
+
+.ff-scope .ff-slider-lbl {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #b9b9c3;
+    margin-top: 4px;
+}
+
+/* ── Star rating ─────────────────────────────────────────────── */
+.ff-scope .ff-stars {
+    font-size: 1.8rem;
+    letter-spacing: 3px;
+    line-height: 1;
+}
+
+.ff-scope .ff-star {
+    cursor: pointer;
+    color: #d8d6de;
+    transition: color 0.1s;
+}
+
+.ff-scope .ff-star:hover {
+    color: #28c76f;
+}
+
+/* ── NPS/PromoteScore ─────────────────────────────────────────── */
+.ff-scope .ff-nps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ff-scope .ff-nps-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    border: 1px solid #d8d6de;
+    background: #f8f7fa;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #6e6b7b;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ff-scope .ff-nps-btn:hover,
+.ff-scope .ff-nps-btn.active {
+    background: #28c76f !important;
+    color: #fff !important;
+    border-color: #28c76f !important;
+}
+
+/* ── CKEditor placeholder ────────────────────────────────────── */
+.ff-scope .ff-editor-box {
+    border: 1px solid #d8d6de;
+    border-radius: 6px;
+    min-height: 100px;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: #b9b9c3;
+    background: #f8f7fa;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Submit button ───────────────────────────────────────────── */
+.ff-scope .btn-ff-submit {
+    background: linear-gradient(135deg, #28c76f 0%, #1e9f58 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    width: 100%;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.ff-scope .btn-ff-submit:hover {
+    opacity: 0.9;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.ff-scope .ff-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #b9b9c3;
+    line-height: 1.9;
+}
+
+.ff-scope .ff-empty i {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* ── Fade-in animation for cards ─────────────────────────────── */
+@keyframes ffCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ff-scope .g-form-card {
+    animation: ffCardIn 0.22s ease forwards;
+}
+
+/* ── Flatpickr z-index inside modal ──────────────────────────── */
+.flatpickr-calendar {
+    z-index: 9999999 !important;
+}
+
+/* ── Select2 inside .ff-scope ────────────────────────────────── */
+.ff-scope .select2-container {
+    width: 100% !important;
+}
+
+.ff-scope .select2-container--default .select2-selection--single {
+    border: 1px solid #d8d6de !important;
+    border-radius: 0.375rem !important;
+    height: calc(1.5em + 0.75rem + 2px) !important;
+    padding: 0.375rem 0.75rem !important;
+}
+
+.ff-scope .select2-container--default.select2-container--focus .select2-selection--single,
+.ff-scope .select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #28c76f !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 199, 111, 0.15) !important;
+}
+
+.ff-scope .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #444 !important;
+    padding-left: 0 !important;
+    line-height: inherit !important;
+}
