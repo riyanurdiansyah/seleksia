@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
         // Generate display ID safely based on company's max ID
         const existingCandidates = await prisma.candidate.findMany({
-            where: { companyId, displayId: { startsWith: 'PSK-' } },
+            where: { companyId, displayId: { startsWith: 'USR-' } },
             select: { displayId: true }
         });
         
@@ -64,10 +64,10 @@ export async function POST(req: NextRequest) {
                 }
             }
         }
-        const displayId = `PSK-${String(maxNum + 1).padStart(3, "0")}`;
+        const displayId = `USR-${String(maxNum + 1).padStart(3, "0")}`;
 
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(body.password, 10);
+        // Hash the default password (displayId)
+        const hashedPassword = await bcrypt.hash(displayId, 10);
 
         const candidate = await prisma.candidate.create({
             data: {

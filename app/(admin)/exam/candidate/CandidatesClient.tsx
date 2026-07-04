@@ -7,16 +7,6 @@ import Breadcrumb from "../../components/Breadcrumb";
 import Select2 from "../../components/Select2";
 import * as XLSX from "xlsx";
 
-/* ===== Helpers ===== */
-function generatePassword(length = 10): string {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
-    let pw = "";
-    for (let i = 0; i < length; i++) {
-        pw += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return pw;
-}
-
 /* ===== Types ===== */
 interface Candidate {
     id: string;
@@ -26,7 +16,6 @@ interface Candidate {
     phone: string | null;
     role: "user" | "admin" | "proctor";
     batch: string | null;
-    password: string;
     accessType: "range" | "permanent";
     accessStart: string | null;
     accessEnd: string | null;
@@ -69,7 +58,6 @@ export default function CandidatesClient() {
     const [selectedCompany, setSelectedCompany] = useState<string>("all");
     const [currentRole, setCurrentRole] = useState<string>("user");
     const [showAddModal, setShowAddModal] = useState(false);
-    const [copiedPw, setCopiedPw] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [newCandidate, setNewCandidate] = useState({
         name: "",
@@ -77,7 +65,6 @@ export default function CandidatesClient() {
         phone: "",
         role: "user" as "user" | "admin" | "proctor",
         batch: "",
-        password: generatePassword(),
         accessType: "range" as "range" | "permanent",
         accessStart: "",
         accessEnd: "",
@@ -402,16 +389,6 @@ export default function CandidatesClient() {
         fetchCandidates(val);
     }, [fetchCandidates]);
 
-    const regeneratePassword = useCallback(() => {
-        setNewCandidate((prev) => ({ ...prev, password: generatePassword() }));
-    }, []);
-
-    const copyPassword = useCallback(async () => {
-        await navigator.clipboard.writeText(newCandidate.password);
-        setCopiedPw(true);
-        setTimeout(() => setCopiedPw(false), 2000);
-    }, [newCandidate.password]);
-
     /* Filtering */
     const filtered = candidates.filter((c) => {
         const matchStatus =
@@ -533,7 +510,7 @@ export default function CandidatesClient() {
 
     /* Add candidate */
     const handleAddCandidate = async () => {
-        if (!newCandidate.name || !newCandidate.email || !newCandidate.password) return;
+        if (!newCandidate.name || !newCandidate.email) return;
         if (newCandidate.role === "user" && newCandidate.accessType === "range" && (!newCandidate.accessStart || !newCandidate.accessEnd)) return;
 
         try {
@@ -551,7 +528,6 @@ export default function CandidatesClient() {
                 phone: "",
                 role: "user",
                 batch: "",
-                password: generatePassword(),
                 accessType: "range",
                 accessStart: "",
                 accessEnd: "",
@@ -897,51 +873,6 @@ export default function CandidatesClient() {
                                 />
                             </div>
 
-                            {/* Password with Generate */}
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
-                                    Password *
-                                </label>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <input
-                                            value={newCandidate.password}
-                                            onChange={(e) =>
-                                                setNewCandidate((prev) => ({
-                                                    ...prev,
-                                                    password: e.target.value,
-                                                }))
-                                            }
-                                            className="w-full h-10 px-4 pr-10 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm font-mono text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300"
-                                            placeholder="Auto-generated password"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={copyPassword}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[var(--color-text-muted)] hover:text-primary transition-colors"
-                                            title="Copy password"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">
-                                                {copiedPw ? "check" : "content_copy"}
-                                            </span>
-                                        </button>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={regeneratePassword}
-                                        className="h-10 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors flex items-center gap-1.5"
-                                        title="Generate new password"
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">
-                                            refresh
-                                        </span>
-                                        <span className="text-xs font-medium hidden sm:inline">Generate</span>
-                                    </button>
-                                </div>
-                                <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                                    This password will be used for login. Save it before closing.
-                                </p>
-                            </div>
 
                             {/* Batch (only for user role) */}
                             {newCandidate.role === "user" && (
@@ -1074,7 +1005,6 @@ export default function CandidatesClient() {
                                 disabled={
                                     !newCandidate.name ||
                                     !newCandidate.email ||
-                                    !newCandidate.password ||
                                     (newCandidate.accessType === "range" &&
                                         (!newCandidate.accessStart || !newCandidate.accessEnd))
                                 }
@@ -1325,7 +1255,7 @@ export default function CandidatesClient() {
                                                 <h5 className="font-bold text-[var(--color-text-main)]">Kolom Opsional & Aturan:</h5>
                                                 <ul className="list-disc pl-4 space-y-1 text-[var(--color-text-muted)]">
                                                     <li><strong className="text-[var(--color-text-sub)]">Role</strong>: `user` (kandidat), `proctor`, atau `admin` (default: `user`).</li>
-                                                    <li><strong className="text-[var(--color-text-sub)]">Password</strong>: Password login. Jika kosong, password acak akan dibuat otomatis.</li>
+                                                    <li><strong className="text-[var(--color-text-sub)]">Password</strong>: Kolom password tidak perlu diisi. Password awal otomatis disamakan dengan ID Login.</li>
                                                     <li><strong className="text-[var(--color-text-sub)]">Access Type</strong>: `range` atau `permanent` (default: `range`).</li>
                                                     <li><strong className="text-[var(--color-text-sub)]">Access Start & End</strong>: Format `YYYY-MM-DD` (wajib jika Access Type = `range`).</li>
                                                 </ul>

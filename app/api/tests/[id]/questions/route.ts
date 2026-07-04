@@ -29,6 +29,7 @@ export async function POST(
                 type: body.type,
                 text: body.text,
                 options: body.options || [],
+                optionWeights: body.optionWeights || null,
                 correctAnswer: body.correctAnswer || null,
                 imageUrl: body.imageUrl || null,
                 timeLimit: body.timeLimit || null,

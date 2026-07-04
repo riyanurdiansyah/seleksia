@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const hashedPassword = await bcrypt.hash(body.password, 10);
+        const hashedPassword = await bcrypt.hash(body.displayId, 10);
         let companyId = await getCompanyId();
         if (body.currentRole === "superadmin" && body.companyId) {
             companyId = body.companyId;

@@ -50,7 +50,7 @@ const SYSTEM_TEMPLATES: EmailTemplate[] = [
         id: "sys-invitation",
         name: "Undangan Ujian",
         subject: "Undangan Mengikuti Ujian Seleksi - SELEKSIA",
-        body: "Halo {{name}},\n\nAnda telah dijadwalkan untuk mengikuti ujian seleksi secara daring (CBT) dengan detail sebagai berikut:\n\n- Perusahaan: {{company_name}}\n- Kategori Ujian: {{test_name}}\n- ID Login: {{displayId}}\n- Alamat Email: {{email}}\n\nSilakan masuk ke halaman utama aplikasi kami dan masukkan kredensial di atas untuk memulai ujian.\n\nJika menemui kendala, silakan hubungi kami melalui {{support_email}}.\n\nSelamat mengerjakan dan semoga sukses!\n\nSalam,\nTim Seleksi",
+        body: "Halo {{name}},\n\nAnda telah dijadwalkan untuk mengikuti ujian seleksi secara daring (CBT) dengan detail sebagai berikut:\n\n- Perusahaan: {{company_name}}\n- Kategori Ujian: {{test_name}}\n- ID Login: {{displayId}}\n- Password Awal: {{displayId}}\n- Alamat Email: {{email}}\n\nSilakan masuk ke halaman utama aplikasi kami dan masukkan kredensial di atas untuk memulai ujian.\n\nJika menemui kendala, silakan hubungi kami melalui {{support_email}}.\n\nSelamat mengerjakan dan semoga sukses!\n\nSalam,\nTim Seleksi",
         isSystem: true
     },
     {

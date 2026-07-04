@@ -58,7 +58,6 @@ export default function UserClient() {
         phone: "",
         role: "user",
         batch: "",
-        password: "",
         companyId: ""
     });
 
@@ -271,7 +270,6 @@ export default function UserClient() {
             phone: "",
             role: "user",
             batch: "",
-            password: "",
             companyId: selectedCompany !== "all" ? selectedCompany : (companies.length > 0 ? companies[0].id : "")
         });
         setIsEditing(false);
@@ -289,7 +287,6 @@ export default function UserClient() {
             phone: user.phone || "",
             role: user.role,
             batch: user.batch || "",
-            password: "",
             companyId: user.companyId || ""
         });
         setIsEditing(true);
@@ -327,11 +324,6 @@ export default function UserClient() {
             const url = isEditing ? `/api/users/${formData.id}` : "/api/users";
             const method = isEditing ? "PUT" : "POST";
 
-            if (!isEditing && !formData.password) {
-                setErrorMsg("Kata sandi wajib diisi untuk pengguna baru.");
-                setActionLoading(false);
-                return;
-            }
 
             const res = await fetch(url, {
                 method,
@@ -664,18 +656,6 @@ export default function UserClient() {
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
-                                    {isEditing ? "Kata Sandi Baru (Kosongkan jika tidak diubah)" : "Kata Sandi"}
-                                </label>
-                                <input
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                                    required={!isEditing}
-                                />
-                            </div>
 
                             <div className="pt-4 border-t border-[var(--color-border)] flex justify-end gap-3">
                                 <button

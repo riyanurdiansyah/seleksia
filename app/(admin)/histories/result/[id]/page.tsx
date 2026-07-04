@@ -30,29 +30,59 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
 
     // Process data for frontend
     const totalQuestions = assignment.test.questions.length;
-    let correctAnswersCount = 0;
+    let correctNormal = 0;
+    let normalScorableCount = 0;
+    let totalWeightedScore = 0;
+    let weightedCount = 0;
+    let unscorableCount = 0;
 
     const answersList = assignment.test.questions.map((q) => {
+        const isWeighted = q.type === "multiple_choice_weighted";
+        const isNormalScorable = !isWeighted && q.correctAnswer && q.correctAnswer.trim() !== "";
+        
+        if (isWeighted) {
+            weightedCount++;
+        } else if (isNormalScorable) {
+            normalScorableCount++;
+        } else {
+            unscorableCount++;
+        }
+
         const candidateAnswer = assignment.answers.find(a => a.questionId === q.id);
         const isCorrect = q.correctAnswer && candidateAnswer?.answer === q.correctAnswer;
+        
+        let earnedWeight = 0;
+        if (isWeighted && candidateAnswer?.answer) {
+            const weights = (q.optionWeights as Record<string, number>) || {};
+            if (typeof weights[candidateAnswer.answer] === 'number') {
+                earnedWeight = weights[candidateAnswer.answer];
+            }
+        }
 
-        if (isCorrect) correctAnswersCount++;
+        if (isWeighted) {
+            totalWeightedScore += earnedWeight;
+        } else if (isNormalScorable && isCorrect) {
+            correctNormal++;
+        }
 
         return {
             id: q.id,
             displayId: q.displayId,
+            type: q.type,
             text: q.text,
             options: q.options,
             correctAnswer: q.correctAnswer,
             candidateAnswer: candidateAnswer?.answer || null,
             isCorrect: !!isCorrect,
+            earnedWeight,
             imageUrl: q.imageUrl,
             answeredAt: candidateAnswer?.answeredAt ? candidateAnswer.answeredAt.toISOString() : null
         };
     });
 
-    // Simple percentage score for illustrative purposes (depends on your business logic)
-    const calculatedScore = totalQuestions > 0 ? Math.round((correctAnswersCount / totalQuestions) * 100) : 0;
+    // Score calculation
+    const calculatedNormalScore = normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0;
+    const overallNormalScore = totalQuestions > 0 ? Math.round((correctNormal / totalQuestions) * 100) : 0;
 
     const resultData = {
         id: assignment.id,
@@ -70,6 +100,7 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             id: assignment.test.id,
             name: assignment.test.name,
             category: assignment.test.category,
+            questionType: assignment.test.questionType,
             duration: assignment.test.duration,
             totalQuestions
         },
@@ -86,7 +117,13 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             detectedAt: v.detectedAt.toISOString()
         })),
         answers: answersList,
-        calculatedScore
+        calculatedNormalScore,
+        overallNormalScore,
+        totalWeightedScore,
+        normalScorableCount,
+        weightedCount,
+        unscorableCount,
+        correctNormalCount: correctNormal
     };
 
     return <ResultDetailClient data={resultData} />;

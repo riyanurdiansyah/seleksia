@@ -32,6 +32,7 @@ export async function PATCH(
         if (body.correctAnswer !== undefined) data.correctAnswer = body.correctAnswer;
         if (body.timeLimit !== undefined) data.timeLimit = body.timeLimit;
         if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl;
+        if (body.optionWeights !== undefined) data.optionWeights = body.optionWeights;
 
         const question = await prisma.question.update({
             where: { id: questionId },

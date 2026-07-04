@@ -16,11 +16,13 @@ interface Violation {
 interface Answer {
     id: string;
     displayId: string;
+    type?: string;
     text: string;
     options: string[];
     correctAnswer: string | null;
     candidateAnswer: string | null;
     isCorrect: boolean;
+    earnedWeight?: number;
     imageUrl: string | null;
     answeredAt: string | null;
 }
@@ -41,6 +43,7 @@ interface DetailData {
         id: string;
         name: string;
         category: string;
+        questionType: string;
         duration: number;
         totalQuestions: number;
     };
@@ -50,8 +53,13 @@ interface DetailData {
         deviceFingerprint?: string | null;
     };
     violations: Violation[];
-    answers: Answer[];
-    calculatedScore: number;
+    calculatedNormalScore: number;
+    overallNormalScore: number;
+    totalWeightedScore: number;
+    normalScorableCount: number;
+    weightedCount: number;
+    unscorableCount: number;
+    correctNormalCount: number;
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string }> = {
@@ -94,10 +102,11 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
             ["Category", category.label],
             ["Duration Limit", `${data.test.duration}m`],
             ["Time Spent", `${m}m ${s}s`],
-            ["Score Result", `${data.calculatedScore}%`],
+            ["Test Score (Normal)", `${data.overallNormalScore}%`],
+            ["Test Score (Weighted)", `${data.totalWeightedScore} Points`],
             ["System Action", data.examSession.autoSubmitted ? "Force Submitted" : "Normal Submit"],
             [],
-            ["No", "Question ID", "Question Text", "Candidate Selection", "Correct Answer Key", "Status"]
+            ["No", "Question Text", "Candidate Selection", "Correct Answer Key", "Status", "Point / Weight", "Image URL"]
         ];
 
         data.answers.forEach((ans, idx) => {
@@ -108,13 +117,18 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                     ? "Incorrect" 
                     : "Skipped";
 
+            const pointOrWeight = ans.type === "multiple_choice_weighted" 
+                ? (ans.earnedWeight || 0).toString()
+                : ans.isCorrect ? "1" : "0";
+
             worksheetData.push([
                 (idx + 1).toString(),
-                ans.displayId,
                 cleanText,
                 ans.candidateAnswer || "-",
-                ans.correctAnswer || "-",
-                statusMsg
+                ans.correctAnswer || (ans.type === "multiple_choice_weighted" ? "Weighted Answer" : "-"),
+                ans.type === "multiple_choice_weighted" ? "Weighted Evaluation" : statusMsg,
+                pointOrWeight,
+                ans.imageUrl || "-"
             ]);
         });
 
@@ -123,11 +137,12 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
         // Define column widths for better readability in Excel
         worksheet["!cols"] = [
             { wch: 6 },   // No
-            { wch: 15 },  // Question ID
             { wch: 60 },  // Question Text
             { wch: 25 },  // Candidate Selection
             { wch: 25 },  // Correct Answer Key
-            { wch: 15 }   // Status
+            { wch: 20 },  // Status
+            { wch: 15 },  // Point / Weight
+            { wch: 50 }   // Image URL
         ];
 
         const workbook = XLSX.utils.book_new();
@@ -205,14 +220,70 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                         <div className="relative flex items-center justify-center mt-3.5">
                             {/* Simple Premium Score Circle Visualizer */}
                             <div className={`size-32 rounded-full border-[10px] flex flex-col items-center justify-center shadow-[var(--shadow-xs)]
-                                ${data.calculatedScore >= 60 
-                                    ? "border-emerald-500/20 dark:border-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
-                                    : "border-amber-500/20 dark:border-amber-500/10 text-amber-600 dark:text-amber-400"}`}>
-                                <span className="text-3xl font-black">{data.calculatedScore}%</span>
-                                <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">
-                                    {data.calculatedScore >= 60 ? "Passed" : "Audit"}
-                                </span>
+                                ${data.normalScorableCount > 0 && data.weightedCount > 0
+                                    ? "border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+                                    : data.weightedCount > 0 
+                                        ? "border-primary/20 text-primary" 
+                                        : data.overallNormalScore >= 60 
+                                            ? "border-emerald-500/20 dark:border-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+                                            : "border-amber-500/20 dark:border-amber-500/10 text-amber-600 dark:text-amber-400"}`}>
+                                
+                                {data.normalScorableCount > 0 && data.weightedCount > 0 ? (
+                                    <>
+                                        <span className="text-xl font-black">{data.overallNormalScore}% / {data.totalWeightedScore}</span>
+                                        <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">
+                                            Normal / Weighted
+                                        </span>
+                                    </>
+                                ) : data.weightedCount > 0 ? (
+                                    <>
+                                        <span className="text-3xl font-black">{data.totalWeightedScore}</span>
+                                        <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">Raw Score</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-3xl font-black">{data.overallNormalScore}%</span>
+                                        <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">
+                                            {data.overallNormalScore >= 60 ? "Passed" : "Audit"}
+                                        </span>
+                                    </>
+                                )}
                             </div>
+                        </div>
+
+                        {/* Breakdown Panel */}
+                        <div className="w-full mt-5 space-y-2">
+                            {data.normalScorableCount > 0 && (
+                                <div className="flex justify-between items-center px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">
+                                        Calculated Score
+                                    </span>
+                                    <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                                        {data.calculatedNormalScore} Points
+                                    </span>
+                                </div>
+                            )}
+
+                            {data.weightedCount > 0 && (
+                                <div className="flex justify-between items-center px-3 py-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">
+                                        Weighted Score
+                                    </span>
+                                    <span className="text-xs font-black text-blue-700 dark:text-blue-400">
+                                        {data.totalWeightedScore} Points
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {data.unscorableCount > 0 && (
+                                <div className="flex justify-between items-center px-3 py-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-100 dark:border-amber-900/30">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">Manual Review</span>
+                                        <span className="text-[8px] text-amber-600 dark:text-amber-500">Unscored (e.g., Essay)</span>
+                                    </div>
+                                    <span className="text-xs font-black text-amber-700 dark:text-amber-400">{data.unscorableCount} Qs</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Timing meter bar */}
@@ -406,11 +477,13 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                                         <div key={ans.id} className="p-4 border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-card)] shadow-xs relative overflow-hidden group">
                                             {/* Status indicator bar left edge */}
                                             <div className={`absolute left-0 top-0 bottom-0 w-1
-                                                ${ans.isCorrect 
-                                                    ? "bg-emerald-500" 
-                                                    : ans.candidateAnswer 
-                                                        ? "bg-red-500" 
-                                                        : "bg-[var(--color-text-muted)]"}`} 
+                                                ${ans.type === "multiple_choice_weighted"
+                                                    ? "bg-primary"
+                                                    : ans.isCorrect 
+                                                        ? "bg-emerald-500" 
+                                                        : ans.candidateAnswer 
+                                                            ? "bg-red-500" 
+                                                            : "bg-[var(--color-text-muted)]"}`} 
                                             />
 
                                             <div className="pl-3.5 flex flex-col md:flex-row gap-6">
@@ -419,14 +492,20 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                                                         <span className="text-[9px] font-mono font-black text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-2 py-0.5 rounded border border-[var(--color-border)]">
                                                             QUESTION {idx + 1}
                                                         </span>
-                                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded
-                                                            ${ans.isCorrect 
-                                                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
-                                                                : ans.candidateAnswer 
-                                                                    ? "bg-red-500/10 text-red-600 dark:text-red-400" 
-                                                                    : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"}`}>
-                                                            {ans.isCorrect ? "Correct" : ans.candidateAnswer ? "Incorrect" : "Skipped"}
-                                                        </span>
+                                                        {ans.type === "multiple_choice_weighted" ? (
+                                                            <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-primary-light)] text-primary">
+                                                                Earned Weight: {ans.earnedWeight || 0}
+                                                            </span>
+                                                        ) : (
+                                                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded
+                                                                ${ans.isCorrect 
+                                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+                                                                    : ans.candidateAnswer 
+                                                                        ? "bg-red-500/10 text-red-600 dark:text-red-400" 
+                                                                        : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"}`}>
+                                                                {ans.isCorrect ? "Correct" : ans.candidateAnswer ? "Incorrect" : "Skipped"}
+                                                            </span>
+                                                        )}
                                                     </div>
 
                                                     <p className="text-xs font-semibold text-[var(--color-text-main)] leading-relaxed font-sans" dangerouslySetInnerHTML={{ __html: ans.text }} />
@@ -443,15 +522,24 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                                                     <div>
                                                         <span className="text-[9px] font-black text-[var(--color-text-muted)] uppercase block mb-1">User Selection</span>
                                                         {ans.candidateAnswer ? (
-                                                            <div className={`px-2.5 py-1.5 rounded flex items-center gap-1.5 font-bold font-sans
-                                                                ${ans.isCorrect 
-                                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" 
-                                                                    : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"}`}>
-                                                                <span className="material-symbols-outlined text-[14px]">
-                                                                    {ans.isCorrect ? "check_circle" : "cancel"}
-                                                                </span>
-                                                                {ans.candidateAnswer}
-                                                            </div>
+                                                            ans.type === "multiple_choice_weighted" ? (
+                                                                <div className="px-2.5 py-1.5 rounded flex items-center gap-1.5 font-bold font-sans bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)]">
+                                                                    <span className="material-symbols-outlined text-[14px]">
+                                                                        radio_button_checked
+                                                                    </span>
+                                                                    {ans.candidateAnswer} (Weight: {ans.earnedWeight || 0})
+                                                                </div>
+                                                            ) : (
+                                                                <div className={`px-2.5 py-1.5 rounded flex items-center gap-1.5 font-bold font-sans
+                                                                    ${ans.isCorrect 
+                                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" 
+                                                                        : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"}`}>
+                                                                    <span className="material-symbols-outlined text-[14px]">
+                                                                        {ans.isCorrect ? "check_circle" : "cancel"}
+                                                                    </span>
+                                                                    {ans.candidateAnswer}
+                                                                </div>
+                                                            )
                                                         ) : (
                                                             <div className="px-2.5 py-1.5 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-muted)] italic font-semibold">
                                                                 Skipped / Blank
@@ -459,12 +547,14 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                                                         )}
                                                     </div>
 
-                                                    <div className="border-t border-[var(--color-border)] pt-2.5 mt-1">
-                                                        <span className="text-[9px] font-black text-[var(--color-text-muted)] uppercase block mb-1">Correct Key Solution</span>
-                                                        <div className="px-2.5 py-1.5 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-main)] font-extrabold">
-                                                            {ans.correctAnswer || "Essay / Custom scoring"}
+                                                    {ans.type !== "multiple_choice_weighted" && (
+                                                        <div className="border-t border-[var(--color-border)] pt-2.5 mt-1">
+                                                            <span className="text-[9px] font-black text-[var(--color-text-muted)] uppercase block mb-1">Correct Key Solution</span>
+                                                            <div className="px-2.5 py-1.5 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-main)] font-extrabold">
+                                                                {ans.correctAnswer || "Essay / Custom scoring"}
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

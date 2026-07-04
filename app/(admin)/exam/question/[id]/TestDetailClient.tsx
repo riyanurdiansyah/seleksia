@@ -7,7 +7,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import Select2 from "../../../components/Select2";
 
 /* ===== Types ===== */
-type QuestionType = "multiple_choice" | "true_false" | "likert_scale" | "forced_choice" | "number_series" | "image_pattern" | "essay";
+type QuestionType = "multiple_choice" | "multiple_choice_weighted" | "true_false" | "likert_scale" | "forced_choice" | "number_series" | "image_pattern" | "essay";
 type TestCategory = "intelligence" | "personality" | "aptitude" | "projective";
 
 interface Question {
@@ -16,6 +16,7 @@ interface Question {
     type: QuestionType;
     text: string;
     options: string[];
+    optionWeights?: Record<string, number> | null;
     correctAnswer?: string | null;
     imageUrl?: string | null;
     timeLimit?: number | null;
@@ -37,6 +38,7 @@ interface Test {
 
 const questionTypeConfig: Record<QuestionType, { label: string; icon: string; desc: string }> = {
     multiple_choice: { label: "Multiple Choice", icon: "radio_button_checked", desc: "Pilihan ganda A-E" },
+    multiple_choice_weighted: { label: "Weighted Choice", icon: "iso", desc: "Pilihan ganda berbobot" },
     true_false: { label: "True / False", icon: "toggle_on", desc: "Benar atau salah" },
     likert_scale: { label: "Likert Scale", icon: "linear_scale", desc: "Skala 1-5" },
     forced_choice: { label: "Forced Choice", icon: "compare_arrows", desc: "Pilih paling/kurang sesuai" },
@@ -78,6 +80,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         text: "",
         type: "multiple_choice" as QuestionType,
         options: ["", "", "", "", ""],
+        optionWeights: {} as Record<string, number>,
         correctAnswer: "",
         timeLimit: 0,
         imageUrl: "",
@@ -89,6 +92,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         text: "",
         type: "multiple_choice" as QuestionType,
         options: ["", "", "", "", ""],
+        optionWeights: {} as Record<string, number>,
         correctAnswer: "",
         timeLimit: 0,
         imageUrl: "",
@@ -105,8 +109,8 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             alert("Only image files are allowed!");
             return;
         }
-        if (file.size > 5 * 1024 * 1024) {
-            alert("Maximum file size is 5MB!");
+        if (file.size > 1 * 1024 * 1024) {
+            alert("Maximum file size is 1MB!");
             return;
         }
 
@@ -213,6 +217,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     type: newQuestion.type,
                     text: newQuestion.text,
                     options: newQuestion.type === "essay" ? [] : newQuestion.options.filter((o) => o.trim() !== ""),
+                    optionWeights: newQuestion.type === "multiple_choice_weighted" ? newQuestion.optionWeights : null,
                     correctAnswer: newQuestion.correctAnswer || null,
                     timeLimit: newQuestion.timeLimit || null,
                     imageUrl: newQuestion.imageUrl || null,
@@ -225,7 +230,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             }
             const q = await res.json();
             setTest((prev) => prev ? { ...prev, questions: [...prev.questions, q] } : prev);
-            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], correctAnswer: "", timeLimit: 0, imageUrl: "" });
+            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], optionWeights: {}, correctAnswer: "", timeLimit: 0, imageUrl: "" });
         } catch (err) {
             console.error(err);
             alert(err instanceof Error ? err.message : String(err));
@@ -251,6 +256,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             text: q.text,
             type: q.type,
             options: q.options.length > 0 ? [...q.options] : ["", "", "", "", ""],
+            optionWeights: q.optionWeights || {},
             correctAnswer: q.correctAnswer || "",
             timeLimit: q.timeLimit || 0,
             imageUrl: q.imageUrl || "",
@@ -272,6 +278,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     text: editQuestion.text,
                     type: editQuestion.type,
                     options: editQuestion.type === "essay" ? [] : editQuestion.options.filter((o) => o.trim() !== ""),
+                    optionWeights: editQuestion.type === "multiple_choice_weighted" ? editQuestion.optionWeights : null,
                     correctAnswer: editQuestion.correctAnswer || null,
                     timeLimit: editQuestion.timeLimit || null,
                     imageUrl: editQuestion.imageUrl || null,
@@ -476,10 +483,13 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                                 />
                                                             </label>
                                                         )}
-
-                                                        <button type="button" onClick={() => setNewQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${newQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`} title="Correct">
-                                                            <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                                                        </button>
+                                                        {newQuestion.type === "multiple_choice_weighted" ? (
+                                                            <input type="number" placeholder="Weight" value={newQuestion.optionWeights[String.fromCharCode(65 + i)] ?? ""} onChange={(e) => setNewQuestion(p => ({ ...p, optionWeights: { ...p.optionWeights, [String.fromCharCode(65 + i)]: parseInt(e.target.value) || 0 } }))} className="w-16 h-8 px-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-center focus:border-primary" />
+                                                        ) : (
+                                                            <button type="button" onClick={() => setNewQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${newQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`} title="Correct">
+                                                                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 );
                                             })}
@@ -629,10 +639,13 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                                             />
                                                                         </label>
                                                                     )}
-
-                                                                    <button type="button" onClick={() => setEditQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${editQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`}>
-                                                                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                                                                    </button>
+                                                                    {editQuestion.type === "multiple_choice_weighted" ? (
+                                                                        <input type="number" placeholder="Weight" value={editQuestion.optionWeights[String.fromCharCode(65 + i)] ?? ""} onChange={(e) => setEditQuestion(p => ({ ...p, optionWeights: { ...p.optionWeights, [String.fromCharCode(65 + i)]: parseInt(e.target.value) || 0 } }))} className="w-16 h-8 px-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-center focus:border-primary" />
+                                                                    ) : (
+                                                                        <button type="button" onClick={() => setEditQuestion((p) => ({ ...p, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1 rounded-[var(--radius-sm)] transition-colors ${editQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`}>
+                                                                            <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             );
                                                         })}
@@ -676,13 +689,22 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                                                                 {q.options.map((opt, oi) => {
                                                                     const isImg = opt.startsWith("/");
+                                                                    const isCorrect = q.correctAnswer === String.fromCharCode(65 + oi);
+                                                                    const weight = q.optionWeights ? q.optionWeights[String.fromCharCode(65 + oi)] : undefined;
+                                                                    const bgClass = q.type === "multiple_choice_weighted" ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)] border-l-4 border-l-primary" : (isCorrect ? "bg-[var(--color-success-light)] text-[var(--color-success)] border border-[var(--color-success)]" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]");
+                                                                    
                                                                     return (
-                                                                        <div key={oi} className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs ${q.correctAnswer === String.fromCharCode(65 + oi) ? "bg-[var(--color-success-light)] text-[var(--color-success)] border border-[var(--color-success)]" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)]"}`}>
-                                                                            <span className="font-bold text-[10px]">{String.fromCharCode(65 + oi)}</span>
-                                                                            {isImg ? (
-                                                                                <img src={opt} alt={`Option ${String.fromCharCode(65 + oi)}`} className="max-h-16 object-contain rounded" />
-                                                                            ) : (
-                                                                                <span>{opt}</span>
+                                                                        <div key={oi} className={`flex items-center justify-between px-3 py-1.5 rounded-[var(--radius-sm)] text-xs ${bgClass}`}>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="font-bold text-[10px]">{String.fromCharCode(65 + oi)}</span>
+                                                                                {isImg ? (
+                                                                                    <img src={opt} alt={`Option ${String.fromCharCode(65 + oi)}`} className="max-h-16 object-contain rounded" />
+                                                                                ) : (
+                                                                                    <span>{opt}</span>
+                                                                                )}
+                                                                            </div>
+                                                                            {q.type === "multiple_choice_weighted" && weight !== undefined && (
+                                                                                <span className="font-bold text-primary ml-2 border border-primary px-1.5 py-0.5 rounded shadow-sm bg-[var(--color-bg-card)]">{weight}</span>
                                                                             )}
                                                                         </div>
                                                                     );

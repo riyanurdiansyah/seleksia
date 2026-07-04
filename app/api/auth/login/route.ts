@@ -63,6 +63,24 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // Check if password is still the default (displayId)
+        if (password === candidate.displayId) {
+            const resetResponse = NextResponse.json({
+                success: true,
+                requirePasswordReset: true,
+                candidate: {
+                    id: candidate.id,
+                    displayId: candidate.displayId,
+                    name: candidate.name,
+                    email: candidate.email,
+                    role: candidate.role,
+                },
+                redirectTo: "/auth/force-reset"
+            });
+            resetResponse.cookies.set("tempCandidateId", candidate.id, { path: "/", httpOnly: true });
+            return resetResponse;
+        }
+
         // Check role — only 'user' can take exams
         // Set authentication cookies for companyId and role
         const response = NextResponse.json({

@@ -3,14 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getCompanyId } from "@/lib/tenant";
 
-function generateRandomPassword(length = 10): string {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
-    let pw = "";
-    for (let i = 0; i < length; i++) {
-        pw += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return pw;
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -96,7 +88,7 @@ export async function POST(req: NextRequest) {
                 phone: raw.phone?.toString().trim() || null,
                 role,
                 batch: raw.batch?.toString().trim() || null,
-                plainPassword: raw.password?.toString().trim() || generateRandomPassword(),
+                plainPassword: null,
                 accessType,
                 accessStart,
                 accessEnd,
@@ -105,7 +97,7 @@ export async function POST(req: NextRequest) {
 
         // 3. Assign display IDs sequentially (avoiding race conditions)
         const allCandidates = await prisma.candidate.findMany({
-            where: { companyId, displayId: { startsWith: 'PSK-' } },
+            where: { companyId, displayId: { startsWith: 'USR-' } },
             select: { displayId: true }
         });
         
@@ -123,8 +115,9 @@ export async function POST(req: NextRequest) {
         let count = maxNum;
         const candidatesWithIds = validCandidates.map((c) => {
             count++;
-            const displayId = `PSK-${String(count).padStart(3, "0")}`;
-            return { ...c, displayId };
+            const displayId = `USR-${String(count).padStart(3, "0")}`;
+            const finalPassword = displayId;
+            return { ...c, displayId, plainPassword: finalPassword };
         });
 
         // 4. Hash passwords concurrently

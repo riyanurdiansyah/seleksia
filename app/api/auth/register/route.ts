@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
             const admin = await tx.candidate.create({
                 data: {
                     companyId: company.id,
-                    displayId: "PSK-001",
+                    displayId: "USR-001",
                     name: adminName,
                     email: normalizedEmail,
                     password: hashedPassword,

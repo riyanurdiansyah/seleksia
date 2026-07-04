@@ -42,8 +42,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Store candidate info in sessionStorage for exam flow
-      if (data.candidate) {
+      // Store candidate info in sessionStorage for exam flow only if no reset required
+      if (data.candidate && !data.requirePasswordReset) {
         sessionStorage.setItem("candidateId", data.candidate.id);
         sessionStorage.setItem("candidateName", data.candidate.name);
         sessionStorage.setItem("candidateDisplayId", data.candidate.displayId);

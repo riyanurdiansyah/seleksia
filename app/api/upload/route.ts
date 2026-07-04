@@ -11,8 +11,8 @@ const ALLOWED_MIME_TYPES = [
     "image/svg+xml",
 ];
 
-// Max file size: 5MB
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// Max file size: 1MB
+const MAX_FILE_SIZE = 1 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
     try {
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         // Validate file size
         if (file.size > MAX_FILE_SIZE) {
             return NextResponse.json(
-                { error: "File size exceeds the 5MB limit." },
+                { error: "File size exceeds the 1MB limit." },
                 { status: 400 }
             );
         }

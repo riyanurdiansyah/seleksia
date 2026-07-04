@@ -17,6 +17,12 @@ interface ResultData {
     answeredCount: number;
     violations: number;
     autoSubmitted: boolean;
+    overallNormalScore: number;
+    calculatedNormalScore: number;
+    totalWeightedScore: number;
+    normalScorableCount: number;
+    weightedCount: number;
+    unscorableCount: number;
 }
 
 const categoryConfig: Record<string, { label: string; icon: string; color: string }> = {
@@ -111,6 +117,43 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                 <span className="text-sm text-[var(--color-text-sub)]">
                     {new Date(row.completedAt).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}
                 </span>
+            )
+        },
+        {
+            header: "Score",
+            accessorKey: "overallNormalScore", // mainly for sorting purpose, defaults to normal score
+            sortable: true,
+            filterable: false,
+            cell: (row) => (
+                <div className="flex flex-col gap-1.5">
+                    {row.normalScorableCount > 0 && (
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-[var(--color-text-main)] leading-none">
+                                {row.overallNormalScore}%
+                            </span>
+                            <span className="text-[9px] text-[var(--color-text-muted)] font-medium leading-tight mt-0.5">
+                                Normal
+                            </span>
+                        </div>
+                    )}
+                    
+                    {row.weightedCount > 0 && (
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400 leading-none">
+                                {row.totalWeightedScore} Pts
+                            </span>
+                            <span className="text-[9px] text-[var(--color-text-muted)] font-medium leading-tight mt-0.5">
+                                Weighted
+                            </span>
+                        </div>
+                    )}
+
+                    {row.unscorableCount > 0 && (
+                        <span className="text-[9px] text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded inline-block w-max border border-amber-200 dark:border-amber-900/50">
+                            +{row.unscorableCount} manual review
+                        </span>
+                    )}
+                </div>
             )
         },
         {

@@ -101,6 +101,7 @@ enum TestCategory {
 
 enum QuestionType {
   multiple_choice
+  multiple_choice_weighted
   true_false
   likert_scale
   forced_choice
@@ -145,6 +146,7 @@ model Question {
   type          QuestionType
   text          String
   options       String[] // array of option strings
+  optionWeights Json?    // map of option index/string to weight
   correctAnswer String?
   imageUrl      String?
   timeLimit     Int? // seconds
