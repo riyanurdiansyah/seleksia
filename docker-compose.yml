@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: seleksia-app:latest
     container_name: seleksia-web
     restart: always
     ports:
@@ -20,9 +21,7 @@ services:
     # Next.js akan membaca DATABASE_URL langsung dari file .env Anda yang terhubung ke PostgreSQL lokal VPS
 
   ws:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: seleksia-app:latest
     container_name: seleksia-ws
     restart: always
     command: node scripts/ws-server.js
