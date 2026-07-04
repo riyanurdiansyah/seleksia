@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 async function main() {
     const companyId = 'cmpw50hao000cs80isyhearqo'; // User's company
