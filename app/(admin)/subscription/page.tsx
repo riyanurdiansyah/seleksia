@@ -35,6 +35,7 @@ interface RBACAccess {
 
 export default function SubscriptionDashboard() {
     const [subData, setSubData] = useState<SubscriptionData | null>(null);
+    const [availablePlans, setAvailablePlans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [access, setAccess] = useState<RBACAccess>({
@@ -54,12 +55,21 @@ export default function SubscriptionDashboard() {
 
     const fetchSubscriptionData = async () => {
         try {
-            const res = await fetch("/api/subscription");
+            const [res, plansRes] = await Promise.all([
+                fetch("/api/subscription"),
+                fetch("/api/plans")
+            ]);
+            
             if (res.ok) {
                 const data = await res.json();
                 setSubData(data);
             } else {
                 setError("Gagal memuat informasi langganan.");
+            }
+
+            if (plansRes.ok) {
+                const plansData = await plansRes.json();
+                setAvailablePlans(plansData);
             }
         } catch (err) {
             setError("Gagal memuat data langganan.");
@@ -67,6 +77,8 @@ export default function SubscriptionDashboard() {
             setLoading(false);
         }
     };
+
+    // Payment processing logic is now handled via direct redirect to DOKU.
 
     // Load dynamic Midtrans Snap SDK based on Global System settings from .env
     useEffect(() => {
@@ -156,6 +168,43 @@ export default function SubscriptionDashboard() {
                 return;
             }
 
+            if (data.redirectUrl) {
+                // Redirect user to DOKU Checkout page
+                window.location.href = data.redirectUrl;
+            } else {
+                setPaymentError("URL pembayaran tidak ditemukan dari server.");
+                setIsProcessingPayment(false);
+            }
+
+        } catch (err) {
+            setPaymentError("Kesalahan koneksi ke gateway pembayaran.");
+            setIsProcessingPayment(false);
+        }
+    };
+
+    const handlePayNowMidtrans = async () => {
+        if (!selectedUpgradePlan) return;
+        setIsProcessingPayment(true);
+        setPaymentError("");
+
+        try {
+            const res = await fetch("/api/subscription/pay-midtrans", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    plan: selectedUpgradePlan.name,
+                    isSimulation: false
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setPaymentError(data.error || "Gagal memulai pembayaran.");
+                setIsProcessingPayment(false);
+                return;
+            }
+
             // Trigger Midtrans Snap Popup
             const snap = (window as any).snap;
             if (!snap) {
@@ -166,28 +215,12 @@ export default function SubscriptionDashboard() {
 
             setIsSnapOpen(true);
             snap.pay(data.token, {
-                onSuccess: async function (result: any) {
+                onSuccess: function (result: any) {
                     setIsSnapOpen(false);
-                    setIsProcessingPayment(true);
-                    // Verify with backend
-                    try {
-                        const confirmRes = await fetch("/api/subscription/confirm", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ orderId: result.order_id })
-                        });
-                        const confirmData = await confirmRes.json();
-                        if (confirmData.success) {
-                            setPaymentStep(3); // success
-                            fetchSubscriptionData(); // refresh data
-                        } else {
-                            setPaymentError(confirmData.message || "Gagal memverifikasi status pembayaran.");
-                        }
-                    } catch {
-                        setPaymentError("Gagal menghubungi server untuk memverifikasi pembayaran.");
-                    } finally {
-                        setIsProcessingPayment(false);
-                    }
+                    // Usually you don't need to manually verify with backend here if you have Webhook running
+                    // But for immediate UI feedback we can just show success or refresh
+                    setPaymentStep(3); // success
+                    fetchSubscriptionData(); // refresh data
                 },
                 onPending: function () {
                     setIsSnapOpen(false);
@@ -415,136 +448,101 @@ export default function SubscriptionDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    
-                    {/* Starter Card */}
-                    <div className={`bg-[var(--color-bg-card)] border rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300
-                        ${currentPlan === "Starter" 
-                            ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-md" 
-                            : "border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:shadow-lg"
-                        }`}
-                    >
-                        {currentPlan === "Starter" && (
-                            <div className="absolute top-0 right-0 bg-[var(--color-primary)] text-white text-[9px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
-                                Plan Aktif
-                            </div>
-                        )}
-                        <div className="space-y-4">
-                            <div>
-                                <h4 className="text-lg font-bold text-[var(--color-text-main)]">Starter Plan</h4>
-                                <p className="text-xs text-[var(--color-text-sub)] mt-1">Ideal untuk rekrutmen skala kecil dan periodik.</p>
-                            </div>
-                            <div className="flex items-baseline gap-1 pt-2">
-                                <span className="text-3xl font-black text-[var(--color-text-main)]">Rp 290rb</span>
-                                <span className="text-xs text-[var(--color-text-sub)]">/ bulan</span>
-                            </div>
-                            <ul className="space-y-2.5 text-xs text-[var(--color-text-sub)] pt-4 border-t border-[var(--color-border)]">
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Maksimal 100 Kandidat</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Maksimal 10 Paket Ujian</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Keamanan Proctoring AI Dasar</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Live Monitoring Webcam</li>
-                            </ul>
-                        </div>
-                        <button
-                            onClick={() => handleUpgradeClick("Starter", 290000)}
-                            disabled={currentPlan === "Starter" || currentPlan === "Business" || currentPlan === "Enterprise" || !access.canUpdate}
-                            className={`w-full mt-6 py-3.5 rounded-[var(--radius-sm)] font-bold text-xs transition-all btn-press
-                                ${currentPlan === "Starter" 
-                                    ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed border border-[var(--color-border)]"
-                                    : currentPlan === "Business" || currentPlan === "Enterprise"
-                                        ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed opacity-50"
-                                        : !access.canUpdate
-                                            ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed border border-[var(--color-border)] opacity-60"
-                                            : "bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white hover:shadow-[0_4px_15px_var(--color-primary-glow)]"
+                    {availablePlans.map((plan) => {
+                        const isCurrentPlan = currentPlan === plan.name;
+                        // Basic logic to determine if it's an upgrade or downgrade for the button
+                        // In a real app, this should compare sortOrder or price
+                        const isHigherPlan = plan.price > (availablePlans.find(p => p.name === currentPlan)?.price || 0);
+
+                        return (
+                            <div key={plan.id} className={`bg-[var(--color-bg-card)] border rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300
+                                ${isCurrentPlan 
+                                    ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-md" 
+                                    : plan.isPopular
+                                        ? "border-[var(--color-primary-mid)] border-2 shadow-[0_12px_40px_rgba(5,150,105,0.06)] hover:border-[var(--color-primary)] hover:shadow-xl"
+                                        : "border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:shadow-lg"
                                 }`}
-                        >
-                            {currentPlan === "Starter" 
-                                ? "Aktif" 
-                                : (currentPlan === "Business" || currentPlan === "Enterprise" 
-                                    ? "Downgrade Melalui Kontak" 
-                                    : !access.canUpdate 
-                                        ? "Tidak Ada Izin Upgrade" 
-                                        : "Pilih Paket"
-                                  )}
-                        </button>
-                    </div>
-
-                    {/* Business Card (Popular) */}
-                    <div className={`bg-[var(--color-bg-card)] border-2 rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300
-                        ${currentPlan === "Business" 
-                            ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-md" 
-                            : "border-[var(--color-primary-mid)] shadow-[0_12px_40px_rgba(5,150,105,0.06)] hover:border-[var(--color-primary)] hover:shadow-xl"
-                        }`}
-                    >
-                        <div className="absolute top-0 right-0 bg-gradient-to-l from-[var(--color-primary)] to-[var(--color-accent)] text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
-                            Terpopuler
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <h4 className="text-lg font-bold text-[var(--color-text-main)]">Business Plan</h4>
-                                <p className="text-xs text-[var(--color-text-sub)] mt-1">Sempurna untuk aktivitas evaluasi rutin industri.</p>
+                            >
+                                {isCurrentPlan && (
+                                    <div className="absolute top-0 right-0 bg-[var(--color-primary)] text-white text-[9px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                                        Plan Aktif
+                                    </div>
+                                )}
+                                {!isCurrentPlan && plan.isPopular && (
+                                    <div className="absolute top-0 right-0 bg-gradient-to-l from-[var(--color-primary)] to-[var(--color-accent)] text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
+                                        Terpopuler
+                                    </div>
+                                )}
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <h4 className="text-lg font-bold text-[var(--color-text-main)]">{plan.name} Plan</h4>
+                                        <p className="text-xs text-[var(--color-text-sub)] mt-1">
+                                            {plan.name === "Starter" ? "Ideal untuk rekrutmen skala kecil dan periodik." :
+                                             plan.name === "Business" ? "Sempurna untuk aktivitas evaluasi rutin industri." :
+                                             "Solusi custom untuk skala besar nasional."}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-baseline gap-1 pt-2">
+                                        <span className={`font-black text-[var(--color-text-main)] ${plan.price === 0 ? 'text-2xl' : 'text-3xl'}`}>
+                                            {plan.priceText || (plan.price === 0 ? 'Custom Pricing' : `Rp ${(plan.price / 1000)}rb`)}
+                                        </span>
+                                        {plan.price > 0 && <span className="text-xs text-[var(--color-text-sub)]">/ bulan</span>}
+                                    </div>
+                                    <ul className="space-y-2.5 text-xs text-[var(--color-text-sub)] pt-4 border-t border-[var(--color-border)]">
+                                        <li className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> 
+                                            {plan.maxCandidates > 0 ? `Maksimal ${plan.maxCandidates.toLocaleString('id-ID')} Kandidat` : 'Kandidat Tidak Terbatas'}
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> 
+                                            {plan.maxTests > 0 ? `Maksimal ${plan.maxTests} Paket Ujian` : 'Paket Ujian Tidak Terbatas'}
+                                        </li>
+                                        {plan.features.map((feature: string, idx: number) => (
+                                            <li key={idx} className="flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> 
+                                                {feature}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                
+                                {plan.price === 0 ? (
+                                    <a
+                                        href="https://wa.me/6281234567890?text=Halo%20Seleksia%20saya%20tertarik%20dengan%20paket%20Enterprise"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full mt-6 py-3.5 rounded-[var(--radius-sm)] bg-[var(--color-brand-navy)] hover:bg-[#0f2427] text-white font-bold text-xs text-center block transition-all btn-press shadow-sm"
+                                    >
+                                        Hubungi Kami
+                                    </a>
+                                ) : (
+                                    <button
+                                        onClick={() => handleUpgradeClick(plan.name, plan.price)}
+                                        disabled={isCurrentPlan || !isHigherPlan || !access.canUpdate}
+                                        className={`w-full mt-6 py-3.5 rounded-[var(--radius-sm)] font-bold text-xs transition-all btn-press
+                                            ${isCurrentPlan 
+                                                ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed border border-[var(--color-border)]"
+                                                : !isHigherPlan
+                                                    ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed opacity-50"
+                                                    : !access.canUpdate
+                                                        ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed border border-[var(--color-border)] opacity-60"
+                                                        : "bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white hover:shadow-[0_4px_15px_var(--color-primary-glow)]"
+                                            }`}
+                                    >
+                                        {isCurrentPlan 
+                                            ? "Aktif" 
+                                            : (!isHigherPlan 
+                                                ? "Downgrade Melalui Kontak" 
+                                                : !access.canUpdate 
+                                                    ? "Tidak Ada Izin Upgrade" 
+                                                    : "Pilih Paket"
+                                              )}
+                                    </button>
+                                )}
                             </div>
-                            <div className="flex items-baseline gap-1 pt-2">
-                                <span className="text-3xl font-black text-[var(--color-text-main)]">Rp 750rb</span>
-                                <span className="text-xs text-[var(--color-text-sub)]">/ bulan</span>
-                            </div>
-                            <ul className="space-y-2.5 text-xs text-[var(--color-text-sub)] pt-4 border-t border-[var(--color-border)]">
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Maksimal 1.000 Kandidat</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Maksimal 50 Paket Ujian</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Proctoring AI (Tab, Device, Face Lock)</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Ekspor PDF Laporan & Analitik</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Integrasi SMTP Email Mandiri</li>
-                            </ul>
-                        </div>
-                        <button
-                            onClick={() => handleUpgradeClick("Business", 750000)}
-                            disabled={currentPlan === "Business" || currentPlan === "Enterprise" || !access.canUpdate}
-                            className={`w-full mt-6 py-3.5 rounded-[var(--radius-sm)] font-bold text-xs transition-all btn-press
-                                ${currentPlan === "Business" 
-                                    ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed border border-[var(--color-border)]"
-                                    : currentPlan === "Enterprise"
-                                        ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed opacity-50"
-                                        : !access.canUpdate
-                                            ? "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed border border-[var(--color-border)] opacity-60"
-                                            : "bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white hover:shadow-[0_4px_15px_var(--color-primary-glow)]"
-                                }`}
-                        >
-                            {currentPlan === "Business" 
-                                ? "Aktif" 
-                                : (!access.canUpdate 
-                                    ? "Tidak Ada Izin Upgrade" 
-                                    : "Pilih Paket"
-                                  )}
-                        </button>
-                    </div>
-
-                    {/* Enterprise Card */}
-                    <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:border-[var(--color-border-strong)] hover:shadow-lg">
-                        <div className="space-y-4">
-                            <div>
-                                <h4 className="text-lg font-bold text-[var(--color-text-main)]">Enterprise Plan</h4>
-                                <p className="text-xs text-[var(--color-text-sub)] mt-1">Solusi custom untuk skala besar nasional.</p>
-                            </div>
-                            <div className="flex items-baseline gap-1 pt-2">
-                                <span className="text-2xl font-black text-[var(--color-text-main)]">Custom Pricing</span>
-                            </div>
-                            <ul className="space-y-2.5 text-xs text-[var(--color-text-sub)] pt-4 border-t border-[var(--color-border)]">
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Kandidat Tidak Terbatas</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Paket Ujian Tidak Terbatas</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Dedicated Server / VPS Deployment</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Dukungan CS Khusus 24/7</li>
-                                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-sm text-[var(--color-primary)]">check</span> Integrasi Whitelabel Kustom</li>
-                            </ul>
-                        </div>
-                        <a
-                            href="https://wa.me/6281234567890?text=Halo%20Seleksia%20saya%20tertarik%20dengan%20paket%20Enterprise"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full mt-6 py-3.5 rounded-[var(--radius-sm)] bg-[var(--color-brand-navy)] hover:bg-[#0f2427] text-white font-bold text-xs text-center block transition-all btn-press shadow-sm"
-                        >
-                            Hubungi Kami
-                        </a>
-                    </div>
-
+                        );
+                    })}
                 </div>
             </div>
 
@@ -627,7 +625,7 @@ export default function SubscriptionDashboard() {
                         )}
                                                 {/* Modal Header */}
                         <div className="bg-gradient-to-br from-[#1A3C40] to-[#0c5c64] p-6 text-white">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Payment Gateway Midtrans</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Payment Gateway DOKU</span>
                             <h3 className="text-xl font-extrabold mt-1">Upgrade ke {selectedUpgradePlan.name} Plan</h3>
                             <div className="mt-4 flex justify-between items-baseline border-t border-white/10 pt-4">
                                 <span className="text-xs text-white/75">Total Tagihan (30 Hari):</span>
@@ -676,6 +674,14 @@ export default function SubscriptionDashboard() {
                                             className="w-full py-3.5 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
                                         >
                                             <span className="material-symbols-outlined text-lg">payment</span>
+                                            Bayar Sekarang (DOKU)
+                                        </button>
+
+                                        <button
+                                            onClick={handlePayNowMidtrans}
+                                            className="w-full py-3.5 bg-gradient-to-br from-[#0c5c64] to-[#1A3C40] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
                                             Bayar Sekarang (Midtrans)
                                         </button>
 

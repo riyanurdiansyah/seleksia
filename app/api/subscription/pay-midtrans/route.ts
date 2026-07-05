@@ -1,23 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getCompanyId } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
-
-function generateDokuSignature(
-    clientId: string,
-    secretKey: string,
-    requestId: string,
-    requestTimestamp: string,
-    requestTarget: string,
-    body: any
-) {
-    const digestStr = crypto.createHash('sha256').update(JSON.stringify(body)).digest('base64');
-    const signatureStr = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${requestTimestamp}\nRequest-Target:${requestTarget}\nDigest:${digestStr}`;
-    const hmac = crypto.createHmac('sha256', secretKey).update(signatureStr).digest('base64');
-    return `HMACSHA256=${hmac}`;
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -72,7 +57,7 @@ export async function POST(req: NextRequest) {
                     plan,
                     amount,
                     status: "pending",
-                    paymentMethod: "DOKU Gateway"
+                    paymentMethod: "Midtrans Gateway"
                 }
             });
         }
@@ -108,82 +93,76 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Resolve DOKU Config from .env
-        const isProd = process.env.DOKU_IS_PRODUCTION === "true";
-        const clientId = process.env.DOKU_CLIENT_ID;
-        const secretKey = process.env.DOKU_SECRET_KEY;
+        // Resolve Midtrans Server Key and Mode strictly from .env
+        const isProd = process.env.MIDTRANS_IS_PRODUCTION === "true";
+        const serverKey = isProd 
+            ? process.env.MIDTRANS_SERVER_KEY 
+            : process.env.MIDTRANS_SERVER_KEY_SB;
+        const clientKey = isProd 
+            ? process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY 
+            : process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY_SB;
         const mode = isProd ? "production" : "sandbox";
 
-        if (!clientId || !secretKey || clientId === "" || secretKey === "") {
+        if (!serverKey || serverKey.startsWith("SB-Mid-server-XXXXXX") || serverKey === "") {
             return NextResponse.json({
-                error: `Kredensial DOKU ${isProd ? "" : "Sandbox "}belum diset oleh sistem di file .env. Silakan gunakan mode Simulasi Uji Coba.`,
+                error: `Kredensial Midtrans ${isProd ? "" : "Sandbox "}belum diset oleh sistem di file .env. Silakan gunakan mode Simulasi Uji Coba.`,
                 needsConfig: true
             }, { status: 400 });
         }
 
-        const dokuUrl = mode === "production"
-            ? "https://api.doku.com"
-            : "https://api-sandbox.doku.com";
-        const requestTarget = "/checkout/v1/payment";
+        if (serverKey.startsWith("Mid-client-") || serverKey.startsWith("SB-Mid-client-")) {
+            return NextResponse.json({
+                error: `Kesalahan Konfigurasi .env: Anda memasukkan Client Key pada field ${isProd ? "MIDTRANS_SERVER_KEY" : "MIDTRANS_SERVER_KEY_SB"}. Harap ganti dengan Server Key yang sesuai (biasanya berawalan 'Mid-server-' atau 'SB-Mid-server-').`
+            }, { status: 400 });
+        }
 
-        const requestId = crypto.randomUUID();
-        const requestTimestamp = new Date().toISOString().substring(0, 19) + "Z"; // e.g. 2023-01-01T00:00:00Z
+        const midtransUrl = mode === "production"
+            ? "https://app.midtrans.com/snap/v1/transactions"
+            : "https://app.sandbox.midtrans.com/snap/v1/transactions";
 
-        const reqBody = {
-            order: {
-                amount: amount,
-                invoice_number: paymentRecord.id,
-                currency: "IDR",
-                callback_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/admin/subscription`
-            },
-            payment: {
-                payment_due_date: 60 // 60 minutes
-            },
-            customer: {
-                name: admin?.name || "Admin",
-                email: admin?.email || "admin@example.com"
-            }
-        };
+        const authString = Buffer.from(`${serverKey}:`).toString("base64");
 
-        const signature = generateDokuSignature(
-            clientId,
-            secretKey,
-            requestId,
-            requestTimestamp,
-            requestTarget,
-            reqBody
-        );
-
-        const response = await fetch(`${dokuUrl}${requestTarget}`, {
+        const response = await fetch(midtransUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Client-Id": clientId,
-                "Request-Id": requestId,
-                "Request-Timestamp": requestTimestamp,
-                "Signature": signature
+                "Accept": "application/json",
+                "Authorization": `Basic ${authString}`
             },
-            body: JSON.stringify(reqBody)
+            body: JSON.stringify({
+                transaction_details: {
+                    order_id: paymentRecord.id,
+                    gross_amount: amount
+                },
+                credit_card: {
+                    secure: true
+                },
+                customer_details: {
+                    first_name: admin?.name || "Admin",
+                    email: admin?.email || "admin@example.com"
+                }
+            })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("DOKU API Error:", data);
+            console.error("Midtrans API Error:", data);
             return NextResponse.json({
-                error: data.error?.message || "Gagal menghubungkan ke DOKU. Silakan gunakan Simulasi Uji Coba."
+                error: data.error_messages?.[0] || "Gagal menghubungkan ke Midtrans. Silakan gunakan Simulasi Uji Coba."
             }, { status: response.status });
         }
 
-        // Response from DOKU Checkout API contains response.payment.url
         return NextResponse.json({
             success: true,
-            redirectUrl: data.response?.payment?.url,
+            token: data.token,
+            redirectUrl: data.redirect_url,
+            clientKey: clientKey,
             mode: mode
         });
 
     } catch (error) {
-        console.error("POST /api/subscription/pay error:", error);
+        console.error("POST /api/subscription/pay-midtrans error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
