@@ -71,7 +71,9 @@ export async function GET() {
             midtransClientKey: process.env.MIDTRANS_IS_PRODUCTION === "true" 
                 ? (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "")
                 : (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY_SB || ""),
-            midtransMode: process.env.MIDTRANS_IS_PRODUCTION === "true" ? "production" : "sandbox"
+            midtransMode: process.env.MIDTRANS_IS_PRODUCTION === "true" ? "production" : "sandbox",
+            dokuMode: process.env.DOKU_IS_PRODUCTION === "true" ? "production" : "sandbox",
+            activePaymentGateway: company.activePaymentGateway
         });
 
     } catch (error) {

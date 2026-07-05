@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface UsageMetric {
     current: number;
@@ -88,7 +89,7 @@ export default function SubscriptionDashboard() {
         const mode = (subData as any).midtransMode || "sandbox";
 
         try {
-            // Remove existing script if any
+            // Remove existing Midtrans script if any
             const existingScript = document.getElementById("midtrans-snap");
             if (existingScript) existingScript.remove();
 
@@ -103,9 +104,28 @@ export default function SubscriptionDashboard() {
             console.error("Gagal memuat script Midtrans:", err);
         }
 
+        // Load DOKU Checkout JS SDK
+        try {
+            const dokuMode = (subData as any).dokuMode || "sandbox";
+            const existingDokuScript = document.getElementById("doku-jokul-checkout");
+            if (existingDokuScript) existingDokuScript.remove();
+
+            const dokuScript = document.createElement("script");
+            dokuScript.src = dokuMode === "production"
+                ? "https://jokul.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js"
+                : "https://sandbox.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js";
+            dokuScript.id = "doku-jokul-checkout";
+            document.body.appendChild(dokuScript);
+        } catch (err) {
+            console.error("Gagal memuat script DOKU:", err);
+        }
+
         return () => {
             const snapScript = document.getElementById("midtrans-snap");
             if (snapScript) snapScript.remove();
+            
+            const dokuScript = document.getElementById("doku-jokul-checkout");
+            if (dokuScript) dokuScript.remove();
         };
     }, [subData]);
 
@@ -169,8 +189,24 @@ export default function SubscriptionDashboard() {
             }
 
             if (data.redirectUrl) {
-                // Redirect user to DOKU Checkout page
-                window.location.href = data.redirectUrl;
+                // Trigger DOKU Checkout Popup
+                const loadJokulCheckout = (window as any).loadJokulCheckout;
+                if (!loadJokulCheckout) {
+                    setPaymentError("Script DOKU belum selesai dimuat. Silakan coba lagi atau periksa koneksi Anda.");
+                    setIsProcessingPayment(false);
+                    return;
+                }
+
+                setIsSnapOpen(true);
+                loadJokulCheckout(data.redirectUrl);
+                
+                // Note: DOKU Checkout JS does not have built-in on-close callbacks like Midtrans.
+                // We rely on the user closing the modal or the webhook redirecting them back to this page.
+                // Since it's a popup overlay, the page will just wait until the overlay redirects or closes.
+                // But DOKU JS might actually redirect the parent window upon success, or the user clicks "Back to Merchant".
+                // If we want to safely reset state after some time, we can leave it as is or reset on focus.
+                setIsProcessingPayment(false);
+
             } else {
                 setPaymentError("URL pembayaran tidak ditemukan dari server.");
                 setIsProcessingPayment(false);
@@ -603,8 +639,8 @@ export default function SubscriptionDashboard() {
             </div>
 
             {/* PREMIUM UPGRADE & PAYMENT MODAL */}
-            {showModal && selectedUpgradePlan && (
-                <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in transition-all duration-300 ${
+            {showModal && selectedUpgradePlan && typeof document !== "undefined" && createPortal((
+                <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in transition-all duration-300 ${
                     isSnapOpen ? "opacity-0 pointer-events-none" : "opacity-100"
                 }`}>
                     <div className={`bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden relative animate-slide-in-up transition-all duration-300 ${
@@ -669,21 +705,25 @@ export default function SubscriptionDashboard() {
                                     )}
 
                                     <div className="space-y-3 pt-2">
-                                        <button
-                                            onClick={handlePayNow}
-                                            className="w-full py-3.5 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">payment</span>
-                                            Bayar Sekarang (DOKU)
-                                        </button>
+                                        {(((subData as any)?.activePaymentGateway || "both") === "doku" || ((subData as any)?.activePaymentGateway || "both") === "both") && (
+                                            <button
+                                                onClick={handlePayNow}
+                                                className="w-full py-3.5 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">payment</span>
+                                                Bayar Sekarang (DOKU)
+                                            </button>
+                                        )}
 
-                                        <button
-                                            onClick={handlePayNowMidtrans}
-                                            className="w-full py-3.5 bg-gradient-to-br from-[#0c5c64] to-[#1A3C40] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
-                                            Bayar Sekarang (Midtrans)
-                                        </button>
+                                        {(((subData as any)?.activePaymentGateway || "both") === "midtrans" || ((subData as any)?.activePaymentGateway || "both") === "both") && (
+                                            <button
+                                                onClick={handlePayNowMidtrans}
+                                                className="w-full py-3.5 bg-gradient-to-br from-[#0c5c64] to-[#1A3C40] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
+                                                Bayar Sekarang (Midtrans)
+                                            </button>
+                                        )}
 
                                         <button
                                             onClick={handleSimulatePayment}
@@ -730,7 +770,7 @@ export default function SubscriptionDashboard() {
                         </div>
                     </div>
                 </div>
-            )}
+            ), document.body)}
         </div>
     );
 }

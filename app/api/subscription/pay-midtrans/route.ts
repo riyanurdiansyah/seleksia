@@ -32,14 +32,15 @@ export async function POST(req: NextRequest) {
         const admin = company.candidates[0];
         const plan = requestedPlan || company.subscriptionPlan;
         
-        let amount = 0;
-        if (plan === "Starter") {
-            amount = 290000;
-        } else if (plan === "Business") {
-            amount = 750000;
-        } else {
+        const planRecord = await prisma.subscriptionPlan.findFirst({
+            where: { name: plan }
+        });
+
+        if (!planRecord) {
             return NextResponse.json({ error: "Plan tidak valid untuk pembayaran" }, { status: 400 });
         }
+
+        const amount = planRecord.price;
 
         // Find or create pending payment record
         let paymentRecord = await prisma.subscriptionPayment.findFirst({

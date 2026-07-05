@@ -40,6 +40,9 @@ model Company {
   midtransClientKey String?
   midtransMode      String                @default("sandbox") // "sandbox", "production"
 
+  // ===== Gateway Settings =====
+  activePaymentGateway String             @default("both") // "doku", "midtrans", "both"
+
   @@map("companies")
 }
 
