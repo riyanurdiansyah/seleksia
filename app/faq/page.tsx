@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import PublicPageWrapper from "../components/PublicPageWrapper";
+import FaqAccordion from "../components/FaqAccordion";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "FAQ | Psikoest",
+    title: "FAQ | Seleksia",
     description: "Frequently Asked Questions",
 };
 
@@ -12,7 +13,20 @@ export default async function FAQPage() {
         where: { key: "page_faq" }
     });
     
-    const content = setting?.value || "<p>Belum ada konten FAQ.</p>";
+    let faqData = null;
+    if (setting?.value) {
+        try { faqData = JSON.parse(setting.value); } catch(e) {}
+    }
 
-    return <PublicPageWrapper title="FAQ" content={content} />;
+    return (
+        <PublicPageWrapper title="FAQ">
+            {faqData && Array.isArray(faqData) ? (
+                <FaqAccordion items={faqData} />
+            ) : (
+                <div className="prose prose-emerald max-w-none text-center">
+                    <p>Belum ada data FAQ.</p>
+                </div>
+            )}
+        </PublicPageWrapper>
+    );
 }

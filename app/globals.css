@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
+
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
@@ -81,9 +81,9 @@
   --radius-full: 9999px;
 
   /* Typography */
-  --font-display: "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --font-secondary: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geomini), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geomini), ui-sans-serif, system-ui, sans-serif;
+  --font-secondary: var(--font-geomini), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-serif), Georgia, serif;
 }
 

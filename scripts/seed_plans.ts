@@ -39,7 +39,7 @@ async function main() {
         {
             name: "Enterprise",
             price: 0,
-            priceText: "Custom Pricing",
+            priceText: "Custom",
             maxCandidates: -1, // Unlimited
             maxTests: -1,      // Unlimited
             features: [

@@ -521,7 +521,7 @@ export default function SubscriptionDashboard() {
                                     </div>
                                     <div className="flex items-baseline gap-1 pt-2">
                                         <span className={`font-black text-[var(--color-text-main)] ${plan.price === 0 ? 'text-2xl' : 'text-3xl'}`}>
-                                            {plan.priceText || (plan.price === 0 ? 'Custom Pricing' : `Rp ${(plan.price / 1000)}rb`)}
+                                            {plan.priceText || (plan.price === 0 ? 'Custom' : `Rp ${(plan.price / 1000)}rb`)}
                                         </span>
                                         {plan.price > 0 && <span className="text-xs text-[var(--color-text-sub)]">/ bulan</span>}
                                     </div>

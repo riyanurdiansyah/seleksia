@@ -361,7 +361,7 @@ model SubscriptionPlan {
   id            String   @id @default(cuid())
   name          String
   price         Float
-  priceText     String?  // Contoh: "Rp 290rb / bulan" atau "Custom Pricing"
+  priceText     String?  // Contoh: "Rp 290rb / bulan" atau "Custom"
   maxCandidates Int      @default(0) // 0 atau -1 untuk tidak terbatas
   maxTests      Int      @default(0) // 0 atau -1 untuk tidak terbatas
   features      String[] // Daftar fitur

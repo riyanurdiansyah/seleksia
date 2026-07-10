@@ -1,10 +1,10 @@
-import { Montserrat } from 'next/font/google';
+import localFont from 'next/font/local';
 import "./globals.css";
 
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800', '900'],
+const geomini = localFont({
+  src: './fonts/Geomini-Variable.woff2',
   display: 'swap',
+  variable: '--font-geomini',
 });
 
 export const metadata = {
@@ -32,7 +32,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${montserrat.className} antialiased min-h-screen bg-bg-light`}
+        className={`${geomini.variable} ${geomini.className} antialiased min-h-screen bg-bg-light`}
       >
         {children}
       </body>

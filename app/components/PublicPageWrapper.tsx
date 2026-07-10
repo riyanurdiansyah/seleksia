@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 
-export default function PublicPageWrapper({ title, content }: { title: string, content: string }) {
+export default function PublicPageWrapper({ title, content, children }: { title: string, content?: string, children?: React.ReactNode }) {
     return (
         <div className="min-h-screen font-sans bg-gray-50 flex flex-col selection:bg-primary selection:text-white overflow-x-hidden">
             {/* Navbar matching Landing Page */}
@@ -42,18 +42,24 @@ export default function PublicPageWrapper({ title, content }: { title: string, c
                 <section className="flex-1 -mt-8 relative z-20 pb-24">
                     <div className="max-w-4xl w-full mx-auto px-6">
                         <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12">
-                            <div 
-                                className="prose prose-emerald max-w-none text-[var(--color-text-sub)]
-                                           prose-headings:font-bold prose-headings:text-[var(--color-text-main)]
-                                           prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4
-                                           prose-p:leading-relaxed prose-p:mb-4
-                                           prose-ul:list-disc prose-ul:pl-6 prose-ul:mb-4
-                                           prose-ol:list-decimal prose-ol:pl-6 prose-ol:mb-4
-                                           prose-li:mb-2
-                                           prose-strong:font-semibold prose-strong:text-[var(--color-text-main)]
-                                           prose-a:text-primary prose-a:underline hover:prose-a:text-primary-hover"
-                                dangerouslySetInnerHTML={{ __html: content }} 
-                            />
+                            {children ? (
+                                children
+                            ) : (
+                                content && (
+                                    <div 
+                                        className="prose prose-emerald max-w-none text-[var(--color-text-sub)]
+                                                   prose-headings:font-bold prose-headings:text-[var(--color-text-main)]
+                                                   prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4
+                                                   prose-p:leading-relaxed prose-p:mb-4
+                                                   prose-ul:list-disc prose-ul:pl-6 prose-ul:mb-4
+                                                   prose-ol:list-decimal prose-ol:pl-6 prose-ol:mb-4
+                                                   prose-li:mb-2
+                                                   prose-strong:font-semibold prose-strong:text-[var(--color-text-main)]
+                                                   prose-a:text-primary prose-a:underline hover:prose-a:text-primary-hover"
+                                        dangerouslySetInnerHTML={{ __html: content }} 
+                                    />
+                                )
+                            )}
                         </div>
                     </div>
                 </section>
@@ -63,7 +69,9 @@ export default function PublicPageWrapper({ title, content }: { title: string, c
             <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
                 <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8">
                     <div className="col-span-1 md:col-span-2">
-                        <img src="/full-logo.png" alt="Psikoest" className="h-8 mb-6 brightness-0 invert" style={{ filter: 'brightness(0) invert(1)' }} />
+                        <div className="text-2xl font-black text-white mb-6 tracking-tighter">
+                          SELEKSIA<span className="text-primary">.</span>
+                        </div>
                         <p className="text-sm max-w-md leading-relaxed">
                             Platform SaaS terdepan untuk Computer Based Test (CBT) dan asesmen psikologi, memberdayakan perusahaan dan institusi di seluruh Indonesia.
                         </p>
@@ -85,7 +93,7 @@ export default function PublicPageWrapper({ title, content }: { title: string, c
                     </div>
                 </div>
                 <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-gray-800 text-sm text-center md:text-left flex flex-col md:flex-row justify-between items-center">
-                    <p>&copy; {new Date().getFullYear()} Psikoest by PT Contoh Solusi Digital. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} Seleksia by PT Contoh Solusi Digital. All rights reserved.</p>
                 </div>
             </footer>
         </div>
