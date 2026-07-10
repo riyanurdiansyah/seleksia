@@ -9,9 +9,14 @@ export const metadata: Metadata = {
 };
 
 export default async function FAQPage() {
-    const setting = await prisma.platformSetting.findUnique({
-        where: { key: "page_faq" }
-    });
+    let setting = null;
+    try {
+        setting = await prisma.platformSetting.findUnique({
+            where: { key: "page_faq" }
+        });
+    } catch (error) {
+        console.error("Database connection error:", error);
+    }
     
     let faqData = null;
     if (setting?.value) {

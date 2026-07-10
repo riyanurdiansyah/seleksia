@@ -8,9 +8,14 @@ export const metadata: Metadata = {
 };
 
 export default async function RefundPolicyPage() {
-    const setting = await prisma.platformSetting.findUnique({
-        where: { key: "page_refund_policy" }
-    });
+    let setting = null;
+    try {
+        setting = await prisma.platformSetting.findUnique({
+            where: { key: "page_refund_policy" }
+        });
+    } catch (e) {
+        console.error(e);
+    }
     
     const content = setting?.value || "<p>Belum ada konten Refund Policy.</p>";
 
