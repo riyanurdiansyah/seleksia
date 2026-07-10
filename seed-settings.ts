@@ -38,9 +38,8 @@ async function main() {
       value: `<h2>Hubungi Kami</h2>
 <p>Jika Anda memiliki pertanyaan atau kendala, silakan hubungi kami melalui informasi di bawah ini:</p>
 <ul>
-<li><strong>Email:</strong> admin@contoh.com</li>
-<li><strong>Nomor Telepon:</strong> +62 812-3456-7890</li>
-<li><strong>Alamat Usaha:</strong> Jl. Contoh Bisnis No. 123, Jakarta Selatan, 12345, Indonesia</li>
+<li><strong>Email:</strong> support@seleksia.com</li>
+<li><strong>Nomor Telepon:</strong> +62 851-1141-0005</li>
 </ul>
 `
     }
