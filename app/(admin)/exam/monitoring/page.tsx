@@ -246,7 +246,7 @@ export default function MonitoringPage() {
         authEndpoint: "/api/pusher/auth",
         auth: {
           params: {
-            candidateId: sessionStorage.getItem("candidateId") || "admin",
+            candidateId: localStorage.getItem("candidateId") || "admin",
           },
         },
       });

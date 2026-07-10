@@ -1,4 +1,5 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -64,7 +65,7 @@ export default function UserClient() {
     // Check RBAC first, then load users
     useEffect(() => {
         const init = async () => {
-            const role = sessionStorage.getItem("candidateRole") || "user";
+            const role = localStorage.getItem("candidateRole") || "user";
             
             try {
                 // Check access
@@ -296,7 +297,7 @@ export default function UserClient() {
 
     const handleDelete = async (id: string) => {
         if (!access.canDelete) return;
-        if (!confirm("Apakah Anda yakin ingin menghapus pengguna ini?")) return;
+        if (!await globalDialog.confirm("Apakah Anda yakin ingin menghapus pengguna ini?")) return;
         
         setActionLoading(true);
         try {
@@ -589,7 +590,6 @@ export default function UserClient() {
                                         options={[
                                             { value: "user", label: "User / Kandidat" },
                                             { value: "admin", label: "Admin" },
-                                            { value: "superadmin", label: "Superadmin" },
                                             { value: "proctor", label: "Proctor" }
                                         ]}
                                         className="w-full"

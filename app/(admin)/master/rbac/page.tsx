@@ -96,7 +96,7 @@ export default function RBACMatrixPage() {
 
   useEffect(() => {
     const checkAccess = async () => {
-      const role = sessionStorage.getItem("candidateRole") || "user";
+      const role = localStorage.getItem("candidateRole") || "user";
       try {
         const accessRes = await fetch(`/api/rbac/check?path=/master/rbac&role=${role}`);
         if (accessRes.ok) {

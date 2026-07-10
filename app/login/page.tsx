@@ -10,8 +10,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const candidateId = sessionStorage.getItem("candidateId");
-    const role = sessionStorage.getItem("candidateRole");
+    const candidateId = localStorage.getItem("candidateId");
+    const role = localStorage.getItem("candidateRole");
 
     if (candidateId) {
       if (role === "user") {
@@ -42,12 +42,12 @@ export default function LoginPage() {
         return;
       }
 
-      // Store candidate info in sessionStorage for exam flow only if no reset required
+      // Store candidate info in localStorage for exam flow only if no reset required
       if (data.candidate && !data.requirePasswordReset) {
-        sessionStorage.setItem("candidateId", data.candidate.id);
-        sessionStorage.setItem("candidateName", data.candidate.name);
-        sessionStorage.setItem("candidateDisplayId", data.candidate.displayId);
-        sessionStorage.setItem("candidateRole", data.candidate.role);
+        localStorage.setItem("candidateId", data.candidate.id);
+        localStorage.setItem("candidateName", data.candidate.name);
+        localStorage.setItem("candidateDisplayId", data.candidate.displayId);
+        localStorage.setItem("candidateRole", data.candidate.role);
       }
 
       // Redirect based on role

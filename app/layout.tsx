@@ -1,5 +1,6 @@
 import localFont from 'next/font/local';
 import "./globals.css";
+import { DialogProvider } from "./providers/DialogProvider";
 
 const geomini = localFont({
   src: './fonts/Geomini-Variable.woff2',
@@ -42,7 +43,9 @@ export default function RootLayout({
       <body
         className={`${geomini.variable} ${geomini.className} antialiased min-h-screen bg-bg-light`}
       >
-        {children}
+        <DialogProvider>
+          {children}
+        </DialogProvider>
       </body>
     </html>
   );

@@ -1,11 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { getCompanyId } from "@/lib/tenant";
 
 // GET all companies
 export async function GET() {
     try {
+        const cookieStore = await cookies();
+        const role = cookieStore.get("userRole")?.value || "user";
+        
+        let whereClause = {};
+        
+        if (role !== "superadmin") {
+            const companyId = await getCompanyId();
+            if (companyId) {
+                whereClause = { id: companyId };
+            } else {
+                // If they are not superadmin and somehow don't have a companyId, return empty
+                return NextResponse.json([]);
+            }
+        }
+
         const companies = await prisma.company.findMany({
-            select: { id: true, name: true, smtpUser: true }
+            where: whereClause,
+            select: { id: true, name: true, smtpUser: true, subscriptionPlan: true }
         });
         return NextResponse.json(companies);
     } catch (error) {

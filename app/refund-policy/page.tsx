@@ -3,7 +3,7 @@ import PublicPageWrapper from "../components/PublicPageWrapper";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Refund Policy | Psikoest",
+    title: "Refund Policy | Seleksia",
     description: "Kebijakan Pengembalian Dana",
 };
 

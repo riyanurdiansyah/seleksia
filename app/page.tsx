@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Psikoest - Platform Asesmen Psikologi #1',
+  title: 'Seleksia - Platform Asesmen Psikologi #1',
   description: 'Satu platform terpadu untuk evaluasi psikotes, ujian online CBT, dan pengawasan otomatis anti-kecurangan.',
 };
 
@@ -42,7 +42,7 @@ export default async function LandingPage() {
       <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/full-logo.png" alt="Psikoest Logo" className="h-8 object-contain" />
+            <img src="/full-logo.png" alt="Seleksia Logo" className="h-8 object-contain" />
           </Link>
           
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
@@ -355,7 +355,7 @@ export default async function LandingPage() {
         {/* Contact Section */}
         <section id="kontak" className="py-24 bg-gradient-to-br from-primary/5 to-transparent relative overflow-hidden">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="max-w-4xl mx-auto px-6 relative z-10">
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
             <div className="text-center mb-12">
               <h2 className="text-primary font-semibold tracking-wide uppercase text-sm mb-3">Kontak</h2>
               <h3 className="text-3xl md:text-4xl font-bold text-gray-900">Hubungi Kami</h3>
@@ -364,9 +364,10 @@ export default async function LandingPage() {
                 <div 
                     className="prose prose-emerald max-w-none
                                prose-h2:hidden
+                               prose-h3:text-center prose-h3:mb-8 prose-h3:mt-12 prose-h3:text-2xl prose-h3:font-bold prose-h3:text-gray-900
                                prose-p:text-lg prose-p:text-gray-600 prose-p:text-center prose-p:mb-12 prose-p:max-w-2xl prose-p:mx-auto
-                               prose-ul:grid md:prose-ul:grid-cols-2 prose-ul:gap-6 prose-ul:list-none prose-ul:pl-0
-                               prose-li:bg-white prose-li:border prose-li:border-gray-100 prose-li:rounded-2xl prose-li:p-8 prose-li:shadow-sm hover:prose-li:shadow-md prose-li:transition-all prose-li:duration-300 prose-li:flex prose-li:flex-col prose-li:gap-2 prose-li:text-gray-600 prose-li:items-center prose-li:text-center prose-li:m-0
+                               prose-ul:flex prose-ul:flex-col lg:prose-ul:flex-row prose-ul:justify-center prose-ul:gap-6 prose-ul:list-none prose-ul:pl-0
+                               prose-li:flex-1 prose-li:min-w-[240px] prose-li:bg-white prose-li:border prose-li:border-gray-100 prose-li:rounded-2xl prose-li:p-8 prose-li:shadow-sm hover:prose-li:shadow-md prose-li:transition-all prose-li:duration-300 prose-li:flex prose-li:flex-col prose-li:gap-2 prose-li:text-gray-600 prose-li:items-center prose-li:text-center prose-li:m-0
                                prose-strong:text-xl prose-strong:text-gray-900 prose-strong:mb-1
                                prose-a:text-primary prose-a:underline hover:prose-a:text-primary-hover"
                     dangerouslySetInnerHTML={{ __html: contactContent }} 
@@ -394,7 +395,7 @@ export default async function LandingPage() {
       <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
-                <img src="/full-logo.png" alt="Psikoest" className="h-8 mb-6 brightness-0 invert" style={{ filter: 'brightness(0) invert(1)' }} />
+                <img src="/full-logo.png" alt="Seleksia" className="h-8 mb-6 brightness-0 invert" style={{ filter: 'brightness(0) invert(1)' }} />
                 <p className="text-sm max-w-md leading-relaxed">
                     Platform SaaS terdepan untuk Computer Based Test (CBT) dan asesmen psikologi, memberdayakan perusahaan dan institusi di seluruh Indonesia.
                 </p>
@@ -416,7 +417,7 @@ export default async function LandingPage() {
             </div>
         </div>
         <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-gray-800 text-sm text-center md:text-left flex flex-col md:flex-row justify-between items-center">
-            <p>&copy; {new Date().getFullYear()} Psikoest by PT Contoh Solusi Digital. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Seleksia by PT Contoh Solusi Digital. All rights reserved.</p>
         </div>
       </footer>
     </div>

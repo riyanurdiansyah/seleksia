@@ -11,15 +11,19 @@ function walkDir(dir, callback) {
 }
 
 const filesToUpdate = [];
-walkDir('./app', function(filePath) {
-  if (filePath.endsWith('.tsx') || filePath.endsWith('.ts')) {
-    filesToUpdate.push(filePath);
-  }
+const dirsToScan = ['./app', './prisma'];
+
+dirsToScan.forEach(dir => {
+    walkDir(dir, function(filePath) {
+      if (filePath.endsWith('.tsx') || filePath.endsWith('.ts')) {
+        filesToUpdate.push(filePath);
+      }
+    });
 });
 
 filesToUpdate.forEach(file => {
   let content = fs.readFileSync(file, 'utf8');
-  let newContent = content.replace(/Psikoest/g, 'SELEKSIA');
+  let newContent = content.replace(/Psikoest/g, 'Seleksia');
   newContent = newContent.replace(/psikoest/g, 'seleksia');
   if (content !== newContent) {
     fs.writeFileSync(file, newContent);

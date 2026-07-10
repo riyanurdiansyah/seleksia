@@ -7,7 +7,7 @@ async function main() {
     {
       key: "page_faq",
       value: `<h2>Frequently Asked Questions</h2>
-<p><strong>1. Apa itu Psikoest?</strong><br>Psikoest adalah platform untuk melakukan tes psikologi dan asesmen secara online.</p>
+<p><strong>1. Apa itu Seleksia?</strong><br>Seleksia adalah platform untuk melakukan tes psikologi dan asesmen secara online.</p>
 <p><strong>2. Bagaimana cara mendaftar?</strong><br>Anda dapat menghubungi tim sales kami atau mendaftar melalui halaman registrasi.</p>
 `
     },

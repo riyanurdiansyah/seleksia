@@ -1,4 +1,5 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -48,7 +49,7 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
     }, []);
 
     useEffect(() => {
-        const role = sessionStorage.getItem("candidateRole") || "user";
+        const role = localStorage.getItem("candidateRole") || "user";
         setCurrentRole(role);
 
         if (role === "superadmin") {
@@ -128,24 +129,24 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
         setWizardOpen(true);
     };
 
-    const handleWizardSend = (user: CandidateResult) => {
+    const handleWizardSend = async (user: CandidateResult) => {
         window.open(generateWhatsappLink(user), "_blank");
         setWizardStatuses(prev => ({ ...prev, [user.id]: "sent" }));
         if (wizardIndex < selectedUserIds.length - 1) {
             setWizardIndex(prev => prev + 1);
         } else {
-            alert("Semua pesan telah selesai diproses!");
+            await globalDialog.alert("Semua pesan telah selesai diproses!");
             setWizardOpen(false);
             setSelectedUsers(new Set());
         }
     };
 
-    const handleWizardSkip = (userId: string) => {
+    const handleWizardSkip = async (userId: string) => {
         setWizardStatuses(prev => ({ ...prev, [userId]: "skipped" }));
         if (wizardIndex < selectedUserIds.length - 1) {
             setWizardIndex(prev => prev + 1);
         } else {
-            alert("Semua pesan telah selesai diproses!");
+            await globalDialog.alert("Semua pesan telah selesai diproses!");
             setWizardOpen(false);
             setSelectedUsers(new Set());
         }

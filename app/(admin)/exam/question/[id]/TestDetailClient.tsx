@@ -1,4 +1,5 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -109,11 +110,11 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
-            alert("Only image files are allowed!");
+            await globalDialog.alert("Only image files are allowed!");
             return;
         }
         if (file.size > 1 * 1024 * 1024) {
-            alert("Maximum file size is 1MB!");
+            await globalDialog.alert("Maximum file size is 1MB!");
             return;
         }
 
@@ -135,7 +136,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to upload image.");
+            await globalDialog.alert("Failed to upload image.");
         } finally {
             setUploadingImage(false);
         }
@@ -236,7 +237,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], optionWeights: {}, correctAnswer: "", timeLimit: 0, imageUrl: "" });
         } catch (err) {
             console.error(err);
-            alert(err instanceof Error ? err.message : String(err));
+            await globalDialog.alert(err instanceof Error ? err.message : String(err));
         }
     };
 
@@ -328,7 +329,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
 
             // Skip header row
             if (jsonData.length <= 1) {
-                alert("File kosong atau tidak memiliki data soal.");
+                await globalDialog.alert("File kosong atau tidak memiliki data soal.");
                 setIsImporting(false);
                 return;
             }
@@ -383,7 +384,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             }
 
             if (questions.length === 0) {
-                alert("Tidak ada soal valid yang ditemukan di file.");
+                await globalDialog.alert("Tidak ada soal valid yang ditemukan di file.");
                 setIsImporting(false);
                 return;
             }
@@ -403,7 +404,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             window.location.reload();
         } catch (err) {
             console.error(err);
-            alert("Terjadi kesalahan saat mengimpor soal: " + (err instanceof Error ? err.message : String(err)));
+            await globalDialog.alert("Terjadi kesalahan saat mengimpor soal: " + (err instanceof Error ? err.message : String(err)));
         } finally {
             setIsImporting(false);
             e.target.value = ''; // Reset input
@@ -440,7 +441,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
     const handleSaveQuestion = async () => {
         if (!test || !editingQuestionId) return;
         if (!editQuestion.text && !editQuestion.imageUrl) {
-            alert("Question must have either text or image!");
+            await globalDialog.alert("Question must have either text or image!");
             return;
         }
         try {
@@ -649,7 +650,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                                             o[i] = data.imageUrl;
                                                                             setNewQuestion((p) => ({ ...p, options: o }));
                                                                         } catch (err) {
-                                                                            alert("Upload failed");
+                                                                            await globalDialog.alert("Upload failed");
                                                                         }
                                                                     }}
                                                                     className="hidden"
@@ -835,7 +836,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                                                         o[i] = data.imageUrl;
                                                                                         setEditQuestion((p) => ({ ...p, options: o }));
                                                                                     } catch (err) {
-                                                                                        alert("Upload failed");
+                                                                                        await globalDialog.alert("Upload failed");
                                                                                     }
                                                                                 }}
                                                                                 className="hidden"

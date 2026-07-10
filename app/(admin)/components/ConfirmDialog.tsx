@@ -75,12 +75,14 @@ export default function ConfirmDialog({
 
                 {/* Actions */}
                 <div className="p-4 px-6 bg-[var(--color-bg-elevated)] flex gap-3">
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 h-12 rounded-[var(--radius-sm)] bg-transparent border-none text-[var(--color-text-muted)] font-semibold text-sm hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] transition-all btn-press"
-                    >
-                        {cancelLabel}
-                    </button>
+                    {cancelLabel && (
+                        <button
+                            onClick={onCancel}
+                            className="flex-1 h-12 rounded-[var(--radius-sm)] bg-transparent border-none text-[var(--color-text-muted)] font-semibold text-sm hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] transition-all btn-press"
+                        >
+                            {cancelLabel}
+                        </button>
+                    )}
                     <button
                         onClick={onConfirm}
                         className={`flex-1 h-12 rounded-[var(--radius-sm)] text-white font-bold text-sm transition-all hover:translate-y-[-1px] active:translate-y-0 btn-press ${confirmBtnColor}`}

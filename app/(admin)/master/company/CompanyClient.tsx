@@ -1,15 +1,18 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect } from "react";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import Breadcrumb from "../../components/Breadcrumb";
 import Modal from "../../components/Modal";
+import { useRbac } from "@/app/hooks/useRbac";
 
 interface CompanyItem {
   id: string;
   name: string;
   slug?: string;
   smtpUser?: string | null;
+  subscriptionPlan?: string;
 }
 
 export default function CompanyClient() {
@@ -20,7 +23,8 @@ export default function CompanyClient() {
   const [actionLoading, setActionLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [formData, setFormData] = useState({ id: "", name: "", email: "", password: "", smtpUser: "" });
+  const [formData, setFormData] = useState({ id: "", name: "", email: "", password: "", smtpUser: "", subscriptionPlan: "Free" });
+  const { access, loading: rbacLoading } = useRbac("/master/company");
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -45,21 +49,21 @@ export default function CompanyClient() {
   }, []);
 
   const handleOpenCreate = () => {
-    setFormData({ id: "", name: "", email: "", password: "", smtpUser: "" });
+    setFormData({ id: "", name: "", email: "", password: "", smtpUser: "", subscriptionPlan: "Free" });
     setIsEditing(false);
     setIsModalOpen(true);
     setErrorMsg("");
   };
 
   const handleOpenEdit = (company: CompanyItem) => {
-    setFormData({ id: company.id, name: company.name, email: "", password: "", smtpUser: company.smtpUser || "" });
+    setFormData({ id: company.id, name: company.name, email: "", password: "", smtpUser: company.smtpUser || "", subscriptionPlan: company.subscriptionPlan || "Free" });
     setIsEditing(true);
     setIsModalOpen(true);
     setErrorMsg("");
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus perusahaan ini?")) return;
+    if (!await globalDialog.confirm("Apakah Anda yakin ingin menghapus perusahaan ini?")) return;
     setActionLoading(true);
     try {
       const res = await fetch(`/api/companies/${id}`, { method: "DELETE" });
@@ -145,20 +149,24 @@ export default function CompanyClient() {
       header: "Aksi",
       cell: (row) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleOpenEdit(row)}
-            className="size-7 flex items-center justify-center rounded-[var(--radius-xs)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-sub)] hover:text-primary hover:border-primary transition-all btn-press"
-            title="Edit"
-          >
-            <span className="material-symbols-outlined text-[15px]">edit</span>
-          </button>
-          <button
-            onClick={() => handleDelete(row.id)}
-            className="size-7 flex items-center justify-center rounded-[var(--radius-xs)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-sub)] hover:text-red-500 hover:border-red-500 hover:bg-red-50 transition-all btn-press"
-            title="Hapus"
-          >
-            <span className="material-symbols-outlined text-[15px]">delete</span>
-          </button>
+          {access.canUpdate && (
+            <button
+              onClick={() => handleOpenEdit(row)}
+              className="size-7 flex items-center justify-center rounded-[var(--radius-xs)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-sub)] hover:text-primary hover:border-primary transition-all btn-press"
+              title="Edit"
+            >
+              <span className="material-symbols-outlined text-[15px]">edit</span>
+            </button>
+          )}
+          {access.canDelete && (
+            <button
+              onClick={() => handleDelete(row.id)}
+              className="size-7 flex items-center justify-center rounded-[var(--radius-xs)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-sub)] hover:text-red-500 hover:border-red-500 hover:bg-red-50 transition-all btn-press"
+              title="Hapus"
+            >
+              <span className="material-symbols-outlined text-[15px]">delete</span>
+            </button>
+          )}
         </div>
       ),
     },
@@ -198,24 +206,26 @@ export default function CompanyClient() {
          {/* Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
+            {/* <div className="flex flex-wrap items-center gap-2"> */}
+              {/* <button
                 type="button"
                 className="flex items-center gap-1.5 px-4 py-2 border border-gray-100 rounded-xl text-xs font-bold bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 cursor-pointer shadow-sm btn-press"
               >
                 <span className="material-symbols-outlined text-[14px] text-gray-400 font-bold">cloud_download</span>
                 Export
-              </button>
-            </div>
+              </button> */}
+            {/* </div> */}
           </div>
           <div className="w-full sm:w-auto">
-            <button
-              onClick={handleOpenCreate}
-              className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[#0f766e] hover:bg-[#115e59] transition-all shadow-[0_4px_15px_rgba(15,118,110,0.3)] hover:shadow-[0_6px_20px_rgba(15,118,110,0.4)] hover:translate-y-[-2px] active:translate-y-0 w-full sm:w-auto btn-press cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] font-bold">add</span>
-              Tambah Perusahaan
-            </button>
+            {access.canCreate && (
+              <button
+                onClick={handleOpenCreate}
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[#0f766e] hover:bg-[#115e59] transition-all shadow-[0_4px_15px_rgba(15,118,110,0.3)] hover:shadow-[0_6px_20px_rgba(15,118,110,0.4)] hover:translate-y-[-2px] active:translate-y-0 w-full sm:w-auto btn-press cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px] font-bold">add</span>
+                Tambah Perusahaan
+              </button>
+            )}
           </div>
         </div>
         
@@ -250,29 +260,44 @@ export default function CompanyClient() {
           </div>
           {(!isEditing || !formData.smtpUser) && (
             <>
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Alamat Email (Mailcow)</label>
-                <input
-                  type="email"
-                  placeholder="hrd-perusahaan@seleksia.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                />
-                <p className="text-[10px] text-[var(--color-text-muted)] font-medium">
-                  Kosongkan jika tidak ingin membuat akun email baru di Mailcow.
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Password Email Mailcow</label>
-                <input
-                  type="password"
-                  placeholder="Password untuk email baru"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                />
-              </div>
+              {["Business", "Enterprise"].includes(formData.subscriptionPlan) ? (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Alamat Email (Mailcow)</label>
+                    <input
+                      type="email"
+                      placeholder="hrd-perusahaan@seleksia.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    />
+                    <p className="text-[10px] text-[var(--color-text-muted)] font-medium">
+                      Kosongkan jika tidak ingin membuat akun email baru di Mailcow.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Password Email Mailcow</label>
+                    <input
+                      type="password"
+                      placeholder="Password untuk email baru"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-[var(--radius-sm)] flex items-start gap-3">
+                  <span className="material-symbols-outlined text-orange-500 text-[18px] mt-0.5">info</span>
+                  <div className="space-y-1">
+                    <p className="text-xs text-orange-800 font-semibold">Fitur Email Domain Khusus Terkunci</p>
+                    <p className="text-[11px] text-orange-700">
+                      Pembuatan email dengan domain seleksia.com hanya tersedia untuk paket <strong>Business</strong> dan <strong>Enterprise</strong>. 
+                      Paket perusahaan ini saat ini adalah <strong>{formData.subscriptionPlan || "Free"}</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
             </>
           )}
           <div className="pt-4 border-t border-[var(--color-border)] flex justify-end gap-3">

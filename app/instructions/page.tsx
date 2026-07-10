@@ -50,7 +50,7 @@ export default function InstructionsPage() {
 
     useEffect(() => {
         const loadPendingAssignments = async () => {
-            const candidateId = sessionStorage.getItem("candidateId");
+            const candidateId = localStorage.getItem("candidateId");
             if (!candidateId) return;
 
             try {
@@ -90,7 +90,7 @@ export default function InstructionsPage() {
 
     const handleBeginTest = () => {
         // Safe it so the next exam page knows which one
-        sessionStorage.setItem("selectedAssignmentId", selectedAssignmentId);
+        localStorage.setItem("selectedAssignmentId", selectedAssignmentId);
         window.location.href = "/cbt";
     };
 

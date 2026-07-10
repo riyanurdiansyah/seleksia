@@ -8,7 +8,7 @@ export default function PublicPageWrapper({ title, content, children }: { title:
             <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
-                        <img src="/full-logo.png" alt="Psikoest Logo" className="h-8 object-contain" />
+                        <img src="/full-logo.png" alt="Seleksia Logo" className="h-8 object-contain" />
                     </Link>
                     
                     <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">

@@ -1,6 +1,7 @@
 import AdminSidebar from "./components/AdminSidebar";
 import AdminHeader from "./components/AdminHeader";
 import AdminGuard from "./AdminGuard";
+import RbacGuard from "./components/RbacGuard";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -39,8 +40,10 @@ export default async function AdminLayout({
                 <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
                     <AdminHeader />
                     <main className="flex-1 overflow-y-auto bg-[var(--color-bg-base)]">
-                        <div className="relative p-7 max-w-[1600px] mx-auto space-y-6 pb-12">
-                            {children}
+                        <div className="relative p-7 max-w-[1600px] mx-auto space-y-6 pb-12 h-full">
+                            <RbacGuard>
+                                {children}
+                            </RbacGuard>
                         </div>
                     </main>
                 </div>

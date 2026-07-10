@@ -39,12 +39,12 @@ export default function ForceResetPage() {
                 return;
             }
 
-            // Store candidate info in sessionStorage for exam flow
+            // Store candidate info in localStorage for exam flow
             if (data.candidate) {
-                sessionStorage.setItem("candidateId", data.candidate.id);
-                sessionStorage.setItem("candidateName", data.candidate.name);
-                sessionStorage.setItem("candidateDisplayId", data.candidate.displayId);
-                sessionStorage.setItem("candidateRole", data.candidate.role);
+                localStorage.setItem("candidateId", data.candidate.id);
+                localStorage.setItem("candidateName", data.candidate.name);
+                localStorage.setItem("candidateDisplayId", data.candidate.displayId);
+                localStorage.setItem("candidateRole", data.candidate.role);
             }
 
             // Redirect based on role

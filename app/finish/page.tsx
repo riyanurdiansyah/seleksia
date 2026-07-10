@@ -31,10 +31,10 @@ export default function FinishPage() {
         try {
             // The exam submit API already marks the assignment as completed,
             // so we just need to clean up and check for the next test
-            sessionStorage.removeItem("currentAssignmentId");
+            localStorage.removeItem("currentAssignmentId");
 
             // Check if there is a next assignment
-            const candidateId = sessionStorage.getItem("candidateId");
+            const candidateId = localStorage.getItem("candidateId");
             if (candidateId) {
                 const res = await fetch(`/api/assignments/next?candidateId=${candidateId}`);
                 if (res.ok) {
@@ -253,7 +253,7 @@ export default function FinishPage() {
 
                                 <button
                                     onClick={() => {
-                                        sessionStorage.clear();
+                                        localStorage.clear();
                                         window.location.href = "/login";
                                     }}
                                     className="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius-md)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] cursor-pointer btn-press btn-shine"

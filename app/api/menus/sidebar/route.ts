@@ -114,16 +114,8 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const role = (searchParams.get("role") || "admin") as Role;
 
-        // Auto-ensure the subscription menu is seeded for the user
-        if (role === Role.admin || role === Role.superadmin) {
-            await ensureSubscriptionMenu();
-        }
-
-        if (role === Role.superadmin) {
-            await ensureSuperAdminMenus();
-        }
-
-
+        // Initialization scripts have been disabled here to prevent race conditions
+        // and to respect explicit menu deletions by the user.
         // Fetch parent menus with their submenus where role has canRead
         const menus = await prisma.menu.findMany({
             where: {

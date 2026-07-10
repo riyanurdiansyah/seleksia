@@ -9,6 +9,15 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "candidateId is required" }, { status: 400 });
         }
 
+        const candidate = await prisma.candidate.findUnique({
+            where: { id: candidateId },
+            select: { companyId: true }
+        });
+
+        if (!candidate) {
+            return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+        }
+
         // Find all pending assignments for the user
         const pendingAssignments = await prisma.testAssignment.findMany({
             where: {
@@ -37,7 +46,10 @@ export async function GET(req: NextRequest) {
 
         // Also fetch general instructions
         const generalInstructions = await prisma.instruction.findMany({
-            where: { type: "general" }
+            where: { 
+                type: "general",
+                companyId: candidate.companyId
+            }
         });
 
         return NextResponse.json({

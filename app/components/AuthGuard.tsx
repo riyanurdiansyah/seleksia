@@ -10,16 +10,16 @@ interface AuthGuardProps {
 /**
  * AuthGuard — protects pages that require a valid session.
  * 
- * - If no `candidateId` in sessionStorage → redirect to login
- * - If `allowedRoles` is specified, checks `candidateRole` in sessionStorage
+ * - If no `candidateId` in localStorage → redirect to login
+ * - If `allowedRoles` is specified, checks `candidateRole` in localStorage
  * - Shows a loading spinner while checking
  */
 export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     const [status, setStatus] = useState<"loading" | "authorized" | "unauthorized">("loading");
 
     useEffect(() => {
-        const candidateId = sessionStorage.getItem("candidateId");
-        const candidateRole = sessionStorage.getItem("candidateRole");
+        const candidateId = localStorage.getItem("candidateId");
+        const candidateRole = localStorage.getItem("candidateRole");
 
         if (!candidateId) {
             // No session — redirect to login
@@ -64,7 +64,7 @@ export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
                         <div className="flex gap-3 justify-center pt-5">
                             <button
                                 onClick={() => {
-                                    sessionStorage.clear();
+                                    localStorage.clear();
                                     window.location.href = "/login";
                                 }}
                                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] active:translate-y-0 transition-all cursor-pointer btn-press btn-shine"

@@ -57,12 +57,12 @@ export default function AdminHeader() {
     const [adminId, setAdminId] = useState("---");
     const [adminRole, setAdminRole] = useState("");
 
-    // Load admin data from sessionStorage
+    // Load admin data from localStorage
     useEffect(() => {
         if (typeof window !== "undefined") {
-            const name = sessionStorage.getItem("candidateName");
-            const role = sessionStorage.getItem("candidateRole");
-            const displayId = sessionStorage.getItem("candidateDisplayId");
+            const name = localStorage.getItem("candidateName");
+            const role = localStorage.getItem("candidateRole");
+            const displayId = localStorage.getItem("candidateDisplayId");
             if (name) setAdminName(name);
             if (role) setAdminRole(role);
             if (displayId) setAdminId(displayId);
@@ -78,7 +78,7 @@ export default function AdminHeader() {
 
     useEffect(() => {
         const fetchMenus = async () => {
-            const role = sessionStorage.getItem("candidateRole") || "admin";
+            const role = localStorage.getItem("candidateRole") || "admin";
             try {
                 const res = await fetch(`/api/menus/sidebar?role=${role}`);
                 if (res.ok) {
@@ -290,7 +290,7 @@ export default function AdminHeader() {
                             </div>
                             <div className="border-t border-[var(--color-border)] py-1">
                                 <button
-                                    onClick={() => { sessionStorage.clear(); window.location.href = "/login"; }}
+                                    onClick={() => { localStorage.clear(); window.location.href = "/login"; }}
                                     className="w-full flex items-center gap-3 px-4 py-2.5
                                         text-danger hover:bg-[var(--color-danger-light)]
                                         transition-colors cursor-pointer"

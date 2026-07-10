@@ -200,6 +200,7 @@ export default function TestsClient() {
     const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
     const [selectedCompany, setSelectedCompany] = useState<string>("all");
     const [currentRole, setCurrentRole] = useState<string>("user");
+    const [errorMsg, setErrorMsg] = useState<string>("");
 
     const [newTest, setNewTest] = useState({
         name: "",
@@ -267,7 +268,7 @@ export default function TestsClient() {
     }, []);
 
     useEffect(() => {
-        const role = sessionStorage.getItem("candidateRole") || "user";
+        const role = localStorage.getItem("candidateRole") || "user";
         setCurrentRole(role);
 
         if (role === "superadmin") {
@@ -305,7 +306,7 @@ export default function TestsClient() {
         }
 
         if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
-            alert("Silakan pilih perusahaan terlebih dahulu");
+            setErrorMsg("Silakan pilih perusahaan terlebih dahulu");
             return;
         }
 
@@ -322,12 +323,17 @@ export default function TestsClient() {
                     companyId: targetCompanyId || undefined
                 }),
             });
-            if (!res.ok) throw new Error("Failed to create");
+            if (!res.ok) {
+                const data = await res.json();
+                setErrorMsg(data.error || "Failed to create");
+                return;
+            }
             const created = await res.json();
             setTests((prev) => [created, ...prev]);
             setNewTest({ name: "", category: "intelligence", questionType: "multiple_choice", description: "", duration: 30, companyId: "" });
             setShowCreateModal(false);
-        } catch (err) {
+        } catch (err: any) {
+            setErrorMsg(err.message || "Failed to create test");
             console.error(err);
         }
     };
@@ -340,7 +346,7 @@ export default function TestsClient() {
         }
 
         if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
-            alert("Silakan pilih perusahaan terlebih dahulu");
+            setErrorMsg("Silakan pilih perusahaan terlebih dahulu");
             return;
         }
 
@@ -357,11 +363,16 @@ export default function TestsClient() {
                     companyId: targetCompanyId || undefined
                 }),
             });
-            if (!res.ok) throw new Error("Failed to create");
+            if (!res.ok) {
+                const data = await res.json();
+                setErrorMsg(data.error || "Failed to create");
+                return;
+            }
             const created = await res.json();
             setTests((prev) => [created, ...prev]);
             setShowCreateModal(false);
-        } catch (err) {
+        } catch (err: any) {
+            setErrorMsg(err.message || "Failed to create test from template");
             console.error(err);
         }
     };
@@ -439,7 +450,7 @@ export default function TestsClient() {
         if (currentRole === "superadmin") {
             targetCompanyId = selectedCompany !== "all" ? selectedCompany : "";
             if (!targetCompanyId) {
-                alert("Silakan pilih perusahaan terlebih dahulu");
+                setErrorMsg("Silakan pilih perusahaan terlebih dahulu");
                 return;
             }
         }
@@ -475,8 +486,8 @@ export default function TestsClient() {
             setGroupTestIds(new Set());
             setSelectedGroup(null);
         } catch (err) {
+            setErrorMsg(err instanceof Error ? err.message : String(err));
             console.error(err);
-            alert(err instanceof Error ? err.message : String(err));
         }
     };
 
@@ -1073,6 +1084,18 @@ export default function TestsClient() {
                         setDeleteGroupTarget(null);
                     }
                 }}
+            />
+
+            {/* Error Message Modal */}
+            <ConfirmDialog
+                open={!!errorMsg}
+                title="Gagal Membuat Paket Soal"
+                message={errorMsg}
+                confirmLabel="OK"
+                cancelLabel="Tutup"
+                variant="danger"
+                onConfirm={() => setErrorMsg("")}
+                onCancel={() => setErrorMsg("")}
             />
         </>
     );

@@ -1,4 +1,5 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -159,7 +160,7 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
     }, [selectedTemplateId, templates]);
 
     useEffect(() => {
-        const role = sessionStorage.getItem("candidateRole") || "user";
+        const role = localStorage.getItem("candidateRole") || "user";
         setCurrentRole(role);
 
         if (role === "superadmin") {
@@ -357,12 +358,12 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
     };
 
     // Variables logic
-    const handleAddVariable = () => {
+    const handleAddVariable = async () => {
         const cleanKey = newVarKey.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
         if (!cleanKey || !newVarVal.trim()) return;
 
         if (customVariables.some(v => v.key === cleanKey)) {
-            alert("Variabel dengan kunci tersebut sudah ada!");
+            await globalDialog.alert("Variabel dengan kunci tersebut sudah ada!");
             return;
         }
 
@@ -839,8 +840,8 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
                     </div>
                     {history.length > 0 && (
                         <button
-                            onClick={() => {
-                                if (confirm("Are you sure you want to clear all history logs?")) {
+                            onClick={async () => {
+                                if (await globalDialog.confirm("Are you sure you want to clear all history logs?")) {
                                     setHistory([]);
                                     localStorage.removeItem("seleksia_email_blast_history");
                                 }

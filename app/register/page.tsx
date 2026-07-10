@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from "react";
 
+type SubscriptionPlan = {
+    id: string;
+    name: string;
+    price: number;
+    priceText: string;
+    maxCandidates: number;
+    maxTests: number;
+    features: string[];
+    isPopular: boolean;
+};
+
 export default function RegisterPage() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -15,6 +26,24 @@ export default function RegisterPage() {
     const [adminPassword, setAdminPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState("Free");
+    const [dbPlans, setDbPlans] = useState<SubscriptionPlan[]>([]);
+    const [loadingPlans, setLoadingPlans] = useState(true);
+
+    useEffect(() => {
+        fetch("/api/plans")
+            .then((res) => res.json())
+            .then((data) => {
+                if (Array.isArray(data)) {
+                    setDbPlans(data);
+                    if (data.length > 0) setSelectedPlan(data[0].name);
+                }
+                setLoadingPlans(false);
+            })
+            .catch((err) => {
+                console.error("Failed to fetch plans", err);
+                setLoadingPlans(false);
+            });
+    }, []);
 
     // Password strength logic
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, text: "Sangat Lemah", color: "bg-red-500" });
@@ -44,6 +73,7 @@ export default function RegisterPage() {
     const handleCompanyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setCompanyName(val);
+        setError("");
         // slugify
         const slug = val
             .toLowerCase()
@@ -56,6 +86,15 @@ export default function RegisterPage() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Prevent premature form submission (e.g. user pressing Enter in text field)
+        if (step < 3) {
+            if (step === 1 && (!companyName || !companySlug)) return;
+            if (step === 2 && (!adminName || !adminEmail || !adminPassword || adminPassword.length < 6)) return;
+            setStep(step + 1);
+            return;
+        }
+
         setError("");
         setLoading(true);
 
@@ -83,10 +122,10 @@ export default function RegisterPage() {
 
             // Save admin session data
             if (data.candidate) {
-                sessionStorage.setItem("candidateId", data.candidate.id);
-                sessionStorage.setItem("candidateName", data.candidate.name);
-                sessionStorage.setItem("candidateDisplayId", data.candidate.displayId);
-                sessionStorage.setItem("candidateRole", data.candidate.role);
+                localStorage.setItem("candidateId", data.candidate.id);
+                localStorage.setItem("candidateName", data.candidate.name);
+                localStorage.setItem("candidateDisplayId", data.candidate.displayId);
+                localStorage.setItem("candidateRole", data.candidate.role);
             }
 
             // Redirect to dashboard
@@ -174,9 +213,7 @@ export default function RegisterPage() {
                                 <div className="flex justify-between items-center mt-2">
                                     <span className="text-sm font-semibold">{selectedPlan} Plan</span>
                                     <span className="text-sm font-extrabold text-white">
-                                        {selectedPlan === "Free" && "Gratis"}
-                                        {selectedPlan === "Starter" && `${formatCurrency(290000)} / bln`}
-                                        {selectedPlan === "Business" && `${formatCurrency(750000)} / bln`}
+                                        {dbPlans.find(p => p.name === selectedPlan)?.priceText || formatCurrency(dbPlans.find(p => p.name === selectedPlan)?.price || 0)}
                                     </span>
                                 </div>
                                 <div className="text-xs text-white/60 mt-2">
@@ -332,8 +369,8 @@ export default function RegisterPage() {
                                             <input
                                                 type="email"
                                                 value={adminEmail}
-                                                onChange={(e) => setAdminEmail(e.target.value)}
-                                                placeholder="admin@nama-perusahaan.com"
+                                                onChange={(e) => { setAdminEmail(e.target.value); setError(""); }}
+                                                placeholder="contoh@perusahaan.com"
                                                 className="w-full pl-11 pr-4 py-3 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-[var(--radius-sm)] text-[var(--color-text-main)] text-sm placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] transition-all"
                                                 required
                                             />
@@ -394,73 +431,46 @@ export default function RegisterPage() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         
-                                        {/* Plan Free */}
-                                        <div 
-                                            onClick={() => setSelectedPlan("Free")}
-                                            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 relative overflow-hidden flex flex-col justify-between
-                                                ${selectedPlan === "Free" 
-                                                    ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] shadow-md translate-y-[-2px]" 
-                                                    : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-strong)]"
-                                                }`}
-                                        >
-                                            <div className="space-y-2">
-                                                <h3 className="font-extrabold text-sm text-[var(--color-text-main)]">Free</h3>
-                                                <div className="text-lg font-black text-[var(--color-text-main)]">Rp 0</div>
-                                                <p className="text-[10px] text-[var(--color-text-sub)] leading-tight">Cocok untuk mencoba sistem atau evaluasi skala kecil.</p>
+                                        
+                                        {loadingPlans ? (
+                                            <div className="col-span-1 md:col-span-3 text-center text-[var(--color-text-muted)] text-xs py-10 animate-pulse">
+                                                Memuat paket langganan...
                                             </div>
-                                            <div className="mt-4 pt-4 border-t border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] space-y-1">
-                                                <div>• Maks. 10 Kandidat</div>
-                                                <div>• Maks. 3 Paket Tes</div>
-                                                <div>• Fitur Proctoring AI Dasar</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Plan Starter */}
-                                        <div 
-                                            onClick={() => setSelectedPlan("Starter")}
-                                            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 relative overflow-hidden flex flex-col justify-between
-                                                ${selectedPlan === "Starter" 
-                                                    ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] shadow-md translate-y-[-2px]" 
-                                                    : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-strong)]"
-                                                }`}
-                                        >
-                                            <div className="space-y-2">
-                                                <h3 className="font-extrabold text-sm text-[var(--color-text-main)]">Starter</h3>
-                                                <div className="text-lg font-black text-[var(--color-text-main)]">Rp 290rb</div>
-                                                <p className="text-[10px] text-[var(--color-text-sub)] leading-tight">Ideal untuk rekrutmen periodik UMKM & institusi lokal.</p>
-                                            </div>
-                                            <div className="mt-4 pt-4 border-t border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] space-y-1">
-                                                <div>• Maks. 100 Kandidat</div>
-                                                <div>• Maks. 10 Paket Tes</div>
-                                                <div>• Realtime Webcam Monitoring</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Plan Business */}
-                                        <div 
-                                            onClick={() => setSelectedPlan("Business")}
-                                            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 relative overflow-hidden flex flex-col justify-between
-                                                ${selectedPlan === "Business" 
-                                                    ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] shadow-md translate-y-[-2px]" 
-                                                    : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-strong)]"
-                                                }`}
-                                        >
-                                            {/* Best Value badge */}
-                                            <div className="absolute top-0 right-0 bg-gradient-to-l from-[var(--color-primary)] to-[var(--color-accent)] text-white text-[8px] font-black uppercase px-2 py-1 rounded-bl-lg">
-                                                Populer
-                                            </div>
-                                            <div className="space-y-2">
-                                                <h3 className="font-extrabold text-sm text-[var(--color-text-main)]">Business</h3>
-                                                <div className="text-lg font-black text-[var(--color-text-main)]">Rp 750rb</div>
-                                                <p className="text-[10px] text-[var(--color-text-sub)] leading-tight">Untuk perusahaan dengan aktivitas rekrutmen intensif.</p>
-                                            </div>
-                                            <div className="mt-4 pt-4 border-t border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] space-y-1">
-                                                <div>• Maks. 1.000 Kandidat</div>
-                                                <div>• Maks. 50 Paket Tes</div>
-                                                <div>• Laporan Ekspor XLSX/PDF</div>
-                                            </div>
-                                        </div>
-
+                                        ) : (
+                                            dbPlans.map((plan) => (
+                                                <div 
+                                                    key={plan.id}
+                                                    onClick={() => setSelectedPlan(plan.name)}
+                                                    className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 relative overflow-hidden flex flex-col justify-between
+                                                        ${selectedPlan === plan.name 
+                                                            ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] shadow-md translate-y-[-2px]" 
+                                                            : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-strong)]"
+                                                        }`}
+                                                >
+                                                    {plan.isPopular && (
+                                                        <div className="absolute top-0 right-0 bg-gradient-to-l from-[var(--color-primary)] to-[var(--color-accent)] text-white text-[8px] font-black uppercase px-2 py-1 rounded-bl-lg">
+                                                            Populer
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        <h3 className="font-extrabold text-sm text-[var(--color-text-main)]">{plan.name}</h3>
+                                                        <div className="text-lg font-black text-[var(--color-text-main)]">{plan.priceText || formatCurrency(plan.price)}</div>
+                                                    </div>
+                                                    <div className="mt-4 pt-4 border-t border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] space-y-1">
+                                                        <div>• {plan.maxCandidates === -1 ? 'Kandidat Tidak Terbatas' : `Maks. ${plan.maxCandidates} Kandidat`}</div>
+                                                        <div>• {plan.maxTests === -1 ? 'Paket Tes Tidak Terbatas' : `Maks. ${plan.maxTests} Paket Tes`}</div>
+                                                        {plan.features.slice(0, 2).map((feat, idx) => (
+                                                            <div key={idx} className="truncate" title={feat}>• {feat}</div>
+                                                        ))}
+                                                        {plan.features.length > 2 && (
+                                                            <div className="text-[var(--color-primary)] font-semibold italic pt-1">
+                                                                + {plan.features.length - 2} fitur pro lainnya...
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -470,7 +480,7 @@ export default function RegisterPage() {
                                 {step > 1 ? (
                                     <button
                                         type="button"
-                                        onClick={() => setStep(step - 1)}
+                                        onClick={() => { setStep(step - 1); setError(""); }}
                                         className="px-6 py-3 bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] font-bold text-xs rounded-[var(--radius-sm)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-all btn-press"
                                     >
                                         Sebelumnya

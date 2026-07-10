@@ -1,4 +1,5 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect } from "react";
 import DataTable, { ColumnDef } from "../../components/DataTable";
@@ -74,7 +75,7 @@ export default function RolesClient() {
             accessorKey: "id",
             cell: (row) => (
                 <button
-                    onClick={() => alert(`Role ${row.name} adalah role bawaan sistem (enum) dan tidak dapat diubah dari antarmuka ini.`)}
+                    onClick={async () => await globalDialog.alert(`Role ${row.name} adalah role bawaan sistem (enum) dan tidak dapat diubah dari antarmuka ini.`)}
                     className="px-3 py-1.5 rounded-full text-xs font-bold bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-sub)] hover:text-primary hover:border-[var(--color-border-accent)] transition-all cursor-pointer"
                 >
                     Lihat Detail
@@ -118,7 +119,7 @@ export default function RolesClient() {
                 </div>
                 <div className="w-full sm:w-auto">
                     <button
-                    onClick={() => alert("Penambahan role kustom memerlukan modifikasi skema database (enum Role). Silakan hubungi developer untuk mengubah struktur tabel menjadi dinamis.")}
+                    onClick={async () => await globalDialog.alert("Penambahan role kustom memerlukan modifikasi skema database (enum Role). Silakan hubungi developer untuk mengubah struktur tabel menjadi dinamis.")}
                     className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[#0f766e] hover:bg-[#115e59] transition-all shadow-[0_4px_15px_rgba(15,118,110,0.3)] hover:shadow-[0_6px_20px_rgba(15,118,110,0.4)] hover:translate-y-[-2px] active:translate-y-0 w-full sm:w-auto btn-press cursor-pointer"
                     >
                     <span className="material-symbols-outlined text-[18px] font-bold">add</span>

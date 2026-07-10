@@ -34,8 +34,8 @@ async function main() {
     await prisma.candidate.create({
         data: {
             displayId: "PSK-001",
-            name: "Admin Psikoest",
-            email: "admin@psikoest.com",
+            name: "Admin Seleksia",
+            email: "admin@seleksia.com",
             password: adminPassword,
             role: "admin",
             accessType: "permanent",
@@ -48,7 +48,7 @@ async function main() {
         data: {
             displayId: "PSK-002",
             name: "Dr. Proctor Utama",
-            email: "proctor@psikoest.com",
+            email: "proctor@seleksia.com",
             password: proctorPassword,
             role: "proctor",
             accessType: "permanent",
@@ -339,8 +339,8 @@ async function main() {
     console.log("🎉 Seeding complete!");
     console.log("========================================\n");
     console.log("📌 Login credentials:");
-    console.log("   Admin:    admin@psikoest.com / admin123");
-    console.log("   Proctor:  proctor@psikoest.com / proctor123");
+    console.log("   Admin:    admin@seleksia.com / admin123");
+    console.log("   Proctor:  proctor@seleksia.com / proctor123");
     console.log("   Candidates (all): test123");
     console.log("     - andi@test.com (PSK-003)");
     console.log("     - budi@test.com (PSK-004)");

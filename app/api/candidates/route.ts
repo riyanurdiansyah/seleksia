@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { getTenantPrisma, getCompanyId } from "@/lib/tenant";
+import { checkSubscriptionAccess } from "@/lib/subscription";
 
 // GET all candidates
 export async function GET(req: NextRequest) {
@@ -47,6 +48,12 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         const companyId = await getCompanyId();
+
+        // Check subscription limits and access
+        const access = await checkSubscriptionAccess(companyId, 'create_candidate');
+        if (!access.allowed) {
+            return NextResponse.json({ error: access.message }, { status: 403 });
+        }
 
         // Generate display ID safely based on company's max ID
         const existingCandidates = await prisma.candidate.findMany({

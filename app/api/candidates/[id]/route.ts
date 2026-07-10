@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { getCompanyId } from "@/lib/tenant";
+import { checkSubscriptionAccess } from "@/lib/subscription";
 
 // DELETE candidate
 export async function DELETE(
@@ -9,6 +11,13 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
+
+        const companyId = await getCompanyId();
+        const access = await checkSubscriptionAccess(companyId, 'delete');
+        if (!access.allowed) {
+            return NextResponse.json({ error: access.message }, { status: 403 });
+        }
+
         await prisma.candidate.delete({ where: { id } });
         return NextResponse.json({ success: true });
     } catch (error) {
@@ -29,6 +38,13 @@ export async function PUT(
     try {
         const { id } = await params;
         const body = await req.json();
+
+        const companyId = await getCompanyId();
+        const access = await checkSubscriptionAccess(companyId, 'edit');
+        if (!access.allowed) {
+            return NextResponse.json({ error: access.message }, { status: 403 });
+        }
+
 
         const updateData: any = {
             name: body.name,

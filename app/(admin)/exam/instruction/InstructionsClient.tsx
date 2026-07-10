@@ -1,4 +1,5 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -84,7 +85,7 @@ export default function InstructionsClient() {
     }, []);
 
     useEffect(() => {
-        const role = sessionStorage.getItem("candidateRole") || "user";
+        const role = localStorage.getItem("candidateRole") || "user";
         setCurrentRole(role);
 
         if (role === "superadmin") {
@@ -165,7 +166,7 @@ export default function InstructionsClient() {
         }
 
         if (currentRole === "superadmin" && (!targetCompanyId || targetCompanyId === "")) {
-            alert("Silakan pilih perusahaan terlebih dahulu");
+            await globalDialog.alert("Silakan pilih perusahaan terlebih dahulu");
             return;
         }
 

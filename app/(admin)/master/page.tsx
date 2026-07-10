@@ -26,7 +26,7 @@ export default function MasterParentPage() {
 
     useEffect(() => {
         const fetchMenus = async () => {
-            const role = sessionStorage.getItem("candidateRole") || "admin";
+            const role = localStorage.getItem("candidateRole") || "admin";
             try {
                 const res = await fetch(`/api/menus/sidebar?role=${role}`);
                 if (res.ok) {

@@ -27,7 +27,7 @@ export default function AdminSidebar() {
 
     useEffect(() => {
         const fetchMenus = async () => {
-            const role = sessionStorage.getItem("candidateRole") || "admin";
+            const role = localStorage.getItem("candidateRole") || "admin";
             try {
                 const res = await fetch(`/api/menus/sidebar?role=${role}`);
                 if (res.ok) {
@@ -270,7 +270,7 @@ export default function AdminSidebar() {
                                 <span className="material-symbols-outlined text-[18px]">settings</span>
                             </Link>
                             <button
-                                onClick={() => { sessionStorage.clear(); window.location.href = "/login"; }}
+                                onClick={() => { localStorage.clear(); window.location.href = "/login"; }}
                                 className="size-9 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-muted)]
                                     hover:bg-[var(--color-danger-light)] hover:text-danger transition-all cursor-pointer"
                                 title="Logout"
@@ -289,7 +289,7 @@ export default function AdminSidebar() {
                                 <span className="text-[13px] font-medium">Settings</span>
                             </Link>
                             <button
-                                onClick={() => { sessionStorage.clear(); window.location.href = "/login"; }}
+                                onClick={() => { localStorage.clear(); window.location.href = "/login"; }}
                                 className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)]
                                     hover:bg-[var(--color-danger-light)] hover:text-danger hover:translate-x-1 transition-all cursor-pointer"
                             >

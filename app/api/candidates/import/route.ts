@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getCompanyId } from "@/lib/tenant";
+import { checkSubscriptionAccess } from "@/lib/subscription";
 
 
 export async function POST(req: NextRequest) {
@@ -17,6 +18,12 @@ export async function POST(req: NextRequest) {
         }
 
         const companyId = await getCompanyId();
+
+        // Check subscription limits based on import size
+        const access = await checkSubscriptionAccess(companyId, 'create_candidate', candidates.length);
+        if (!access.allowed) {
+            return NextResponse.json({ error: access.message }, { status: 403 });
+        }
 
         // 1. Get existing emails to check for duplicates
         const existingCandidates = await prisma.candidate.findMany({

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { getCompanyId } from "@/lib/tenant";
+import { checkSubscriptionAccess } from "@/lib/subscription";
 
 // GET single test with questions
 export async function GET(
@@ -29,6 +31,13 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
+
+        const companyId = await getCompanyId();
+        const access = await checkSubscriptionAccess(companyId, 'delete');
+        if (!access.allowed) {
+            return NextResponse.json({ error: access.message }, { status: 403 });
+        }
+
         await prisma.test.delete({ where: { id } });
         return NextResponse.json({ success: true });
     } catch (error) {
@@ -45,6 +54,12 @@ export async function PATCH(
     try {
         const { id } = await params;
         const body = await req.json();
+
+        const companyId = await getCompanyId();
+        const access = await checkSubscriptionAccess(companyId, 'edit');
+        if (!access.allowed) {
+            return NextResponse.json({ error: access.message }, { status: 403 });
+        }
 
         // Build update data dynamically
         const data: Record<string, unknown> = {};

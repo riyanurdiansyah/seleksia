@@ -11,11 +11,11 @@ export default function Header() {
 
   // Load session data on mount
   useEffect(() => {
-    // Read from sessionStorage if available (browser environment)
+    // Read from localStorage if available (browser environment)
     if (typeof window !== "undefined") {
-      const storedName = sessionStorage.getItem("candidateName");
-      const storedId = sessionStorage.getItem("candidateDisplayId");
-      const storedRole = sessionStorage.getItem("candidateRole");
+      const storedName = localStorage.getItem("candidateName");
+      const storedId = localStorage.getItem("candidateDisplayId");
+      const storedRole = localStorage.getItem("candidateRole");
 
       if (storedName) setUserName(storedName);
       if (storedId) setUserId(storedId);
@@ -31,7 +31,7 @@ export default function Header() {
   }, []);
 
   const handleLogout = () => {
-    sessionStorage.clear();
+    localStorage.clear();
     window.location.href = "/login";
   };
 

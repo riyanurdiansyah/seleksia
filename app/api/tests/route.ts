@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyId } from "@/lib/tenant";
+import { checkSubscriptionAccess } from "@/lib/subscription";
 
 // GET all tests with question count
 export async function GET(req: NextRequest) {
@@ -47,6 +48,11 @@ export async function POST(req: NextRequest) {
         let companyId = await getCompanyId();
         if (role === 'superadmin' && body.companyId) {
             companyId = body.companyId;
+        }
+
+        const access = await checkSubscriptionAccess(companyId, 'create_test');
+        if (!access.allowed) {
+            return NextResponse.json({ error: access.message }, { status: 403 });
         }
 
         // Generate display ID safely based on company's max ID

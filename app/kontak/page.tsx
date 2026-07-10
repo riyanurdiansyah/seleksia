@@ -3,7 +3,7 @@ import PublicPageWrapper from "../components/PublicPageWrapper";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Kontak | Psikoest",
+    title: "Kontak | Seleksia",
     description: "Informasi Kontak Kami",
 };
 

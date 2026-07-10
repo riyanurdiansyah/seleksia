@@ -1,4 +1,5 @@
 "use client";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 import { useState, useEffect } from "react";
 import Breadcrumb from "../../components/Breadcrumb";
@@ -146,7 +147,7 @@ export default function MenuManagementPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus menu ini beserta seluruh submenunya?")) return;
+        if (!await globalDialog.confirm("Apakah Anda yakin ingin menghapus menu ini beserta seluruh submenunya?")) return;
         setActionLoading(true);
         try {
             const res = await fetch(`/api/menus/${id}`, {

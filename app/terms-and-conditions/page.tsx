@@ -3,7 +3,7 @@ import PublicPageWrapper from "../components/PublicPageWrapper";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Syarat & Ketentuan | Psikoest",
+    title: "Syarat & Ketentuan | Seleksia",
     description: "Syarat dan Ketentuan Layanan",
 };
 

@@ -135,7 +135,7 @@ export default function AssignmentsClient() {
 
     /* Init: detect role, fetch companies if superadmin, then fetch data */
     useEffect(() => {
-        const role = sessionStorage.getItem("candidateRole") || "user";
+        const role = localStorage.getItem("candidateRole") || "user";
         setCurrentRole(role);
 
         if (role === "superadmin") {

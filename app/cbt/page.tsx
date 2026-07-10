@@ -160,14 +160,14 @@ export default function ExamPage() {
     useEffect(() => {
         const loadAssignment = async () => {
             try {
-                const candidateId = sessionStorage.getItem("candidateId");
+                const candidateId = localStorage.getItem("candidateId");
                 if (!candidateId) {
                     setLoadError("Session expired. Please login again.");
                     setLoadingData(false);
                     return;
                 }
 
-                const selectedAssignmentId = sessionStorage.getItem("selectedAssignmentId");
+                const selectedAssignmentId = localStorage.getItem("selectedAssignmentId");
                 const url = selectedAssignmentId
                     ? `/api/assignments/next?candidateId=${candidateId}&assignmentId=${selectedAssignmentId}`
                     : `/api/assignments/next?candidateId=${candidateId}`;
@@ -267,7 +267,7 @@ export default function ExamPage() {
                 startTimeRef.current = Date.now() - ((asgn.test.duration * 60) - calculatedTimeLeft) * 1000;
 
                 // Store assignment ID for finish page
-                sessionStorage.setItem("currentAssignmentId", asgn.id);
+                localStorage.setItem("currentAssignmentId", asgn.id);
 
                 // Mark assignment as in_progress
                 await fetch(`/api/assignments/${asgn.id}/start`, { method: "PATCH" });
