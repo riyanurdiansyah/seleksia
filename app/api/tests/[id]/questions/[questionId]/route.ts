@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { unlink } from "fs/promises";
+import path from "path";
 
 // DELETE a question
 export async function DELETE(
@@ -8,6 +10,41 @@ export async function DELETE(
 ) {
     try {
         const { questionId } = await params;
+
+        // Fetch question first to get the image URLs
+        const question = await prisma.question.findUnique({
+            where: { id: questionId },
+            select: { imageUrl: true, options: true }
+        });
+
+        if (question) {
+            // Helper function to safely delete file
+            const safelyDeleteFile = async (fileUrl: string) => {
+                if (fileUrl && fileUrl.startsWith('/uploads/questions/')) {
+                    try {
+                        const filePath = path.join(process.cwd(), 'public', fileUrl);
+                        await unlink(filePath);
+                    } catch (err) {
+                        // Ignore if file doesn't exist
+                    }
+                }
+            };
+
+            // Delete main question image
+            if (question.imageUrl) {
+                await safelyDeleteFile(question.imageUrl);
+            }
+
+            // Delete images in options (if any)
+            if (Array.isArray(question.options)) {
+                for (const option of question.options) {
+                    if (typeof option === 'string' && option.startsWith('/uploads/questions/')) {
+                        await safelyDeleteFile(option);
+                    }
+                }
+            }
+        }
+
         await prisma.question.delete({ where: { id: questionId } });
         return NextResponse.json({ success: true });
     } catch (error) {

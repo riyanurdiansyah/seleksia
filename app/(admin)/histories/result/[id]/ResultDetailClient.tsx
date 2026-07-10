@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useMemo } from "react";
 import Breadcrumb from "../../../components/Breadcrumb";
 import * as XLSX from "xlsx";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 interface Violation {
     id: string;
@@ -25,6 +26,9 @@ interface Answer {
     earnedWeight?: number;
     imageUrl: string | null;
     answeredAt: string | null;
+    answerId: string | null;
+    score: number | null;
+    aiFeedback: string | null;
 }
 
 interface DetailData {
@@ -38,6 +42,7 @@ interface DetailData {
         displayId: string;
         email: string;
         batch: string | null;
+        aiPersonalityInsight?: string | null;
     };
     test: {
         id: string;
@@ -69,8 +74,11 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: stri
     projective: { label: "Projective", icon: "draw", color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-950/20 border-teal-100 dark:border-teal-900/30" },
 };
 
-export default function ResultDetailClient({ data }: { data: DetailData }) {
+export default function ResultDetailClient({ data: initialData }: { data: DetailData }) {
+    const [data, setData] = useState<DetailData>(initialData);
     const [viewMode, setViewMode] = useState<"overview" | "answers" | "violations">("overview");
+    const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
+    const [gradingAnswerId, setGradingAnswerId] = useState<string | null>(null);
 
     const m = Math.floor(data.examSession.timeUsedSeconds / 60);
     const s = data.examSession.timeUsedSeconds % 60;
@@ -155,6 +163,70 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
         XLSX.writeFile(workbook, filename);
     };
 
+    const handleGenerateInsight = async () => {
+        setIsGeneratingInsight(true);
+        try {
+            const res = await fetch('/api/ai/personality-insight', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ candidateId: data.candidate.id })
+            });
+            
+            const result = await res.json();
+            
+            if (!res.ok) {
+                await globalDialog.alert("Gagal: " + (result.error || result.details || "Failed to generate insight"));
+                return;
+            }
+            
+            setData(prev => ({
+                ...prev,
+                candidate: {
+                    ...prev.candidate,
+                    aiPersonalityInsight: result.insight
+                }
+            }));
+        } catch (err: any) {
+            console.error("Fetch error:", err);
+            await globalDialog.alert("Terjadi kesalahan jaringan atau server saat meng-generate insight.");
+        } finally {
+            setIsGeneratingInsight(false);
+        }
+    };
+
+    const handleAutoGrade = async (answerId: string) => {
+        setGradingAnswerId(answerId);
+        try {
+            const res = await fetch('/api/ai/grade-essay', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answerId })
+            });
+            
+            const result = await res.json();
+            
+            if (!res.ok) {
+                await globalDialog.alert("Gagal: " + (result.error || result.details || "Failed to grade essay"));
+                return;
+            }
+            
+            // Update answers data
+            setData(prev => ({
+                ...prev,
+                answers: prev.answers.map(ans => 
+                    ans.answerId === answerId 
+                        ? { ...ans, score: result.evaluation.score, aiFeedback: result.evaluation.aiFeedback }
+                        : ans
+                )
+            }));
+        } catch (err: any) {
+            console.error("Fetch error:", err);
+            await globalDialog.alert("Terjadi kesalahan jaringan atau server saat koreksi otomatis.");
+        } finally {
+            setGradingAnswerId(null);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header Area */}
@@ -209,6 +281,28 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                                 <span className="material-symbols-outlined text-[16px] text-primary">analytics</span>
                                 <span className="font-semibold">Category: {category.label}</span>
                             </div>
+                        </div>
+
+                        {/* AI Personality Insight */}
+                        <div className="w-full mt-4 border-t border-[var(--color-border)] pt-4">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                                    AI Personality Insight
+                                </span>
+                                {!data.candidate.aiPersonalityInsight && (
+                                    <button onClick={handleGenerateInsight} disabled={isGeneratingInsight} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-[9px] font-bold uppercase transition hover:bg-purple-200 disabled:opacity-50">
+                                        {isGeneratingInsight ? "Generating..." : "Generate"}
+                                    </button>
+                                )}
+                            </div>
+                            {data.candidate.aiPersonalityInsight ? (
+                                <div className="text-left text-[11px] text-[var(--color-text-sub)] prose prose-sm dark:prose-invert max-h-40 overflow-y-auto custom-scrollbar pr-1 bg-[var(--color-bg-elevated)] p-2 rounded border border-[var(--color-border)] whitespace-pre-wrap">
+                                    {data.candidate.aiPersonalityInsight}
+                                </div>
+                            ) : (
+                                <p className="text-[10px] text-[var(--color-text-muted)] italic text-left">Belum ada insight. Klik generate untuk menganalisis jawaban teks kandidat.</p>
+                            )}
                         </div>
                     </div>
 
@@ -522,7 +616,28 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                                                     <div>
                                                         <span className="text-[9px] font-black text-[var(--color-text-muted)] uppercase block mb-1">User Selection</span>
                                                         {ans.candidateAnswer ? (
-                                                            ans.type === "multiple_choice_weighted" ? (
+                                                            ans.type === "essay" ? (
+                                                                <div className="space-y-2">
+                                                                    <div className="px-2.5 py-1.5 rounded flex flex-col font-sans bg-[var(--color-primary-light)] border border-[var(--color-primary)] text-[var(--color-text-main)] text-[11px] whitespace-pre-wrap">
+                                                                        {ans.candidateAnswer}
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center mt-2">
+                                                                        <span className="text-[9px] font-black text-purple-600 uppercase">AI Evaluation</span>
+                                                                        {ans.answerId && !ans.aiFeedback && (
+                                                                            <button onClick={() => handleAutoGrade(ans.answerId!)} disabled={gradingAnswerId === ans.answerId} className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-[9px] font-bold shadow-sm transition disabled:opacity-50 flex items-center gap-1">
+                                                                                <span className="material-symbols-outlined text-[12px]">{gradingAnswerId === ans.answerId ? "hourglass_empty" : "smart_toy"}</span>
+                                                                                Auto Grade
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    {ans.aiFeedback && (
+                                                                        <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-900/40 rounded flex flex-col">
+                                                                            <span className="text-purple-700 dark:text-purple-300 font-bold text-[10px] mb-1">Score: {ans.score}/100</span>
+                                                                            <span className="text-[10px] text-[var(--color-text-sub)]">{ans.aiFeedback}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : ans.type === "multiple_choice_weighted" ? (
                                                                 <div className="px-2.5 py-1.5 rounded flex items-center gap-1.5 font-bold font-sans bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)]">
                                                                     <span className="material-symbols-outlined text-[14px]">
                                                                         radio_button_checked
@@ -547,7 +662,7 @@ export default function ResultDetailClient({ data }: { data: DetailData }) {
                                                         )}
                                                     </div>
 
-                                                    {ans.type !== "multiple_choice_weighted" && (
+                                                    {ans.type !== "multiple_choice_weighted" && ans.type !== "essay" && (
                                                         <div className="border-t border-[var(--color-border)] pt-2.5 mt-1">
                                                             <span className="text-[9px] font-black text-[var(--color-text-muted)] uppercase block mb-1">Correct Key Solution</span>
                                                             <div className="px-2.5 py-1.5 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-main)] font-extrabold">

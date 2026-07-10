@@ -91,11 +91,12 @@ model Candidate {
   password    String
   accessType  AccessType      @default(range)
   accessStart DateTime?
-  accessEnd   DateTime?
-  status      CandidateStatus @default(registered)
-  score       Int?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  accessEnd            DateTime?
+  status               CandidateStatus @default(registered)
+  score                Int?
+  aiPersonalityInsight String?         @db.Text
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   assignments TestAssignment[]
@@ -163,6 +164,7 @@ model Question {
   options       String[] // array of option strings
   optionWeights Json?    // map of option index/string to weight
   correctAnswer String?
+  aiRubric      String?      @db.Text
   imageUrl      String?
   timeLimit     Int? // seconds
   sortOrder     Int          @default(0)
@@ -232,6 +234,8 @@ model ExamAnswer {
   assignment   TestAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   questionId   String
   answer       String // the selected option key (A, B, C, D, etc.)
+  score        Float? // score for essay or custom question
+  aiFeedback   String?        @db.Text
   answeredAt   DateTime       @default(now())
 
   @@unique([assignmentId, questionId])

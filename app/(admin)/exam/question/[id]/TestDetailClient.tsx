@@ -80,6 +80,14 @@ export default function TestDetailClient({ testId }: { testId: string }) {
     const [showAddQuestion, setShowAddQuestion] = useState(false);
     const [showImport, setShowImport] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [showAIGenerate, setShowAIGenerate] = useState(false);
+    const [isAIGenerating, setIsAIGenerating] = useState(false);
+    const [aiGenParams, setAiGenParams] = useState({
+        topic: "",
+        type: "multiple_choice" as QuestionType,
+        count: 5,
+        difficulty: "Medium"
+    });
     const [newQuestion, setNewQuestion] = useState({
         text: "",
         type: "multiple_choice" as QuestionType,
@@ -411,6 +419,36 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         }
     };
 
+    /* Handle AI Generate */
+    const handleAIGenerate = async () => {
+        if (!test || !aiGenParams.topic) return;
+        setIsAIGenerating(true);
+        try {
+            const res = await fetch('/api/ai/generate-questions', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    testId: test.id,
+                    topic: aiGenParams.topic,
+                    type: aiGenParams.type,
+                    count: aiGenParams.count,
+                    difficulty: aiGenParams.difficulty
+                })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                await globalDialog.alert("Terjadi kesalahan: " + (err.error || err.details || "Gagal generate soal dengan AI"));
+                return;
+            }
+            window.location.reload();
+        } catch (err: any) {
+            console.error("Fetch error:", err);
+            await globalDialog.alert("Terjadi kesalahan jaringan atau server saat generate soal dengan AI.");
+        } finally {
+            setIsAIGenerating(false);
+        }
+    };
+
     /* Delete question */
     const handleDeleteQuestion = async (questionId: string) => {
         if (!test) return;
@@ -544,19 +582,30 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             {/* ===== QUESTIONS TAB ===== */}
             {activeTab === "questions" && (
                 <>
-                    {/* Add Question Bar */}
-                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)]">
-                        <button onClick={() => setShowAddQuestion(!showAddQuestion)} className="w-full flex items-center justify-between p-4 text-left">
-                            <span className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-sub)]">
-                                <span className="material-symbols-outlined text-primary text-[20px]">add_circle</span>
-                                Add New Question
-                            </span>
-                            <span className={`material-symbols-outlined text-[var(--color-text-muted)] transition-transform ${showAddQuestion ? "rotate-180" : ""}`}>expand_more</span>
-                        </button>
+                    {/* Action Area */}
+                    <div className="mb-8 space-y-4">
+                        <div className="flex justify-start">
+                            <div className="inline-flex items-center p-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-sm">
+                                <button onClick={() => { setShowAddQuestion(!showAddQuestion); setShowImport(false); setShowAIGenerate(false); }} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-all duration-200 ${showAddQuestion ? 'bg-primary text-white shadow-sm' : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                                    <span className="material-symbols-outlined text-[18px]">edit_square</span>
+                                    Manual Input
+                                </button>
+                                <button onClick={() => { setShowImport(!showImport); setShowAddQuestion(false); setShowAIGenerate(false); }} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-all duration-200 ${showImport ? 'bg-[var(--color-success)] text-white shadow-sm' : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                                    <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                                    Import Excel
+                                </button>
+                                <button onClick={() => { setShowAIGenerate(!showAIGenerate); setShowAddQuestion(false); setShowImport(false); }} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-all duration-200 ${showAIGenerate ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-sm' : 'text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                                    <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                                    AI Generate
+                                </button>
+                            </div>
+                        </div>
 
-                        {showAddQuestion && (
-                            <div className="px-4 pb-4 space-y-4 border-t border-[var(--color-border)] pt-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(showAddQuestion || showImport || showAIGenerate) && (
+                            <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-xl transition-all duration-500 ease-out animate-slide-in-up">
+                            {showAddQuestion && (
+                                <div className="p-6 space-y-5 animate-fade-in">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Type</label>
                                         <Select2
@@ -689,23 +738,12 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                         <span className="material-symbols-outlined text-[16px]">add</span>Add Question
                                     </button>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                            )}
 
-                    {/* Import Questions Bar */}
-                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] mb-6">
-                        <button onClick={() => setShowImport(!showImport)} className="w-full flex items-center justify-between p-4 text-left">
-                            <span className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-sub)]">
-                                <span className="material-symbols-outlined text-[var(--color-success)] text-[20px]">upload_file</span>
-                                Import Questions (Excel)
-                            </span>
-                            <span className={`material-symbols-outlined text-[var(--color-text-muted)] transition-transform ${showImport ? "rotate-180" : ""}`}>expand_more</span>
-                        </button>
-                        
-                        {showImport && (
-                            <div className="px-4 pb-4 space-y-4 border-t border-[var(--color-border)] pt-4">
-                                <div className="p-4 bg-[var(--color-primary-light)] border border-[var(--color-primary)] rounded-[var(--radius-md)] text-sm text-[var(--color-text-sub)] flex flex-col gap-3">
+                            {showImport && (
+                                <div className="p-6 space-y-5 animate-fade-in">
+                                    <div className="p-5 bg-[var(--color-success-light)] border border-[var(--color-success)]/20 rounded-[var(--radius-md)] text-sm text-[var(--color-text-sub)] flex flex-col gap-4">
                                     <p>Anda dapat mengimpor banyak soal sekaligus dengan mengunggah file Excel. Unduh template terlebih dahulu untuk melihat format yang sesuai.</p>
                                     <div className="flex gap-3 mt-2">
                                         <button onClick={downloadTemplate} className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary border border-primary rounded-[var(--radius-sm)] hover:bg-gray-50 transition-colors font-medium text-xs">
@@ -719,6 +757,57 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                         </label>
                                     </div>
                                 </div>
+                                </div>
+                            )}
+
+                            {showAIGenerate && (
+                                <div className="p-6 space-y-5 animate-fade-in">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                    <div className="col-span-1 md:col-span-3">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Topik / Materi</label>
+                                        <textarea value={aiGenParams.topic} onChange={(e) => setAiGenParams(p => ({ ...p, topic: e.target.value }))} rows={3} className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300 resize-none" placeholder="Masukkan teks, topik, atau materi yang ingin dijadikan soal..."></textarea>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Tipe Soal</label>
+                                        <Select2
+                                            value={aiGenParams.type}
+                                            onChange={(val) => setAiGenParams(p => ({ ...p, type: val as QuestionType }))}
+                                            options={[
+                                                { value: "multiple_choice", label: "Multiple Choice" },
+                                                { value: "multiple_choice_weighted", label: "Weighted Choice" },
+                                                { value: "essay", label: "Essay" },
+                                                { value: "true_false", label: "True / False" },
+                                                { value: "number_series", label: "Number Series" }
+                                            ]}
+                                            className="w-full text-left"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Tingkat Kesulitan</label>
+                                        <Select2
+                                            value={aiGenParams.difficulty}
+                                            onChange={(val) => setAiGenParams(p => ({ ...p, difficulty: val as string }))}
+                                            options={[
+                                                { value: "Easy", label: "Mudah" },
+                                                { value: "Medium", label: "Sedang" },
+                                                { value: "Hard", label: "Sulit" }
+                                            ]}
+                                            className="w-full text-left"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Jumlah Soal</label>
+                                        <input type="number" min="1" max="20" value={aiGenParams.count} onChange={(e) => setAiGenParams(p => ({ ...p, count: parseInt(e.target.value) || 5 }))} className="w-full h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm focus:border-primary" />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end">
+                                    <button onClick={handleAIGenerate} disabled={isAIGenerating || !aiGenParams.topic} className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold text-sm transition-all shadow-[0_4px_15px_rgba(168,85,247,0.4)] hover:shadow-[0_6px_25px_rgba(168,85,247,0.6)] hover:translate-y-[-1px] btn-press disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <span className="material-symbols-outlined text-[16px]">{isAIGenerating ? "auto_awesome" : "smart_toy"}</span>
+                                        {isAIGenerating ? "Generating..." : "Generate dengan AI"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                             </div>
                         )}
                     </div>

@@ -73,6 +73,9 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             options: q.options,
             correctAnswer: q.correctAnswer,
             candidateAnswer: candidateAnswer?.answer || null,
+            answerId: candidateAnswer?.id || null,
+            score: candidateAnswer?.score || null,
+            aiFeedback: candidateAnswer?.aiFeedback || null,
             isCorrect: !!isCorrect,
             earnedWeight,
             imageUrl: q.imageUrl,
@@ -94,7 +97,8 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             name: assignment.candidate.name,
             displayId: assignment.candidate.displayId,
             email: assignment.candidate.email,
-            batch: assignment.candidate.batch
+            batch: assignment.candidate.batch,
+            aiPersonalityInsight: assignment.candidate.aiPersonalityInsight
         },
         test: {
             id: assignment.test.id,
