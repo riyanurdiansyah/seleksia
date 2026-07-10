@@ -1,263 +1,216 @@
-"use client";
+import React from 'react';
+import Link from 'next/link';
+import { Metadata } from 'next';
 
-import { useState, useEffect } from "react";
+export const metadata: Metadata = {
+  title: 'Psikoest - Platform Asesmen Psikologi #1',
+  description: 'Satu platform terpadu untuk evaluasi psikotes, ujian online CBT, dan pengawasan otomatis anti-kecurangan.',
+};
 
-export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const candidateId = sessionStorage.getItem("candidateId");
-    const role = sessionStorage.getItem("candidateRole");
-
-    if (candidateId) {
-      if (role === "user") {
-        window.location.href = "/system-check";
-      } else {
-        window.location.href = "/dashboard";
-      }
-    }
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Login failed. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      // Store candidate info in sessionStorage for exam flow only if no reset required
-      if (data.candidate && !data.requirePasswordReset) {
-        sessionStorage.setItem("candidateId", data.candidate.id);
-        sessionStorage.setItem("candidateName", data.candidate.name);
-        sessionStorage.setItem("candidateDisplayId", data.candidate.displayId);
-        sessionStorage.setItem("candidateRole", data.candidate.role);
-      }
-
-      // Redirect based on role
-      setTimeout(() => {
-        window.location.href = data.redirectTo || "/system-check";
-      }, 800);
-    } catch {
-      setError("Network error. Please check your connection.");
-      setLoading(false);
-    }
-  };
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen flex font-sans bg-[var(--color-bg-base)] transition-colors duration-300">
-      {/* Left Panel — Illustration / Branding (BarengWarga Split Panel Style) */}
-      <div className="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-[#1A3C40] via-[#0c5c64] to-[#059669] relative overflow-hidden flex-col justify-between p-16">
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-        
-        {/* Premium blur circles */}
-        <div className="absolute -top-32 -left-32 w-[550px] h-[550px] bg-white opacity-10 rounded-full blur-[100px] mix-blend-screen pointer-events-none" />
-        <div className="absolute bottom-0 -right-32 w-[450px] h-[450px] bg-[var(--color-accent)] opacity-10 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
-        <div className="absolute top-1/3 left-1/4 w-[280px] h-[280px] bg-[var(--color-primary)] opacity-10 rounded-full blur-[80px] pointer-events-none" />
+    <div className="min-h-screen font-sans bg-gray-50 flex flex-col selection:bg-primary selection:text-white overflow-x-hidden">
+      {/* Navbar */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/full-logo.png" alt="Psikoest Logo" className="h-8 object-contain" />
+          </Link>
+          
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+            <Link href="#fitur" className="hover:text-primary transition-colors">Fitur</Link>
+            <Link href="/faq" className="hover:text-primary transition-colors">FAQ</Link>
+            <Link href="/kontak" className="hover:text-primary transition-colors">Kontak</Link>
+          </nav>
 
-        {/* Header Branding */}
-        <div className="relative z-10 flex items-center">
-          <img src="/full-logo.png" alt="SELEKSIA Logo" className="h-16 w-[220px] object-contain brightness-0 invert" style={{ filter: "brightness(0) invert(1)" }} />
-        </div>
-
-        {/* Hero Content Block */}
-        <div className="relative z-10 max-w-xl my-auto space-y-8">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white/90 px-4 py-2 rounded-full text-xs font-bold border border-white/20 backdrop-blur-sm">
-            <span className="material-symbols-outlined text-xs text-[var(--color-primary)]">star</span>
-            <span>Platform Asesmen Psikologi #1</span>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-primary transition-colors px-4 py-2">
+              Masuk
+            </Link>
+            <Link href="/register" className="text-sm font-semibold bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 rounded-full shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all">
+              Mulai Gratis
+            </Link>
           </div>
+        </div>
+      </header>
 
-          <h2 className="text-5xl font-extrabold leading-[1.15] text-white tracking-tight">
-            Satu Platform,<br />
-            <span className="bg-gradient-to-r from-primary-mid to-white bg-clip-text text-transparent">Seluruh Evaluasi</span><br />
-            Terhubung.
-          </h2>
+      <main className="flex-1 pt-16">
+        {/* Hero Section (BarengWarga Inspired Split Gradient/Glassmorphism) */}
+        <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#1A3C40] via-[#0c5c64] to-[#059669] py-24 md:py-32 lg:py-40">
+          {/* Subtle Grid */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+          
+          {/* Blur Orbs */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-10 rounded-full blur-[120px] mix-blend-screen pointer-events-none -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#007B83] opacity-20 rounded-full blur-[140px] pointer-events-none translate-y-1/3 -translate-x-1/4" />
 
-          <p className="text-white/80 text-base leading-relaxed max-w-lg">
-            Kelola administrasi kandidat, pelaksanaan ujian online berbasis CBT, pengawasan webcam anti-kecurangan, hingga penerbitan laporan otomatis secara cerdas dan aman.
-          </p>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-3 pt-4">
-            {[
-              { label: "Peserta Aktif", value: "10.000+", icon: "groups" },
-              { label: "Paket Tes", value: "50+", icon: "assignment" },
-              { label: "Keamanan", value: "99.9%", icon: "verified_user" },
-              { label: "Monitoring", value: "Real-time", icon: "visibility" }
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex flex-col items-center gap-1.5 hover:translate-y-[-4px] transition-transform duration-300 hover:border-[var(--color-primary)]/50 hover:bg-white/10"
-              >
-                <div className="size-8 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                  <span className="material-symbols-outlined text-lg">
-                    {stat.icon}
-                  </span>
-                </div>
-                <div className="text-sm font-extrabold text-white tracking-tight">{stat.value}</div>
-                <div className="text-[9px] uppercase tracking-wider text-white/60 font-semibold text-center leading-tight">{stat.label}</div>
+          <div className="relative z-10 max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8 max-w-2xl text-center lg:text-left mx-auto lg:mx-0">
+              <div className="inline-flex items-center gap-2 bg-white/10 text-white/90 px-4 py-2 rounded-full text-xs font-bold border border-white/20 backdrop-blur-md">
+                <span className="material-symbols-outlined text-sm text-green-300">verified</span>
+                <span>Platform Asesmen #1 di Indonesia</span>
               </div>
-            ))}
-          </div>
-
-         
-        </div>
-
-        {/* Footer info inside branding */}
-        <div className="relative z-10 text-xs text-white/50">
-          © {new Date().getFullYear()} SELEKSIA. All rights reserved.
-        </div>
-      </div>
-
-      {/* Right Panel — Login Form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-[var(--color-bg-base)] transition-colors duration-300">
-        <div className="w-full max-w-md space-y-8 animate-slide-in-up">
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center justify-center mb-6">
-            <img src="/full-logo.png" alt="SELEKSIA Logo" className="h-16 w-[220px] object-contain dark:brightness-0 dark:invert" />
-          </div>
-
-          <div className="bg-[var(--color-bg-card)] p-8 rounded-3xl border border-[var(--color-border)] shadow-[var(--shadow-card)] space-y-6 relative overflow-hidden">
-            {/* Shimmer top-line */}
-            <div className="card-shimmer" />
-            <div className="text-center lg:text-left space-y-1.5">
-              <h1 className="text-2xl font-extrabold text-[var(--color-text-main)] tracking-tight">
-                Selamat Datang Kembali
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight">
+                Satu Platform,<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-200 to-white">
+                  Seluruh Evaluasi
+                </span> Terhubung.
               </h1>
-              <p className="text-[var(--color-text-sub)] text-sm">
-                Masukkan kredensial Anda untuk mengakses portal ujian.
+              
+              <p className="text-lg md:text-xl text-white/80 leading-relaxed font-light">
+                Kelola administrasi kandidat, ujian CBT *real-time*, pengawasan cerdas berbasis webcam, dan penerbitan laporan instan dalam satu atap yang aman dan mudah.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                <Link href="/register" className="w-full sm:w-auto bg-white text-primary font-bold px-8 py-4 rounded-full shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] hover:-translate-y-1 transition-all text-center">
+                  Coba Gratis Sekarang
+                </Link>
+                <Link href="/kontak" className="w-full sm:w-auto bg-white/10 text-white font-semibold px-8 py-4 rounded-full border border-white/20 hover:bg-white/20 transition-all backdrop-blur-sm text-center">
+                  Hubungi Sales
+                </Link>
+              </div>
+            </div>
+
+            {/* Dashboard Mockup / Glass Card */}
+            <div className="hidden lg:block relative">
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-white/20 rounded-2xl transform rotate-3 scale-105 backdrop-blur-3xl border border-white/10 shadow-2xl"></div>
+              <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white">
+                 <div className="flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                 </div>
+                 <div className="space-y-4">
+                    <div className="h-8 bg-white/20 rounded w-1/3"></div>
+                    <div className="h-32 bg-white/10 rounded w-full border border-white/5"></div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="h-24 bg-white/10 rounded border border-white/5"></div>
+                        <div className="h-24 bg-white/10 rounded border border-white/5"></div>
+                        <div className="h-24 bg-white/10 rounded border border-white/5"></div>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="bg-white py-12 border-b border-gray-100">
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-gray-100">
+                    <div className="space-y-2">
+                        <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900">10k+</h3>
+                        <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Kandidat Aktif</p>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900">500+</h3>
+                        <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Perusahaan</p>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900">99.9%</h3>
+                        <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Uptime Server</p>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900">24/7</h3>
+                        <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Support Tim</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="fitur" className="py-24 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <h2 className="text-primary font-semibold tracking-wide uppercase text-sm mb-3">Keunggulan Kami</h2>
+              <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Mengapa Memilih Psikoest?</h3>
+              <p className="text-lg text-gray-600">
+                Kami merancang sistem yang berfokus pada kecepatan, keamanan, dan pengalaman pengguna yang luar biasa, baik untuk admin maupun kandidat.
               </p>
             </div>
 
-            {/* Error message */}
-            {error && (
-              <div className="flex items-start gap-3 p-4 bg-[var(--color-danger-light)] border border-[var(--color-danger)]/30 rounded-[var(--radius-sm)] animate-slide-in-up shadow-[var(--shadow-sm)]">
-                <span className="material-symbols-outlined text-[var(--color-danger)] text-xl flex-shrink-0 mt-0.5">error</span>
-                <p className="text-sm text-[var(--color-danger)] font-medium">{error}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleLogin} className="space-y-5">
-              {/* Username */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
-                  Email atau ID Peserta
-                </label>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-xl z-10 transition-colors duration-200 group-focus-within:text-[var(--color-primary)]">
-                    person
-                  </span>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => { setUsername(e.target.value); setError(""); }}
-                    placeholder="Masukkan email atau nomor ID"
-                    className="w-full pl-11 pr-4 py-3 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-[var(--radius-sm)] text-[var(--color-text-main)] text-sm placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] focus:shadow-[0_8px_30px_rgba(0,0,0,0.15)] focus:translate-y-[-1px] transition-all duration-300"
-                    required
-                  />
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Feature 1 */}
+              <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-xl transition-shadow duration-300 group">
+                <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-3xl">computer</span>
                 </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">Ujian CBT Real-Time</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Sistem Computer Based Test yang stabil dengan auto-save jawaban dan proteksi koneksi terputus.
+                </p>
               </div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
-                    Kata Sandi
-                  </label>
+              {/* Feature 2 */}
+              <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-xl transition-shadow duration-300 group">
+                <div className="w-14 h-14 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-3xl">policy</span>
                 </div>
-                <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-xl z-10 transition-colors duration-200 group-focus-within:text-[var(--color-primary)]">
-                    lock
-                  </span>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                    placeholder="Masukkan kata sandi"
-                    className="w-full pl-11 pr-12 py-3 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-[var(--radius-sm)] text-[var(--color-text-main)] text-sm placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-light)] focus:bg-[var(--color-bg-card)] focus:shadow-[0_8px_30px_rgba(0,0,0,0.15)] focus:translate-y-[-1px] transition-all duration-300"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-xl">
-                      {showPassword ? "visibility_off" : "visibility"}
-                    </span>
-                  </button>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">Anti Kecurangan</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Pemantauan via webcam berkala secara otomatis, log perpindahan tab, dan fitur fullscreen wajib.
+                </p>
+              </div>
+
+              {/* Feature 3 */}
+              <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-xl transition-shadow duration-300 group">
+                <div className="w-14 h-14 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-3xl">analytics</span>
                 </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-3">Laporan Otomatis</h4>
+                <p className="text-gray-600 leading-relaxed">
+                  Kalkulasi skor langsung saat ujian selesai, mendukung berbagai tipe soal psikologi termasuk skala Likert.
+                </p>
               </div>
-
-              {/* Login Button */}
-              <button
-                type="submit"
-                disabled={loading || !username || !password}
-                className="group w-full py-3.5 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white font-bold text-sm rounded-[var(--radius-sm)] shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] active:translate-y-0 transition-all duration-200 btn-shine btn-press relative overflow-hidden flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-2"
-              >
-                {/* Shine sweep */}
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700 skew-x-[-15deg] pointer-events-none" />
-                {loading ? (
-                  <>
-                    <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Memproses...
-                  </>
-                ) : (
-                  <>
-                    Masuk
-                    <span className="material-symbols-outlined text-sm">
-                      arrow_forward
-                    </span>
-                  </>
-                )}
-              </button>
-
-              <div className="text-center text-xs text-[var(--color-text-sub)] mt-4">
-                Belum punya akun?{" "}
-                <a href="/register" className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-bold transition-all">
-                  Daftar & Berlangganan
-                </a>
-              </div>
- 
-               {/* Security footer */}
-               <div className="flex items-center justify-center gap-2 text-[10px] text-[var(--color-text-muted)] mt-4">
-                 <span className="material-symbols-outlined text-xs">lock</span>
-                 <span>SSL 256-bit Encrypted</span>
-               </div>
-             </form>
-
-            {/* Footer links inside form card */}
-            <div className="flex flex-wrap justify-between items-center text-xs text-[var(--color-text-muted)] gap-2 pt-4 border-t border-[var(--color-border)]">
-              <div className="flex gap-4">
-                <a href="/terms" className="hover:text-[var(--color-primary)] transition-colors font-medium">
-                  Terms and Condition
-                </a>
-              </div>
-              <a href="mailto:support@seleksia.com" className="hover:text-[var(--color-primary)] transition-colors font-medium flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">mail</span>
-                Contact Us
-              </a>
             </div>
           </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-24 bg-white relative overflow-hidden">
+            <div className="absolute inset-0 bg-primary/5"></div>
+            <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Siap untuk digitalisasi rekrutmen Anda?</h2>
+                <p className="text-lg text-gray-600 mb-10">Tinggalkan metode tes manual dan beralihlah ke platform modern yang efisien dan tepercaya.</p>
+                <div className="flex justify-center gap-4">
+                    <Link href="/register" className="bg-primary text-white font-bold px-8 py-4 rounded-full hover:bg-[var(--color-primary-hover)] shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
+                        Daftar Sekarang
+                    </Link>
+                </div>
+            </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
+                <img src="/full-logo.png" alt="Psikoest" className="h-8 mb-6 brightness-0 invert" style={{ filter: 'brightness(0) invert(1)' }} />
+                <p className="text-sm max-w-md leading-relaxed">
+                    Platform SaaS terdepan untuk Computer Based Test (CBT) dan asesmen psikologi, memberdayakan perusahaan dan institusi di seluruh Indonesia.
+                </p>
+            </div>
+            <div>
+                <h4 className="text-white font-semibold mb-4">Perusahaan</h4>
+                <ul className="space-y-3 text-sm">
+                    <li><Link href="/faq" className="hover:text-white transition-colors">Tentang Kami</Link></li>
+                    <li><Link href="/kontak" className="hover:text-white transition-colors">Kontak</Link></li>
+                </ul>
+            </div>
+            <div>
+                <h4 className="text-white font-semibold mb-4">Legal</h4>
+                <ul className="space-y-3 text-sm">
+                    <li><Link href="/terms-and-conditions" className="hover:text-white transition-colors">Syarat & Ketentuan</Link></li>
+                    <li><Link href="/refund-policy" className="hover:text-white transition-colors">Kebijakan Refund</Link></li>
+                    <li><Link href="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
+                </ul>
+            </div>
         </div>
-      </div>
+        <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-gray-800 text-sm text-center md:text-left flex flex-col md:flex-row justify-between items-center">
+            <p>&copy; {new Date().getFullYear()} Psikoest by PT Contoh Solusi Digital. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
         if (!candidateId) {
             // No session — redirect to login
-            window.location.href = "/";
+            window.location.href = "/login";
             return;
         }
 
@@ -65,7 +65,7 @@ export default function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
                             <button
                                 onClick={() => {
                                     sessionStorage.clear();
-                                    window.location.href = "/";
+                                    window.location.href = "/login";
                                 }}
                                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] active:translate-y-0 transition-all cursor-pointer btn-press btn-shine"
                             >

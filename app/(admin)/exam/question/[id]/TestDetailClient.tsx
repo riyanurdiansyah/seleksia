@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ConfirmDialog from "../../../components/ConfirmDialog";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Select2 from "../../../components/Select2";
+import * as XLSX from "xlsx";
 
 /* ===== Types ===== */
 type QuestionType = "multiple_choice" | "multiple_choice_weighted" | "true_false" | "likert_scale" | "forced_choice" | "number_series" | "image_pattern" | "essay";
@@ -76,6 +77,8 @@ export default function TestDetailClient({ testId }: { testId: string }) {
 
     // Add question
     const [showAddQuestion, setShowAddQuestion] = useState(false);
+    const [showImport, setShowImport] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
     const [newQuestion, setNewQuestion] = useState({
         text: "",
         type: "multiple_choice" as QuestionType,
@@ -234,6 +237,176 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         } catch (err) {
             console.error(err);
             alert(err instanceof Error ? err.message : String(err));
+        }
+    };
+
+    /* Download Import Template */
+    const downloadTemplate = () => {
+        const wb = XLSX.utils.book_new();
+        
+        // Define columns based on Question structure
+        const headers = [
+            "Teks Soal", 
+            "Tipe Soal (multiple_choice / multiple_choice_weighted / true_false)", 
+            "Opsi A", 
+            "Opsi B", 
+            "Opsi C", 
+            "Opsi D", 
+            "Opsi E", 
+            "Jawaban Benar (A/B/C/D/E atau True/False)", 
+            "Batas Waktu (detik)",
+            "Bobot A",
+            "Bobot B",
+            "Bobot C",
+            "Bobot D",
+            "Bobot E"
+        ];
+        
+        // Example rows for 3 types
+        const exampleRows = [
+            [
+                "Siapakah presiden pertama Indonesia?",
+                "multiple_choice",
+                "Soekarno",
+                "Soeharto",
+                "Habibie",
+                "Gus Dur",
+                "Megawati",
+                "A",
+                "60",
+                "", "", "", "", ""
+            ],
+            [
+                "Pilihlah pernyataan yang paling mendeskripsikan diri Anda.",
+                "multiple_choice_weighted",
+                "Suka bergaul",
+                "Suka menyendiri",
+                "Suka memimpin",
+                "Suka menganalisis",
+                "Suka melayani",
+                "",
+                "60",
+                "5", "2", "4", "3", "4"
+            ],
+            [
+                "Ibukota negara Indonesia saat ini adalah Jakarta.",
+                "true_false",
+                "True",
+                "False",
+                "", "", "",
+                "True",
+                "30",
+                "", "", "", "", ""
+            ]
+        ];
+        
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleRows]);
+        
+        // Set column widths
+        const wscols = [
+            {wch: 40}, {wch: 35}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 25}, {wch: 20},
+            {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}
+        ];
+        ws['!cols'] = wscols;
+        
+        XLSX.utils.book_append_sheet(wb, ws, "Template Soal");
+        XLSX.writeFile(wb, "Template_Import_Soal.xlsx");
+    };
+
+    /* Handle Import Excel */
+    const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!test) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsImporting(true);
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            // Skip header row
+            if (jsonData.length <= 1) {
+                alert("File kosong atau tidak memiliki data soal.");
+                setIsImporting(false);
+                return;
+            }
+
+            const questions = [];
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0 || !row[0]) continue; // Skip empty rows
+
+                const type = (row[1] || "multiple_choice").toString().trim();
+                
+                // Construct options array (columns 2 to 6 are A to E)
+                const options = [];
+                for (let j = 2; j <= 6; j++) {
+                    if (row[j] !== undefined && row[j] !== null && row[j] !== "") {
+                        options.push(row[j].toString());
+                    }
+                }
+
+                if (type === "true_false" && options.length === 0) {
+                    options.push("True", "False");
+                }
+
+                // Extract weights for weighted choice (columns 9 to 13 are Bobot A to E)
+                let optionWeights: Record<string, number> | null = null;
+                if (type === "multiple_choice_weighted") {
+                    optionWeights = {};
+                    const letters = ['A', 'B', 'C', 'D', 'E'];
+                    for (let j = 9; j <= 13; j++) {
+                        const w = parseInt(row[j]);
+                        if (!isNaN(w)) {
+                            optionWeights[letters[j - 9]] = w;
+                        }
+                    }
+                }
+
+                let correctAns = row[7] ? row[7].toString().trim() : null;
+                if (correctAns && correctAns.length === 1) {
+                    correctAns = correctAns.toUpperCase();
+                } else if (correctAns) {
+                    correctAns = correctAns.charAt(0).toUpperCase() + correctAns.slice(1).toLowerCase();
+                }
+
+                questions.push({
+                    text: row[0].toString(),
+                    type: type as QuestionType,
+                    options: options.length > 0 ? options : [],
+                    optionWeights: optionWeights,
+                    correctAnswer: correctAns,
+                    timeLimit: row[8] ? parseInt(row[8].toString()) : 0,
+                });
+            }
+
+            if (questions.length === 0) {
+                alert("Tidak ada soal valid yang ditemukan di file.");
+                setIsImporting(false);
+                return;
+            }
+
+            const res = await fetch(`/api/tests/${test.id}/questions/bulk`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ questions }),
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Gagal mengimpor soal");
+            }
+
+            // Refetch test data or reload
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            alert("Terjadi kesalahan saat mengimpor soal: " + (err instanceof Error ? err.message : String(err)));
+        } finally {
+            setIsImporting(false);
+            e.target.value = ''; // Reset input
         }
     };
 
@@ -514,6 +687,36 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                     <button onClick={handleAddQuestion} disabled={!newQuestion.text && !newQuestion.imageUrl} className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined text-[16px]">add</span>Add Question
                                     </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Import Questions Bar */}
+                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] mb-6">
+                        <button onClick={() => setShowImport(!showImport)} className="w-full flex items-center justify-between p-4 text-left">
+                            <span className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-sub)]">
+                                <span className="material-symbols-outlined text-[var(--color-success)] text-[20px]">upload_file</span>
+                                Import Questions (Excel)
+                            </span>
+                            <span className={`material-symbols-outlined text-[var(--color-text-muted)] transition-transform ${showImport ? "rotate-180" : ""}`}>expand_more</span>
+                        </button>
+                        
+                        {showImport && (
+                            <div className="px-4 pb-4 space-y-4 border-t border-[var(--color-border)] pt-4">
+                                <div className="p-4 bg-[var(--color-primary-light)] border border-[var(--color-primary)] rounded-[var(--radius-md)] text-sm text-[var(--color-text-sub)] flex flex-col gap-3">
+                                    <p>Anda dapat mengimpor banyak soal sekaligus dengan mengunggah file Excel. Unduh template terlebih dahulu untuk melihat format yang sesuai.</p>
+                                    <div className="flex gap-3 mt-2">
+                                        <button onClick={downloadTemplate} className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary border border-primary rounded-[var(--radius-sm)] hover:bg-gray-50 transition-colors font-medium text-xs">
+                                            <span className="material-symbols-outlined text-[16px]">download</span>
+                                            Download Template
+                                        </button>
+                                        <label className={`flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-xs transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press cursor-pointer ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                            <span className="material-symbols-outlined text-[16px]">{isImporting ? "hourglass_empty" : "upload"}</span>
+                                            {isImporting ? "Mengimpor..." : "Upload Excel & Import"}
+                                            <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} disabled={isImporting} className="hidden" />
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         )}

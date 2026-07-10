@@ -9,6 +9,7 @@ import Select2 from "../components/Select2";
 /* ===== Types ===== */
 type QuestionType =
     | "multiple_choice"
+    | "multiple_choice_weighted"
     | "true_false"
     | "likert_scale"
     | "forced_choice"
@@ -71,6 +72,11 @@ const questionTypeConfig: Record<
         label: "Multiple Choice",
         icon: "radio_button_checked",
         desc: "Pilihan ganda A-E",
+    },
+    multiple_choice_weighted: {
+        label: "Weighted Choice",
+        icon: "iso",
+        desc: "Pilihan ganda berbobot",
     },
     true_false: {
         label: "True / False",
@@ -208,6 +214,7 @@ export default function TestsClient() {
         text: "",
         type: "multiple_choice" as QuestionType,
         options: ["", "", "", "", ""],
+        optionWeights: {} as Record<string, number>,
         correctAnswer: "",
         timeLimit: 0,
     });
@@ -372,6 +379,7 @@ export default function TestsClient() {
                     type: newQuestion.type,
                     text: newQuestion.text,
                     options: newQuestion.type === "essay" ? [] : newQuestion.options.filter((o) => o.trim() !== ""),
+                    optionWeights: newQuestion.type === "multiple_choice_weighted" ? newQuestion.optionWeights : null,
                     correctAnswer: newQuestion.correctAnswer || null,
                     timeLimit: newQuestion.timeLimit || null,
                 }),
@@ -379,7 +387,7 @@ export default function TestsClient() {
             if (!res.ok) throw new Error("Failed to add question");
             const q = await res.json();
             setTests((prev) => prev.map((t) => t.id === selectedTestId ? { ...t, questions: [...t.questions, q] } : t));
-            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], correctAnswer: "", timeLimit: 0 });
+            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], optionWeights: {}, correctAnswer: "", timeLimit: 0 });
         } catch (err) {
             console.error(err);
         }
@@ -419,7 +427,7 @@ export default function TestsClient() {
     const openAddQuestion = (testId: string) => {
         const test = tests.find((t) => t.id === testId);
         setSelectedTestId(testId);
-        setNewQuestion({ text: "", type: test?.questionType || "multiple_choice", options: ["", "", "", "", ""], correctAnswer: "", timeLimit: 0 });
+        setNewQuestion({ text: "", type: test?.questionType || "multiple_choice", options: ["", "", "", "", ""], optionWeights: {}, correctAnswer: "", timeLimit: 0 });
         setShowAddQuestionModal(true);
     };
 
@@ -921,9 +929,13 @@ export default function TestsClient() {
                                                 <div key={i} className="flex items-center gap-2">
                                                     <span className="text-xs font-bold text-[var(--color-text-muted)] w-5 text-center">{String.fromCharCode(65 + i)}</span>
                                                     <input value={opt} onChange={(e) => { const newOpts = [...newQuestion.options]; newOpts[i] = e.target.value; setNewQuestion((prev) => ({ ...prev, options: newOpts })); }} className="flex-1 h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" placeholder={`Option ${String.fromCharCode(65 + i)}`} />
-                                                    <button type="button" onClick={() => setNewQuestion((prev) => ({ ...prev, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1.5 rounded-[var(--radius-sm)] transition-colors ${newQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`} title="Set as correct answer">
-                                                        <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                                                    </button>
+                                                    {newQuestion.type === "multiple_choice_weighted" ? (
+                                                        <input type="number" placeholder="Weight" value={newQuestion.optionWeights?.[String.fromCharCode(65 + i)] ?? ""} onChange={(e) => setNewQuestion(p => ({ ...p, optionWeights: { ...(p.optionWeights || {}), [String.fromCharCode(65 + i)]: parseInt(e.target.value) || 0 } }))} className="w-20 h-9 px-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-center focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" />
+                                                    ) : (
+                                                        <button type="button" onClick={() => setNewQuestion((prev) => ({ ...prev, correctAnswer: String.fromCharCode(65 + i) }))} className={`p-1.5 rounded-[var(--radius-sm)] transition-colors ${newQuestion.correctAnswer === String.fromCharCode(65 + i) ? "text-[var(--color-success)] bg-[var(--color-success-light)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-success)]"}`} title="Set as correct answer">
+                                                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ))}
                                             {newQuestion.options.length < 8 && (

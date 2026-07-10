@@ -244,7 +244,7 @@ export default function PaymentPage() {
         sessionStorage.clear();
         // Clear cookies via root redirect or direct logout helper if available, otherwise just clear session
         document.cookie = "companyId=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-        window.location.href = "/";
+        window.location.href = "/login";
     };
 
     const getPlanPrice = (plan: string) => {

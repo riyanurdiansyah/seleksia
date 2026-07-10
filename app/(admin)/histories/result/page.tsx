@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import ResultsClient from "./ResultsClient";
 import { prisma } from "@/lib/prisma";
 
@@ -93,5 +94,9 @@ export default async function ResultsPage() {
         };
     });
 
-    return <ResultsClient initialData={resultsData} />;
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-[var(--color-text-muted)] animate-pulse">Loading results...</div>}>
+            <ResultsClient initialData={resultsData} />
+        </Suspense>
+    );
 }

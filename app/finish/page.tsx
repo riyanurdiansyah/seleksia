@@ -254,7 +254,7 @@ export default function FinishPage() {
                                 <button
                                     onClick={() => {
                                         sessionStorage.clear();
-                                        window.location.href = "/";
+                                        window.location.href = "/login";
                                     }}
                                     className="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius-md)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] cursor-pointer btn-press btn-shine"
                                 >

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import Breadcrumb from "../../components/Breadcrumb";
 
@@ -25,6 +26,15 @@ interface ResultData {
     unscorableCount: number;
 }
 
+interface GroupedCandidate {
+    candidateId: string;
+    candidateName: string;
+    batch: string;
+    totalTests: number;
+    latestCompletion: string;
+    results: ResultData[];
+}
+
 const categoryConfig: Record<string, { label: string; icon: string; color: string }> = {
     intelligence: { label: "Intelligence", icon: "psychology", color: "text-brand-teal bg-brand-sky/20 dark:bg-brand-sky/5" },
     personality: { label: "Personality", icon: "mood", color: "text-pink-600 bg-pink-50 dark:bg-pink-900/20" },
@@ -33,7 +43,35 @@ const categoryConfig: Record<string, { label: string; icon: string; color: strin
 };
 
 export default function ResultsClient({ initialData }: { initialData: ResultData[] }) {
-    const columns = useMemo<ColumnDef<ResultData>[]>(() => [
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const candidateIdFilter = searchParams.get("candidateId");
+
+    const groupedCandidates = useMemo(() => {
+        const map = new Map<string, GroupedCandidate>();
+        initialData.forEach(res => {
+            const existing = map.get(res.candidateId);
+            if (existing) {
+                existing.totalTests++;
+                existing.results.push(res);
+                if (new Date(res.completedAt) > new Date(existing.latestCompletion)) {
+                    existing.latestCompletion = res.completedAt;
+                }
+            } else {
+                map.set(res.candidateId, {
+                    candidateId: res.candidateId,
+                    candidateName: res.candidateName,
+                    batch: res.batch,
+                    totalTests: 1,
+                    latestCompletion: res.completedAt,
+                    results: [res]
+                });
+            }
+        });
+        return Array.from(map.values()).sort((a, b) => new Date(b.latestCompletion).getTime() - new Date(a.latestCompletion).getTime());
+    }, [initialData]);
+
+    const candidateColumns = useMemo<ColumnDef<GroupedCandidate>[]>(() => [
         {
             header: "Candidate",
             accessorKey: "candidateName",
@@ -52,6 +90,52 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
             )
         },
         {
+            header: "Batch",
+            accessorKey: "batch",
+            sortable: true,
+            filterable: true,
+            cell: (row) => <span className="text-sm text-[var(--color-text-sub)]">{row.batch}</span>
+        },
+        {
+            header: "Tests Completed",
+            accessorKey: "totalTests",
+            sortable: true,
+            filterable: false,
+            cell: (row) => (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--color-primary-light)] text-primary">
+                    {row.totalTests} Tests
+                </span>
+            )
+        },
+        {
+            header: "Last Activity",
+            accessorKey: "latestCompletion",
+            sortable: true,
+            filterable: false,
+            cell: (row) => (
+                <span className="text-sm text-[var(--color-text-sub)]">
+                    {new Date(row.latestCompletion).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+            )
+        },
+        {
+            header: "Actions",
+            sortable: false,
+            filterable: false,
+            className: "text-right w-24",
+            cell: (row) => (
+                <button 
+                    onClick={() => router.push(`/histories/result?candidateId=${row.candidateId}`)}
+                    className="px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold bg-gradient-to-br from-primary to-accent text-white hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] transition-all inline-block shadow-[0_4px_15px_var(--color-primary-glow)] btn-press"
+                >
+                    View Tests
+                </button>
+            )
+        }
+    ], [router]);
+
+    const testColumns = useMemo<ColumnDef<ResultData>[]>(() => [
+        {
             header: "Test Details",
             accessorKey: "testName",
             sortable: true,
@@ -66,8 +150,6 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                         <div className="min-w-0">
                             <span className="text-sm font-medium text-[var(--color-text-sub)] truncate">{row.testName}</span>
                             <div className="flex gap-1.5 items-center mt-0.5 text-[10px] text-[var(--color-text-muted)]">
-                                <span>Batch {row.batch}</span>
-                                <span>•</span>
                                 <span>{row.answeredCount} Answered</span>
                             </div>
                         </div>
@@ -169,17 +251,36 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
         }
     ], []);
 
+    const selectedCandidate = candidateIdFilter ? groupedCandidates.find(c => c.candidateId === candidateIdFilter) : null;
+
     return (
         <div className="space-y-6 animate-slide-in-up">
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-                            Test Results
-                        </h1>
-                        <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
-                            View detailed test scores, answers, and behavior logs for each candidate.
-                        </p>
+                        {selectedCandidate ? (
+                            <div className="flex flex-col gap-1">
+                                <button onClick={() => router.push('/histories/result')} className="text-xs text-[var(--color-text-muted)] hover:text-primary transition-colors flex items-center gap-1 w-max mb-1">
+                                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                                    Back to Candidates
+                                </button>
+                                <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
+                                    {selectedCandidate.candidateName}&apos;s Results
+                                </h1>
+                                <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
+                                    View all tests completed by this candidate.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
+                                    Test Results
+                                </h1>
+                                <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
+                                    Select a candidate to view their test scores and detailed answers.
+                                </p>
+                            </>
+                        )}
                     </div>
                     <Breadcrumb />
                 </div>
@@ -187,7 +288,11 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
 
             {/* Table */}
             <div className="min-h-[500px]">
-                <DataTable data={initialData} columns={columns} globalSearchPlaceholder="Search candidates or tests..." />
+                {selectedCandidate ? (
+                    <DataTable data={selectedCandidate.results} columns={testColumns} globalSearchPlaceholder="Search tests..." />
+                ) : (
+                    <DataTable data={groupedCandidates} columns={candidateColumns} globalSearchPlaceholder="Search candidates..." />
+                )}
             </div>
         </div>
     );

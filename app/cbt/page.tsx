@@ -14,6 +14,7 @@ interface QuestionData {
     imageUrl: string | null;
     timeLimit: number | null;
     sortOrder: number;
+    shuffledOptions?: { text: string; originalKey: string }[];
 }
 
 interface TestData {
@@ -216,7 +217,27 @@ export default function ExamPage() {
                 setAssignment(asgn);
 
                 // Shuffle questions for randomized order
-                const shuffledQuestions = shuffleArray(asgn.test.questions);
+                const shuffledQuestions = shuffleArray(asgn.test.questions).map(q => {
+                    let qOptions = q.options || [];
+                    if (q.type === "true_false") {
+                        const valid = qOptions.filter(o => o && o.trim() !== "");
+                        qOptions = valid.length >= 2 ? valid : ["True", "False"];
+                    } else if (q.type === "likert_scale") {
+                        const valid = qOptions.filter(o => o && o.trim() !== "");
+                        qOptions = valid.length > 0 ? valid : ["1", "2", "3", "4", "5"];
+                    }
+
+                    let shuffledOptions = qOptions.map((opt, i) => ({
+                        text: opt,
+                        originalKey: q.type === "true_false" || q.type === "likert_scale" ? opt : (OPTION_KEYS[i] || String(i))
+                    }));
+
+                    if (q.type === "multiple_choice" || q.type === "multiple_choice_weighted") {
+                        shuffledOptions = shuffleArray(shuffledOptions);
+                    }
+
+                    return { ...q, shuffledOptions, options: qOptions };
+                });
                 setQuestions(shuffledQuestions);
 
                 setTestName(asgn.test.name);
@@ -935,7 +956,7 @@ export default function ExamPage() {
                     </div>
                     <h2 className="text-xl font-bold text-[var(--color-text-main)] dark:text-white">{loadError}</h2>
                     <button
-                        onClick={() => window.location.href = "/"}
+                        onClick={() => window.location.href = "/login"}
                         className="inline-flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-sm)] bg-primary hover:bg-primary-hover text-white font-medium text-sm transition-all cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-sm">arrow_back</span>
@@ -1090,26 +1111,20 @@ export default function ExamPage() {
                                                 );
                                             }
 
-                                            let options = question.options || [];
-                                            if (question.type === "true_false") {
-                                                const valid = options.filter(o => o && o.trim() !== "");
-                                                options = valid.length >= 2 ? valid : ["True", "False"];
-                                            } else if (question.type === "likert_scale") {
-                                                const valid = options.filter(o => o && o.trim() !== "");
-                                                options = valid.length > 0 ? valid : ["1", "2", "3", "4", "5"];
-                                            }
+                                            const optionsList = question.shuffledOptions || [];
 
-                                            return options.map((optText, idx) => {
-                                                const key = question.type === "true_false"
-                                                    ? optText
+                                            return optionsList.map((opt, idx) => {
+                                                const displayKey = question.type === "true_false"
+                                                    ? opt.text
                                                     : question.type === "likert_scale"
-                                                    ? optText
+                                                    ? opt.text
                                                     : (OPTION_KEYS[idx] || String(idx));
-                                                const selected = answers[question.id] === key;
+                                                const originalKey = opt.originalKey;
+                                                const selected = answers[question.id] === originalKey;
                                                 return (
                                                     <button
-                                                        key={key}
-                                                        onClick={() => selectAnswer(key)}
+                                                        key={originalKey}
+                                                        onClick={() => selectAnswer(originalKey)}
                                                         className={`w-full text-left p-4 rounded-[var(--radius-sm)] border-2 transition-all duration-200 cursor-pointer group ${selected
                                                             ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-[var(--shadow-sm)]"
                                                             : "border-[var(--color-border)] dark:border-slate-700 hover:border-primary/40 hover:bg-[var(--color-bg-elevated)] dark:hover:bg-slate-800/50"
@@ -1123,13 +1138,13 @@ export default function ExamPage() {
                                                                     }`}
                                                             >
                                                                 {question.type === "true_false"
-                                                                    ? (optText === "True" ? "T" : "F")
+                                                                    ? (opt.text === "True" ? "T" : "F")
                                                                     : question.type === "likert_scale"
-                                                                    ? optText
-                                                                    : key}
+                                                                    ? opt.text
+                                                                    : displayKey}
                                                             </div>
-                                                            {optText.startsWith("/") ? (
-                                                                <img src={optText} alt="Option pattern" className="max-h-20 object-contain rounded bg-[var(--color-bg-card)] dark:bg-slate-900 p-1 border border-[var(--color-border)]" />
+                                                            {opt.text.startsWith("/") ? (
+                                                                <img src={opt.text} alt="Option pattern" className="max-h-20 object-contain rounded bg-[var(--color-bg-card)] dark:bg-slate-900 p-1 border border-[var(--color-border)]" />
                                                             ) : (
                                                                 <span
                                                                     className={`text-sm leading-relaxed ${selected
@@ -1137,7 +1152,7 @@ export default function ExamPage() {
                                                                         : "text-slate-700 dark:text-[var(--color-text-muted)]"
                                                                         }`}
                                                                 >
-                                                                    {optText}
+                                                                    {opt.text}
                                                                 </span>
                                                             )}
                                                         </div>

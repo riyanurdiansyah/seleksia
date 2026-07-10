@@ -32,7 +32,7 @@ export default function Header() {
 
   const handleLogout = () => {
     sessionStorage.clear();
-    window.location.href = "/";
+    window.location.href = "/login";
   };
 
   // Determine label based on role
