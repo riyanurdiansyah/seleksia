@@ -80,12 +80,7 @@ export default function PlansPage() {
 
     return (
         <div className="space-y-6">
-            <Breadcrumb
-                items={[
-                    { label: "Dashboard", href: "/admin" },
-                    { label: "Paket Langganan" }
-                ]}
-            />
+            <Breadcrumb />
 
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-[var(--color-text-main)]">Paket Langganan</h1>

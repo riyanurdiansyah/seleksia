@@ -86,12 +86,7 @@ export default function RBACPage() {
 
     return (
         <div className="space-y-6">
-            <Breadcrumb
-                items={[
-                    { label: "Dashboard", href: "/admin" },
-                    { label: "Manajemen Akses" }
-                ]}
-            />
+            <Breadcrumb />
 
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-[var(--color-text-main)]">Manajemen Akses (RBAC)</h1>
