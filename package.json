@@ -39,5 +39,9 @@
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "16.1.6",
+    "@next/swc-linux-x64-musl": "16.1.6"
   }
 }
