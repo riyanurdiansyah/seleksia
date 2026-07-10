@@ -243,18 +243,7 @@ export default function LoginPage() {
                </div>
              </form>
 
-            {/* Footer links inside form card */}
-            <div className="flex flex-wrap justify-between items-center text-xs text-[var(--color-text-muted)] gap-2 pt-4 border-t border-[var(--color-border)]">
-              <div className="flex gap-4">
-                <a href="/terms" className="hover:text-[var(--color-primary)] transition-colors font-medium">
-                  Terms and Condition
-                </a>
-              </div>
-              <a href="mailto:support@seleksia.com" className="hover:text-[var(--color-primary)] transition-colors font-medium flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">mail</span>
-                Contact Us
-              </a>
-            </div>
+          
           </div>
         </div>
       </div>

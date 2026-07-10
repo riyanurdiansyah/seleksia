@@ -58,6 +58,7 @@ export default function CandidatesClient() {
     const [selectedCompany, setSelectedCompany] = useState<string>("all");
     const [currentRole, setCurrentRole] = useState<string>("user");
     const [showAddModal, setShowAddModal] = useState(false);
+    const [editCandidate, setEditCandidate] = useState<any>(null);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
     const [newCandidate, setNewCandidate] = useState({
         name: "",
@@ -451,7 +452,7 @@ export default function CandidatesClient() {
                             <span className="material-symbols-outlined text-[14px]">all_inclusive</span> Permanent
                         </span>
                     ) : (
-                        <span>{row.accessStart ? new Date(row.accessStart).toLocaleDateString() : ""} — {row.accessEnd ? new Date(row.accessEnd).toLocaleDateString() : ""}</span>
+                            <span>{row.accessStart ? new Date(row.accessStart).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "short", timeStyle: "short" }) : ""} — {row.accessEnd ? new Date(row.accessEnd).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "short", timeStyle: "short" }) : ""}</span>
                     )}
                 </span>
             )
@@ -497,7 +498,39 @@ export default function CandidatesClient() {
                     <button className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="View Details">
                         <span className="material-symbols-outlined text-[18px]">visibility</span>
                     </button>
-                    <button className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-warning)] hover:bg-[var(--color-bg-hover)] transition-colors" title="Edit">
+                    <button onClick={() => {
+                        const toLocalDatetime = (isoStr: string | null | undefined) => {
+                            if (!isoStr) return "";
+                            const d = new Date(isoStr);
+                            // Force GMT+7 (-420 minutes) instead of browser's local timezone
+                            return new Date(d.getTime() - (-420) * 60000).toISOString().substring(0, 16);
+                        };
+
+                        setEditCandidate({
+                            id: row.id,
+                            name: row.name,
+                            email: row.email,
+                            phone: row.phone || "",
+                            role: row.role,
+                            batch: row.batch || "",
+                            accessType: row.accessType,
+                            accessStart: toLocalDatetime(row.accessStart),
+                            accessEnd: toLocalDatetime(row.accessEnd),
+                            status: row.status,
+                            password: ""
+                        });
+                        setNewCandidate({
+                            name: row.name,
+                            email: row.email,
+                            phone: row.phone || "",
+                            role: row.role,
+                            batch: row.batch || "",
+                            accessType: row.accessType,
+                            accessStart: toLocalDatetime(row.accessStart),
+                            accessEnd: toLocalDatetime(row.accessEnd),
+                        } as any);
+                        setShowAddModal(true);
+                    }} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-warning)] hover:bg-[var(--color-bg-hover)] transition-colors" title="Edit">
                         <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
                     <button onClick={() => setDeleteTarget({ id: row.id, name: row.name })} className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors" title="Delete">
@@ -537,6 +570,28 @@ export default function CandidatesClient() {
             console.error(err);
         }
     };
+    /* Edit candidate */
+    const handleEditSubmit = async () => {
+        if (!editCandidate) return;
+        const payload = { ...newCandidate, id: editCandidate.id };
+        if (!payload.name || !payload.email) return;
+        if (payload.role === "user" && payload.accessType === "range" && (!payload.accessStart || !payload.accessEnd)) return;
+
+        try {
+            const res = await fetch(`/api/candidates/${payload.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error("Failed to update");
+            const updated = await res.json();
+            setCandidates((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+            setShowAddModal(false);
+            setEditCandidate(null);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     /* Delete candidate */
     const handleDelete = async (id: string) => {
@@ -559,7 +614,7 @@ export default function CandidatesClient() {
             c.role,
             c.status,
             c.batch || "—",
-            c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"
+            c.createdAt ? new Date(c.createdAt).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "short", timeStyle: "short" }) : "—"
         ]);
         let excelContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
         excelContent += `<head><meta charset="utf-8" /><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Data Kandidat</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
@@ -741,7 +796,7 @@ export default function CandidatesClient() {
                     {/* Backdrop */}
                     <div
                         className="absolute inset-0"
-                        onClick={() => setShowAddModal(false)}
+                        onClick={() => { setShowAddModal(false); setEditCandidate(null); setNewCandidate({ name: "", email: "", phone: "", role: "user", batch: "", accessType: "range", accessStart: "", accessEnd: "" }); }}
                     />
                     {/* Modal */}
                     <div className="relative w-full max-w-lg bg-[var(--color-bg-card)] rounded-3xl border border-[var(--color-border-strong)] shadow-[0_20px_40px_rgba(0,0,0,0.4)] animate-slide-in-up max-h-[90vh] flex flex-col">
@@ -754,7 +809,7 @@ export default function CandidatesClient() {
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-[var(--color-text-main)]">
-                                        Add New Account
+                                        {editCandidate ? "Edit Account" : "Add New Account"}
                                     </h3>
                                     <p className="text-xs text-[var(--color-text-muted)]">
                                         Register a new user, proctor, or admin account
@@ -762,7 +817,7 @@ export default function CandidatesClient() {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setShowAddModal(false)}
+                                onClick={() => { setShowAddModal(false); setEditCandidate(null); setNewCandidate({ name: "", email: "", phone: "", role: "user", batch: "", accessType: "range", accessStart: "", accessEnd: "" }); }}
                                 className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] transition-colors"
                             >
                                 <span className="material-symbols-outlined">
@@ -952,7 +1007,7 @@ export default function CandidatesClient() {
                                                 Start Date
                                             </label>
                                             <input
-                                                type="date"
+                                                type="datetime-local"
                                                 value={newCandidate.accessStart}
                                                 onChange={(e) =>
                                                     setNewCandidate((prev) => ({
@@ -968,7 +1023,7 @@ export default function CandidatesClient() {
                                                 End Date
                                             </label>
                                             <input
-                                                type="date"
+                                                type="datetime-local"
                                                 value={newCandidate.accessEnd}
                                                 onChange={(e) =>
                                                     setNewCandidate((prev) => ({
@@ -995,13 +1050,13 @@ export default function CandidatesClient() {
 
                         <div className="flex items-center justify-end gap-3 p-6 border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)] flex-shrink-0 rounded-b-3xl">
                             <button
-                                onClick={() => setShowAddModal(false)}
+                                onClick={() => { setShowAddModal(false); setEditCandidate(null); setNewCandidate({ name: "", email: "", phone: "", role: "user", batch: "", accessType: "range", accessStart: "", accessEnd: "" }); }}
                                 className="px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] font-medium text-sm hover:bg-[var(--color-bg-hover)] transition-colors btn-press"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={handleAddCandidate}
+                                onClick={editCandidate ? handleEditSubmit : handleAddCandidate}
                                 disabled={
                                     !newCandidate.name ||
                                     !newCandidate.email ||
@@ -1013,7 +1068,7 @@ export default function CandidatesClient() {
                                 <span className="material-symbols-outlined text-[18px]">
                                     check
                                 </span>
-                                {newCandidate.role === "admin" ? "Create Admin" : newCandidate.role === "proctor" ? "Create Proctor" : "Add Candidate"}
+                                {editCandidate ? "Save Changes" : (newCandidate.role === "admin" ? "Create Admin" : newCandidate.role === "proctor" ? "Create Proctor" : "Add Candidate")}
                             </button>
                         </div>
                     </div>

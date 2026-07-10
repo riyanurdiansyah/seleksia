@@ -323,7 +323,7 @@ export default function ExamPage() {
             const host = process.env.NEXT_PUBLIC_PUSHER_HOST || "127.0.0.1";
             const port = process.env.NEXT_PUBLIC_PUSHER_PORT || "6001";
             const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws";
-            const wsUrl = `${protocol}://${host}:${port}`;
+            const wsUrl = `${protocol}://${host}${port && port !== "80" && port !== "443" ? ":" + port : ""}/ws-monitoring`;
             
             const connectWs = () => {
                 try {
