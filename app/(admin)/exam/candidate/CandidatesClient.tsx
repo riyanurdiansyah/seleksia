@@ -96,8 +96,8 @@ export default function CandidatesClient() {
             "Role (user/admin/proctor - Opsional)",
             "Password (Opsional)",
             "Access Type (range/permanent - Opsional)",
-            "Access Start (YYYY-MM-DD - Opsional)",
-            "Access End (YYYY-MM-DD - Opsional)"
+            "Access Start (YYYY-MM-DD HH:mm - Opsional)",
+            "Access End (YYYY-MM-DD HH:mm - Opsional)"
         ];
         
         const rows = [
@@ -165,11 +165,12 @@ export default function CandidatesClient() {
         reader.onload = (e) => {
             try {
                 const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                const workbook = XLSX.read(data, { type: "array" });
+                const workbook = XLSX.read(data, { type: "array", cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 
-                const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+                // Use raw: false so Excel dates are converted to strings instead of serial numbers
+                const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, raw: false });
                 if (rows.length === 0) {
                     setImportError("File Excel kosong");
                     return;

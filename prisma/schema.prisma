@@ -100,6 +100,7 @@ model Candidate {
 
   company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   assignments TestAssignment[]
+  interviewSessions InterviewSession[]
 
   @@unique([companyId, displayId])
   @@unique([companyId, email])
@@ -375,4 +376,30 @@ model SubscriptionPlan {
   updatedAt     DateTime @updatedAt
 
   @@map("subscription_plans")
+}
+
+// ===== Interview Sessions =====
+
+model InterviewSession {
+  id               String   @id @default(cuid())
+  candidateId      String
+  position         String?  // The role/position being interviewed for
+  context          String?  @db.Text // Admin provided CV or Skills
+  language         String   @default("id") // "id" or "en"
+  maxQuestions     Int      @default(5)
+  chatHistory      Json?    // Array of { role: "ai"|"user", content: string }
+  accessStart      DateTime? // Scheduled start
+  accessEnd        DateTime? // Scheduled end
+  startTime        DateTime? // Actual start
+  endTime          DateTime?
+  transcription    String?  @db.Text
+  emotionLog       Json?    // Array of { timestamp, emotion, confidence, headPose }
+  aiAnalysisReport String?  @db.Text // Final assessment from Claude AI
+  status           String   @default("pending") // "pending", "completed", "analyzed"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("interview_sessions")
 }
