@@ -1046,8 +1046,15 @@ export default function TestsClient() {
                                                     {isSelected && <span className="material-symbols-outlined text-[14px] font-bold leading-none">check</span>}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="font-semibold text-[var(--color-text-main)] truncate">{test.name}</p>
-                                                    <p className="text-[10px] text-[var(--color-text-muted)] font-mono">{test.displayId}</p>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="font-semibold text-[var(--color-text-main)] truncate">{test.name}</p>
+                                                        <p className="text-[9px] text-[var(--color-text-muted)] font-mono shrink-0">{test.displayId}</p>
+                                                    </div>
+                                                    {test.description && (
+                                                        <p className="text-[10px] text-[var(--color-text-sub)] truncate mt-0.5" title={test.description}>
+                                                            {test.description}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </button>
                                         );

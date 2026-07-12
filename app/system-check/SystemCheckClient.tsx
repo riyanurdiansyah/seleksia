@@ -20,31 +20,31 @@ export default function SystemCheckClient() {
     const [checks, setChecks] = useState<CheckItem[]>([
         {
             id: "internet",
-            label: "Internet Connection",
+            label: "Koneksi Internet",
             icon: "wifi",
             status: "pending",
-            detail: "Waiting...",
+            detail: "Menunggu...",
         },
         {
             id: "camera",
-            label: "Camera Access",
+            label: "Akses Kamera",
             icon: "videocam",
             status: "pending",
-            detail: "Waiting...",
+            detail: "Menunggu...",
         },
         {
             id: "battery",
-            label: "Power Source",
+            label: "Daya Baterai",
             icon: "battery_full",
             status: "pending",
-            detail: "Waiting...",
+            detail: "Menunggu...",
         },
         {
             id: "browser",
-            label: "Browser Compatibility",
+            label: "Kecocokan Browser",
             icon: "public",
             status: "pending",
-            detail: "Waiting...",
+            detail: "Menunggu...",
         },
     ]);
 
@@ -63,16 +63,16 @@ export default function SystemCheckClient() {
     useEffect(() => {
         const runChecks = async () => {
             // 1. Internet check
-            updateCheck("internet", { status: "checking", detail: "Checking..." });
+            updateCheck("internet", { status: "checking", detail: "Mengecek..." });
             await delay(800);
             const online = navigator.onLine;
             updateCheck("internet", {
                 status: online ? "passed" : "failed",
-                detail: online ? "Stable connection detected" : "No connection",
+                detail: online ? "Koneksi stabil" : "Tidak ada koneksi",
             });
 
             // 2. Browser check
-            updateCheck("browser", { status: "checking", detail: "Checking..." });
+            updateCheck("browser", { status: "checking", detail: "Mengecek..." });
             await delay(600);
             const ua = navigator.userAgent;
             const browserName = ua.includes("Chrome")
@@ -84,11 +84,11 @@ export default function SystemCheckClient() {
                         : "Browser";
             updateCheck("browser", {
                 status: "passed",
-                detail: `${browserName} (Supported)`,
+                detail: `${browserName} (Didukung)`,
             });
 
             // 3. Battery check
-            updateCheck("battery", { status: "checking", detail: "Checking..." });
+            updateCheck("battery", { status: "checking", detail: "Mengecek..." });
             await delay(700);
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,26 +99,26 @@ export default function SystemCheckClient() {
                     updateCheck("battery", {
                         status: level > 20 || charging ? "passed" : "failed",
                         detail: charging
-                            ? `Plugged in (${level}%)`
-                            : `Battery ${level}%${level <= 20 ? " — Low!" : ""}`,
+                            ? `Terhubung listrik (${level}%)`
+                            : `Baterai ${level}%${level <= 20 ? " — Lemah!" : ""}`,
                     });
                 } else {
                     updateCheck("battery", {
                         status: "passed",
-                        detail: "Battery API not available — OK",
+                        detail: "Status tidak didukung — OK",
                     });
                 }
             } catch {
                 updateCheck("battery", {
                     status: "passed",
-                    detail: "Cannot detect — Assumed OK",
+                    detail: "Tidak terdeteksi — OK",
                 });
             }
 
             // 4. Camera check
             updateCheck("camera", {
                 status: "checking",
-                detail: "Requesting permission...",
+                detail: "Meminta izin...",
             });
             await delay(500);
             try {
@@ -128,12 +128,12 @@ export default function SystemCheckClient() {
                 setCameraStream(stream);
                 updateCheck("camera", {
                     status: "passed",
-                    detail: "Camera active",
+                    detail: "Kamera aktif",
                 });
             } catch {
                 updateCheck("camera", {
                     status: "failed",
-                    detail: "Permission denied or unavailable",
+                    detail: "Akses ditolak atau diblokir",
                 });
             }
         };
@@ -166,7 +166,7 @@ export default function SystemCheckClient() {
                                 <span className="material-symbols-outlined text-brand-teal">
                                     checklist
                                 </span>
-                                Requirements
+                                Persyaratan Sistem
                             </h3>
 
                             <div className="space-y-4">
@@ -209,7 +209,7 @@ export default function SystemCheckClient() {
                                 <span className="material-symbols-outlined text-brand-teal">
                                     visibility
                                 </span>
-                                Live Preview
+                                Pratinjau Kamera
                             </h3>
 
                             <div className="relative w-full flex-grow min-h-[250px] bg-slate-900 rounded-[var(--radius-sm)] overflow-hidden">
@@ -235,8 +235,8 @@ export default function SystemCheckClient() {
                                         </span>
                                         <p className="text-sm font-medium tracking-wide">
                                             {checks.find((c) => c.id === "camera")?.status === "failed"
-                                                ? "CAMERA BLOCKED"
-                                                : "WAITING FOR PERMISSION..."}
+                                                ? "KAMERA TERBLOKIR"
+                                                : "MEMINTA IZIN AKSES..."}
                                         </p>
                                     </div>
                                 )}
@@ -258,8 +258,7 @@ export default function SystemCheckClient() {
                                     lightbulb
                                 </span>
                                 <p className="text-sm text-primary leading-relaxed font-semibold">
-                                    Please ensure your face is clearly visible and center-aligned
-                                    in the frame. Avoid strong backlighting behind you.
+                                    Pastikan wajah Anda terlihat jelas dan berada di tengah bingkai kamera. Hindari cahaya yang terlalu terang dari belakang (backlight).
                                 </p>
                             </div>
                         </div>
@@ -269,7 +268,7 @@ export default function SystemCheckClient() {
                 {/* Footer actions */}
                 <div className="px-6 py-4 sm:px-8 bg-[var(--color-bg-elevated)] border-t border-[var(--color-border)] flex justify-between sm:justify-end gap-3 rounded-b-[var(--radius-md)]">
                     <button className="px-5 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] text-[var(--color-text-sub)] font-medium text-sm hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] transition-all duration-200 cursor-pointer btn-press">
-                        Troubleshoot
+                        Bantuan
                     </button>
 
                     {allPassed ? (
@@ -277,7 +276,7 @@ export default function SystemCheckClient() {
                             href="/instructions"
                             className="flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-bold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press btn-shine"
                         >
-                            Continue
+                            Lanjutkan
                             <span className="material-symbols-outlined text-sm">
                                 arrow_forward
                             </span>
@@ -287,7 +286,7 @@ export default function SystemCheckClient() {
                             disabled
                             className="flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] font-bold text-sm cursor-not-allowed opacity-75"
                         >
-                            {hasFailed ? "Retry Check" : "Start Test"}
+                            {hasFailed ? "Coba Lagi" : "Lanjutkan"}
                             <span className="material-symbols-outlined text-sm">
                                 arrow_forward
                             </span>

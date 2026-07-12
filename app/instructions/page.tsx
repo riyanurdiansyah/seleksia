@@ -8,14 +8,14 @@ import FooterLinks from "../components/FooterLinks";
 import AuthGuard from "../components/AuthGuard";
 
 const defaultRules = [
-    "This examination is strictly timed. Once started, the timer cannot be paused.",
-    "Your camera must remain active throughout the entire examination.",
-    "Switching tabs or minimizing the browser will trigger a warning. Repeated violations may result in automatic disqualification.",
-    "Right-clicking, copying, and pasting are disabled during the exam.",
-    "Your answers are automatically saved each time you select an option.",
-    "If the timer reaches zero, your exam will be automatically submitted.",
-    "Random snapshots will be taken during the exam for verification purposes.",
-    "Only one face should be visible in the camera frame at all times.",
+    "Ujian ini memiliki batasan waktu yang ketat. Setelah dimulai, waktu tidak dapat dihentikan.",
+    "Kamera Anda harus tetap aktif selama ujian berlangsung.",
+    "Berpindah tab atau me-minimize browser akan memicu peringatan. Pelanggaran berulang dapat menyebabkan diskualifikasi otomatis.",
+    "Klik kanan, salin (copy), dan tempel (paste) dinonaktifkan selama ujian.",
+    "Jawaban Anda akan otomatis tersimpan setiap kali Anda memilih opsi.",
+    "Jika waktu habis, ujian Anda akan dikumpulkan secara otomatis.",
+    "Cuplikan gambar acak akan diambil selama ujian untuk keperluan verifikasi.",
+    "Hanya satu wajah yang boleh terlihat di bingkai kamera pada setiap saat.",
 ];
 
 interface Instruction {
@@ -76,10 +76,10 @@ export default function InstructionsPage() {
     }, []);
 
     const categoryLabel: Record<string, string> = {
-        intelligence: "Intelligence",
-        personality: "Personality",
-        aptitude: "Aptitude",
-        projective: "Projective",
+        intelligence: "Intelegensi",
+        personality: "Kepribadian",
+        aptitude: "Bakat",
+        projective: "Proyektif",
     };
 
     const handleSelectAssignment = (id: string) => {
@@ -102,7 +102,7 @@ export default function InstructionsPage() {
             <div className="min-h-screen flex items-center justify-center bg-bg-light dark:bg-bg-dark">
                 <div className="flex items-center gap-2">
                     <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[var(--color-text-sub)]">Loading instructions...</span>
+                    <span className="text-[var(--color-text-sub)]">Memuat instruksi...</span>
                 </div>
             </div>
         );
@@ -113,8 +113,8 @@ export default function InstructionsPage() {
             <div className="min-h-screen flex items-center justify-center bg-bg-light dark:bg-bg-dark">
                 <div className="text-center p-8">
                     <span className="material-symbols-outlined text-4xl text-[var(--color-text-muted)] mb-2">assignment_turned_in</span>
-                    <h2 className="text-xl font-bold text-[var(--color-text-main)]">All caught up!</h2>
-                    <p className="text-[var(--color-text-sub)] mt-1">You have no pending tests.</p>
+                    <h2 className="text-xl font-bold text-[var(--color-text-main)]">Semua Selesai!</h2>
+                    <p className="text-[var(--color-text-sub)] mt-1">Anda tidak memiliki ujian yang tertunda.</p>
                 </div>
             </div>
         );
@@ -138,10 +138,10 @@ export default function InstructionsPage() {
                         {/* Page Header */}
                         <div className="text-center mt-10 animate-slide-in-up">
                             <h1 className="text-3xl font-bold text-[var(--color-text-main)] tracking-tight">
-                                Exam Instructions
+                                Instruksi Ujian
                             </h1>
                             <p className="mt-2 text-[var(--color-text-sub)]">
-                                Please select a test to begin and read the rules carefully.
+                                Silakan pilih ujian untuk memulai dan baca peraturannya dengan saksama.
                             </p>
                         </div>
 
@@ -150,7 +150,7 @@ export default function InstructionsPage() {
                             {/* Left Panel: Assignment List */}
                             <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] shadow-[var(--shadow-card)] border border-[var(--color-border)] p-4 space-y-3 sticky top-6">
                                 <h3 className="text-sm font-semibold text-[var(--color-text-main)] uppercase tracking-wider mb-2">
-                                    Your Pending Tests
+                                    Ujian Tertunda Anda
                                 </h3>
                                 <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
                                     {assignments.map(asgn => (
@@ -167,7 +167,7 @@ export default function InstructionsPage() {
                                             </p>
                                             <p className="text-xs text-[var(--color-text-muted)] mt-1 flex items-center gap-1">
                                                 <span className="material-symbols-outlined text-[12px]">timer</span>
-                                                {asgn.test.duration} min
+                                                {asgn.test.duration} mnt
                                             </p>
                                         </button>
                                     ))}
@@ -193,10 +193,10 @@ export default function InstructionsPage() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
-                                            { label: "Selected Test", value: testInfo.name, icon: "assignment" },
-                                            { label: "Category", value: (categoryLabel[testInfo.category] || testInfo.category), icon: "category" },
-                                            { label: "Duration", value: `${testInfo.duration} min`, icon: "timer" },
-                                            { label: "Passing Score", value: "Auto-graded", icon: "grading" },
+                                            { label: "Ujian Dipilih", value: testInfo.name, icon: "assignment" },
+                                            { label: "Kategori", value: (categoryLabel[testInfo.category] || testInfo.category), icon: "category" },
+                                            { label: "Durasi", value: `${testInfo.duration} mnt`, icon: "timer" },
+                                            { label: "Batas Lulus", value: "Penilaian Otomatis", icon: "grading" },
                                         ].map((item) => (
                                             <div
                                                 key={item.label}
@@ -224,7 +224,7 @@ export default function InstructionsPage() {
                                                 <span className="material-symbols-outlined text-[var(--color-success)]">
                                                     psychology_alt
                                                 </span>
-                                                Test-Specific Instructions
+                                                Instruksi Khusus Ujian
                                             </h3>
                                             <div className="space-y-3">
                                                 {specificInstructions.map((rule, i) => (
@@ -249,7 +249,7 @@ export default function InstructionsPage() {
                                             <span className="material-symbols-outlined text-brand-teal">
                                                 gavel
                                             </span>
-                                            General Rules & Regulations
+                                            Peraturan Umum
                                         </h3>
                                         <div className="space-y-3">
                                             {rules.map((rule, i) => (
@@ -276,12 +276,12 @@ export default function InstructionsPage() {
                                         </span>
                                         <div>
                                             <p className="text-sm font-semibold text-[var(--color-warning)]">
-                                                Proctoring Notice
+                                                Pemberitahuan Pengawasan
                                             </p>
                                             <p className="text-sm text-[var(--color-text-sub)] mt-1">
-                                                This exam is supervised via AI-powered camera monitoring.
-                                                Your face, actions, and screen activity will be recorded for
-                                                integrity verification.
+                                                Ujian ini diawasi melalui pemantauan kamera berbasis AI. 
+                                                Wajah, tindakan, dan aktivitas layar Anda akan direkam untuk 
+                                                verifikasi integritas.
                                             </p>
                                         </div>
                                     </div>
@@ -296,8 +296,8 @@ export default function InstructionsPage() {
                                                 className="mt-0.5 size-5 rounded border-[var(--color-border)] text-primary focus:ring-[var(--color-primary-light)] cursor-pointer"
                                             />
                                             <span className="text-sm font-medium text-[var(--color-text-sub)] group-hover:text-[var(--color-text-main)] transition-colors">
-                                                I have read, understood, and agree to all the rules and
-                                                consent to camera-based proctoring during the exam. I understand any violation will trigger disqualification.
+                                                Saya telah membaca, memahami, dan menyetujui semua peraturan serta 
+                                                memberikan izin pengawasan berbasis kamera selama ujian. Saya mengerti bahwa pelanggaran apa pun akan memicu diskualifikasi.
                                             </span>
                                         </label>
                                     </div>
@@ -312,7 +312,7 @@ export default function InstructionsPage() {
                                         <span className="material-symbols-outlined text-sm">
                                             arrow_back
                                         </span>
-                                        Back
+                                        Kembali
                                     </Link>
 
                                     <button
@@ -323,7 +323,7 @@ export default function InstructionsPage() {
                                             : "bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] cursor-not-allowed opacity-75"
                                             }`}
                                     >
-                                        Proceed to Test
+                                        Lanjut ke Ujian
                                         <span className="material-symbols-outlined text-sm">
                                             arrow_forward
                                         </span>
@@ -347,16 +347,16 @@ export default function InstructionsPage() {
                                     </span>
                                 </div>
                                 <h3 className="text-xl font-bold text-[var(--color-text-main)]">
-                                    Are you sure?
+                                    Apakah Anda yakin?
                                 </h3>
                                 <p className="text-sm text-[var(--color-text-sub)]">
-                                    Once you start the test, the timer will begin counting down
-                                    immediately and cannot be paused. Make sure you&apos;re ready.
+                                    Setelah Anda memulai ujian, penghitung waktu akan langsung berjalan 
+                                    dan tidak dapat dihentikan. Pastikan Anda sudah siap.
                                 </p>
                                 <div className="bg-[var(--color-bg-elevated)] rounded-[var(--radius-sm)] p-3 text-sm border border-[var(--color-border)]">
                                     <p className="font-semibold text-[var(--color-text-main)]">{testInfo.name}</p>
                                     <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                                        {testInfo.duration} minutes
+                                        {testInfo.duration} menit
                                     </p>
                                 </div>
                                 <div className="flex gap-3 pt-2">
@@ -364,13 +364,13 @@ export default function InstructionsPage() {
                                         onClick={() => setShowConfirm(false)}
                                         className="flex-1 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] text-[var(--color-text-sub)] font-medium text-sm hover:bg-[var(--color-bg-hover)] transition-all cursor-pointer btn-press"
                                     >
-                                        Cancel
+                                        Batal
                                     </button>
                                     <button
                                         onClick={handleBeginTest}
                                         className="flex-1 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-bold text-sm text-center transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] cursor-pointer btn-press btn-shine"
                                     >
-                                        Begin Test
+                                        Mulai Ujian
                                     </button>
                                 </div>
                             </div>

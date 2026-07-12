@@ -72,7 +72,10 @@ export async function POST(req: NextRequest) {
         const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
         const mailOptions = {
-            from: `"${company.name} Assessment" <${smtpSender}>`,
+            from: {
+                name: `${company.name} Assessment`,
+                address: smtpSender
+            },
             to: email,
             subject: "Reset Password Konfirmasi",
             html: `

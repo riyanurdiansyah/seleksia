@@ -48,10 +48,10 @@ interface DashboardClientProps {
 const statCards = [
     {
         key: "totalParticipants" as const,
-        label: "Total Candidates",
+        label: "Total Kandidat",
         icon: "group",
         change: "+5%",
-        changeLabel: "from last month",
+        changeLabel: "dari bulan lalu",
         iconBg: "bg-blue-100",
         iconColor: "text-blue-600",
         changeBg: "bg-[var(--color-primary-light)] text-primary",
@@ -59,10 +59,10 @@ const statCards = [
     },
     {
         key: "completedToday" as const,
-        label: "Completed Today",
+        label: "Selesai Hari Ini",
         icon: "task_alt",
         change: "+10%",
-        changeLabel: "from yesterday",
+        changeLabel: "dari kemarin",
         iconBg: "bg-emerald-100",
         iconColor: "text-emerald-600",
         changeBg: "bg-[var(--color-primary-light)] text-primary",
@@ -70,10 +70,10 @@ const statCards = [
     },
     {
         key: "activeAssignments" as const,
-        label: "Active Tests",
+        label: "Ujian Aktif",
         icon: "play_circle",
         change: "+2%",
-        changeLabel: "from last week",
+        changeLabel: "dari minggu lalu",
         iconBg: "bg-amber-100",
         iconColor: "text-amber-600",
         changeBg: "bg-[var(--color-primary-light)] text-primary",
@@ -81,10 +81,10 @@ const statCards = [
     },
     {
         key: "averageScore" as const,
-        label: "Average Score",
+        label: "Rata-rata Nilai",
         icon: "analytics",
-        change: "On Target",
-        changeLabel: "overall performance",
+        change: "Sesuai Target",
+        changeLabel: "performa keseluruhan",
         iconBg: "bg-purple-100",
         iconColor: "text-purple-600",
         changeBg: "bg-[var(--color-primary-light)] text-primary",
@@ -123,10 +123,10 @@ export default function DashboardClient({
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-                        Good morning, Admin 👋
+                        Selamat Datang 👋
                     </h1>
                     <p className="text-[var(--color-text-muted)] text-sm mt-1 font-medium">
-                        Here&apos;s an overview of your assessment platform today.
+                        Berikut adalah ringkasan platform ujian Anda hari ini.
                     </p>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -138,13 +138,13 @@ export default function DashboardClient({
                             transition-all btn-shine btn-press cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-[16px]">add</span>
-                        Add Candidate
+                        Tambah Kandidat
                     </Link>
                     <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-[var(--radius-sm)] text-[13px] font-semibold
                         bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)]
                         hover:bg-[var(--color-bg-hover)] shadow-[var(--shadow-sm)] transition-all btn-press cursor-pointer">
                         <span className="material-symbols-outlined text-[16px] text-[var(--color-text-muted)]">upload_file</span>
-                        Import
+                        Impor
                     </button>
                 </div>
             </div>

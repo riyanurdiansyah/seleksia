@@ -36,7 +36,7 @@ export default function Header() {
   };
 
   // Determine label based on role
-  const idLabel = userRole === "superadmin" ? "Company ID" : "Candidate ID";
+  const idLabel = userRole === "superadmin" ? "ID Perusahaan" : "ID Kandidat";
 
   return (
     <header className="bg-[rgba(255,255,255,0.7)] backdrop-blur-[12px] border-b border-[var(--color-border)] sticky top-0 z-50">
@@ -44,10 +44,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <img src="/logo.png" alt="SELEKSIA Logo" className="w-8 h-8 object-contain animate-float group-hover:scale-105 transition-all brightness-0" />
-            <span className="text-[var(--color-brand-navy)] text-xl font-serif font-semibold tracking-wider">
-              SELEKSIA
-            </span>
+            <img src="/full-logo.png" alt="SELEKSIA Logo" className="h-9 w-auto object-contain animate-float group-hover:scale-105 transition-all dark:brightness-0 dark:invert" />
           </Link>
 
           {/* User Profile */}
@@ -65,7 +62,7 @@ export default function Header() {
               onClick={handleLogout}
               className="flex items-center justify-center h-9 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] transition-all text-sm font-medium cursor-pointer btn-press"
             >
-              Log Out
+              Keluar
             </button>
           </div>
         </div>

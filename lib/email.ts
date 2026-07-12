@@ -38,7 +38,10 @@ export async function sendWelcomeEmail(candidateId: string, plainPassword?: stri
         const loginUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/login` : "http://localhost:3000/login";
 
         const mailOptions = {
-            from: `"${company.name} Assessment" <${smtpSender}>`,
+            from: {
+                name: `${company.name} Assessment`,
+                address: smtpSender
+            },
             to: candidate.email,
             subject: `Undangan Seleksi - ${company.name}`,
             html: `

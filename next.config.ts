@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
     // Disable eslint check during build
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/ws-monitoring',
+        destination: process.env.WS_SERVER_URL || 'http://localhost:6002', 
+      },
+    ];
+  },
 };
 
 export default nextConfig;

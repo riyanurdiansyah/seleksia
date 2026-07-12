@@ -5,16 +5,16 @@ interface StepperProps {
 }
 
 const steps = [
-    { label: "Check" },
-    { label: "Instructions" },
-    { label: "Exam" },
-    { label: "Finish" },
+    { label: "Persiapan" },
+    { label: "Instruksi" },
+    { label: "Ujian" },
+    { label: "Selesai" },
 ];
 
 export default function Stepper({ currentStep }: StepperProps) {
     return (
-        <nav aria-label="Progress">
-            <ol className="flex items-center" role="list">
+        <nav aria-label="Progress" className="w-full">
+            <ol className="flex items-center justify-between w-full" role="list">
                 {steps.map((step, idx) => {
                     const isCompleted = idx < currentStep;
                     const isCurrent = idx === currentStep;
@@ -23,7 +23,7 @@ export default function Stepper({ currentStep }: StepperProps) {
                     return (
                         <li
                             key={step.label}
-                            className={`relative ${!isLast ? "pr-8 sm:pr-20" : ""}`}
+                            className={`relative ${!isLast ? "flex-1" : ""}`}
                         >
                             {/* Connector line */}
                             {!isLast && (
@@ -62,7 +62,7 @@ export default function Stepper({ currentStep }: StepperProps) {
 
                             {/* Label */}
                             <span
-                                className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs whitespace-nowrap transition-colors font-semibold ${isCompleted
+                                className={`absolute -bottom-6 left-4 -translate-x-1/2 text-xs whitespace-nowrap transition-colors font-semibold ${isCompleted
                                         ? "text-[var(--color-success)]"
                                         : isCurrent
                                             ? "text-primary"

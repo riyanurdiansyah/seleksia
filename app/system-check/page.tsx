@@ -21,11 +21,10 @@ export default function SystemCheckPage() {
                         {/* Page Header */}
                         <div className="text-center mt-10 animate-fade-in">
                             <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                System Readiness Check
+                                Pengecekan Sistem
                             </h1>
                             <p className="mt-2 text-slate-600 dark:text-slate-400">
-                                We need to verify your equipment before starting the exam to
-                                ensure a smooth experience.
+                                Kami perlu memverifikasi perangkat Anda sebelum memulai ujian untuk memastikan kelancaran pengalaman ujian Anda.
                             </p>
                         </div>
 
