@@ -92,12 +92,17 @@ export async function POST(req: NextRequest) {
             `,
         };
 
-        await transporter.sendMail(mailOptions);
+        try {
+            await transporter.sendMail(mailOptions);
+        } catch (mailError) {
+            console.error("Failed to send SMTP email:", mailError);
+            return NextResponse.json({ error: "Gagal mengirim email. Harap hubungi administrator (Cek pengaturan SMTP)." }, { status: 500 });
+        }
 
         return NextResponse.json({ success: true, message: "If the email is registered, a reset link has been sent." });
 
     } catch (error) {
         console.error("Forgot password error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        return NextResponse.json({ error: "Terjadi kesalahan internal server. Harap hubungi admin." }, { status: 500 });
     }
 }
