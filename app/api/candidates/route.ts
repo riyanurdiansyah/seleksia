@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { getTenantPrisma, getCompanyId } from "@/lib/tenant";
 import { checkSubscriptionAccess } from "@/lib/subscription";
+import { sendWelcomeEmail } from "@/lib/email";
 
 // GET all candidates
 export async function GET(req: NextRequest) {
@@ -91,6 +92,9 @@ export async function POST(req: NextRequest) {
                 accessEnd: body.accessType === "permanent" ? null : (body.accessEnd ? new Date(body.accessEnd) : null),
             },
         });
+
+        // Send welcome email asynchronously so it doesn't block the API response
+        sendWelcomeEmail(candidate.id, displayId).catch(console.error);
 
         return NextResponse.json(candidate, { status: 201 });
     } catch (error) {

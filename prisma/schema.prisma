@@ -95,6 +95,8 @@ model Candidate {
   status               CandidateStatus @default(registered)
   score                Int?
   aiPersonalityInsight String?         @db.Text
+  resetToken           String?
+  resetTokenExpiry     DateTime?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 

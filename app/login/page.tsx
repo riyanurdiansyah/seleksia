@@ -176,11 +176,15 @@ export default function LoginPage() {
               </div>
 
               {/* Password */}
+              {/* Password */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
                     Kata Sandi
                   </label>
+                  <a href="/forgot-password" className="text-xs font-semibold text-[var(--color-primary)] hover:underline transition-colors mb-2">
+                    Lupa Kata Sandi?
+                  </a>
                 </div>
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-[var(--color-text-muted)] text-xl z-10 transition-colors duration-200 group-focus-within:text-[var(--color-primary)]">

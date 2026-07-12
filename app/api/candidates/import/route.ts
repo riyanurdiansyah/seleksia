@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getCompanyId } from "@/lib/tenant";
 import { checkSubscriptionAccess } from "@/lib/subscription";
+import { sendWelcomeEmail } from "@/lib/email";
 
 
 export async function POST(req: NextRequest) {
@@ -155,6 +156,22 @@ export async function POST(req: NextRequest) {
                 data: candidatesToCreate,
             });
             insertedCount = result.count;
+
+            // Send welcome emails asynchronously
+            try {
+                const createdCandidates = await prisma.candidate.findMany({
+                    where: {
+                        companyId,
+                        email: { in: candidatesToCreate.map(c => c.email) }
+                    }
+                });
+                
+                Promise.allSettled(
+                    createdCandidates.map(c => sendWelcomeEmail(c.id, c.displayId))
+                ).catch(console.error);
+            } catch (err) {
+                console.error("Failed to send bulk welcome emails:", err);
+            }
         }
 
         // Return status check results
