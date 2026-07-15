@@ -47,5 +47,14 @@ services:
     volumes:
       - pgdata_app1:/var/lib/postgresql/data
 
+  nginx-uploads:
+    image: nginx:alpine
+    container_name: seleksia-uploads
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - /mnt/HDD_Data/seleksia_uploads:/usr/share/nginx/html/uploads
+
 volumes:
   pgdata_app1:
