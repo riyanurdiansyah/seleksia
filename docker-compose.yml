@@ -1,29 +1,28 @@
 version: '3.8'
 
 services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  web-app-1:
+    build: .
     image: seleksia-app:latest
-    container_name: seleksia-web
+    container_name: seleksia-web-1
     restart: always
     ports:
-      - "3000:3000"
+      - "3001:3000" # Port 3001 di PC dihubungkan ke port 3000 di dalam Docker
     env_file:
       - .env
     environment:
       - PORT=3000
-      - WS_SERVER_URL=http://ws:6002
+      - WS_SERVER_URL=http://ws-app-1:6002
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./public/uploads:/app/public/uploads
-    # Next.js akan membaca DATABASE_URL langsung dari file .env Anda yang terhubung ke PostgreSQL lokal VPS
+    depends_on:
+      - db-app-1
 
-  ws:
+  ws-app-1:
     image: seleksia-app:latest
-    container_name: seleksia-ws
+    container_name: seleksia-ws-1
     restart: always
     command: node scripts/ws-server.js
     ports:
@@ -33,4 +32,20 @@ services:
     environment:
       - PUSHER_PORT=6002
     depends_on:
-      - web
+      - web-app-1
+
+  db-app-1:
+    image: postgres:16
+    container_name: seleksia-db-1
+    restart: always
+    ports:
+      - "5432:5432" # Membuka port 5432 untuk database proyek pertama
+    environment:
+      POSTGRES_USER: seleksia
+      POSTGRES_PASSWORD: Dzneverinc@0
+      POSTGRES_DB: seleksia
+    volumes:
+      - pgdata_app1:/var/lib/postgresql/data
+
+volumes:
+  pgdata_app1:
