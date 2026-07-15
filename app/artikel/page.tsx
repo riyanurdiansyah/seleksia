@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 // Remove revalidate to use dynamic rendering for now, or keep it if static is preferred
-export const revalidate = 60; // revalidate every 60 seconds
+export const dynamic = 'force-dynamic';
 
 export default async function ArtikelListPage() {
     const articles = await prisma.article.findMany({

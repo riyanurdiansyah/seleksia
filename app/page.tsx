@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: 'Satu platform terpadu untuk evaluasi psikotes, ujian online CBT, dan pengawasan otomatis anti-kecurangan.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function LandingPage() {
   const [faqSetting, contactSetting, subscriptionPlans, questionTypesSetting] = await Promise.all([
     prisma.platformSetting.findUnique({ where: { key: "page_faq" } }),

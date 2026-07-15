@@ -8,6 +8,8 @@ interface Props {
     params: { slug: string };
 }
 
+export const dynamic = 'force-dynamic';
+
 // Generate dynamic metadata for SEO
 export async function generateMetadata(
     { params }: Props,
