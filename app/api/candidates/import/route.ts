@@ -119,7 +119,6 @@ export async function POST(req: NextRequest) {
                 }
             }
         }
-
         let count = maxNum;
         const candidatesWithIds = validCandidates.map((c) => {
             count++;
