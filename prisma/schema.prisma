@@ -405,3 +405,23 @@ model InterviewSession {
 
   @@map("interview_sessions")
 }
+
+// ===== Articles (SEO) =====
+
+model Article {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  content        String   @db.Text
+  excerpt        String?  @db.Text
+  coverImage     String?
+  seoTitle       String?
+  seoDescription String?  @db.Text
+  seoKeywords    String?
+  status         String   @default("draft") // "draft", "published"
+  author         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("articles")
+}

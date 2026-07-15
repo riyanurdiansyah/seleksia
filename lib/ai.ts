@@ -211,3 +211,84 @@ Keep it concise, objective, and constructive. Around 2-3 paragraphs.
     throw error;
   }
 }
+
+export async function generateArticle(
+  topic: string,
+  keywords: string,
+  tone: string = "Professional yet engaging"
+) {
+  try {
+    const systemPrompt = `You are an expert SEO content writer and blogger.
+Your task is to write a high-quality, engaging, and SEO-optimized article in Indonesian language about the following topic.
+
+Topic: "${topic}"
+SEO Keywords to include naturally: "${keywords}"
+Tone of voice: "${tone}"
+
+You MUST output your response strictly using the following XML tags format:
+<title>A catchy, SEO-friendly title (H1)</title>
+<slug>url-friendly-slug-based-on-title</slug>
+<excerpt>A short, engaging summary (1-2 sentences) for meta description and previews.</excerpt>
+<seoTitle>SEO optimized meta title (max 60 chars)</seoTitle>
+<seoDescription>SEO optimized meta description (max 160 chars)</seoDescription>
+<seoKeywords>comma, separated, keywords</seoKeywords>
+<content>
+The full article content formatted in Markdown. Include appropriate headings (H2, H3), bullet points, and paragraphs.
+</content>`;
+
+    const aiConfig = await getAIConfig(2000, 0.7);
+    const msg = await anthropic.messages.create({
+      model: aiConfig.model,
+      max_tokens: 4096, // Override DB settings for articles since they are inherently long
+      temperature: aiConfig.temperature,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: 'Generate the SEO article now using the specified XML tags format. Do NOT include any conversational filler. Start directly with the <title> tag.',
+        },
+        {
+          role: 'assistant',
+          content: '<title>'
+        }
+      ],
+    });
+
+    const contentMsg = msg.content[0];
+    if (contentMsg.type === 'text') {
+        // Re-add the prefilled <title> tag to the start of the response
+        const text = '<title>' + contentMsg.text;
+        
+        // Helper to extract content between XML tags safely (handles cutoff gracefully)
+        const extractTag = (tag: string) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)(?:</${tag}>|$)`, 'i');
+            const match = text.match(regex);
+            return match ? match[1].trim() : '';
+        };
+
+        const result = {
+            title: extractTag('title'),
+            slug: extractTag('slug'),
+            excerpt: extractTag('excerpt'),
+            seoTitle: extractTag('seoTitle'),
+            seoDescription: extractTag('seoDescription'),
+            seoKeywords: extractTag('seoKeywords'),
+            content: extractTag('content'),
+        };
+        
+        // If it somehow fails to parse the tags, fallback to simple parsing or throw an error
+        if (!result.title || !result.content) {
+            console.error("FULL CLAUDE TEXT:", text);
+            throw new Error("Failed to parse tags from Claude's response. See console for full text.");
+        }
+        
+        return result;
+    }
+    
+    throw new Error("Unexpected response format from Claude");
+  } catch (error) {
+    console.error('Error generating article:', error);
+    throw error;
+  }
+}
+

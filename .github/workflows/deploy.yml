@@ -1,4 +1,4 @@
-name: Node.js CI/CD Deploy to VPS
+name: Node.js CI/CD Deploy to PC Server
 
 on:
   push:
@@ -7,47 +7,50 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    # Only run this job if the commit message contains "#deploy#"
+    # 1. Ubah target runner ke mesin lokal Anda
+    runs-on: self-hosted
+    
+    # Tetap pertahankan aturan #deploy# Anda
     if: contains(github.event.head_commit.message, '#deploy#')
 
     steps:
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          command_timeout: 20m
-          script: |
-            set -e
-            echo "=== STARTING DOCKER DEPLOYMENT ==="
-            cd /var/www/seleksia
-            
-            # Reset local changes in production if any, and pull latest code
-            git reset --hard
-            git pull origin master
-            
-            # Build images first (keeps old container running during build to prevent downtime)
-            docker compose build
-            
-            # Stop and remove old containers to guarantee port 3000 is released
-            docker compose down
-            
-            # Force stop any Docker container that is publishing port 3000 (just in case of orphaned containers)
-            docker ps -q --filter "publish=3000" | xargs -r docker stop || true
-            
-            # Kill any other process listening on port 3000 (e.g. native node process)
-            kill -9 $(lsof -t -i:3000) 2>/dev/null || true
-            
-            # Launch new containers
-            docker compose up -d
-            
-            # Run Prisma database migrations inside the running Next.js container
-            docker compose exec -T web npx prisma migrate deploy
-            
-            # Clean up old unused Docker builds/images to prevent VPS disk space from running out
-            docker image prune -f
-            
-            echo "=== DOCKER DEPLOYMENT COMPLETED SUCCESSFULLY ==="
+      # 2. Gunakan checkout action untuk menarik kode secara otomatis
+      - name: Tarik Kode Terbaru dari GitHub
+        uses: actions/checkout@v4
+
+      # 3. Eksekusi Docker langsung di dalam PC Server
+      - name: Deploy Aplikasi via Docker
+        run: |
+          set -e
+          echo "=== STARTING DOCKER DEPLOYMENT ==="
+          
+          # Tampilkan info commit untuk memudahkan pantauan log
+          echo "Deploying branch: ${{ github.ref_name }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          
+          # CATATAN: Kita tidak butuh "cd /var/www/seleksia" lagi, 
+          # karena actions/checkout sudah otomatis meletakkan kita 
+          # di dalam folder proyek versi terbaru.
+
+          # Build images first (keeps old container running during build)
+          docker compose build
+          
+          # Stop and remove old containers to guarantee port 3000 is released
+          docker compose down
+          
+          # Force stop any Docker container that is publishing port 3000
+          docker ps -q --filter "publish=3000" | xargs -r docker stop || true
+          
+          # Kill any other process listening on port 3000
+          kill -9 $(lsof -t -i:3000) 2>/dev/null || true
+          
+          # Launch new containers
+          docker compose up -d
+          
+          # Run Prisma database migrations inside the running Next.js container
+          docker compose exec -T web npx prisma migrate deploy
+          
+          # Clean up old unused Docker builds/images to prevent disk space from running out
+          docker image prune -f
+          
+          echo "=== DOCKER DEPLOYMENT COMPLETED SUCCESSFULLY ==="
