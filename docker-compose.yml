@@ -16,7 +16,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./public/uploads:/app/public/uploads
+      - /mnt/HDD_Data/seleksia_uploads:/app/public/uploads
     depends_on:
       - db-app-1
 
