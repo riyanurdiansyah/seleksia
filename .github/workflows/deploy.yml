@@ -50,7 +50,10 @@ jobs:
           docker compose up -d web-app-1
           
           # 5. Eksekusi sinkronisasi database Prisma di dalam container web yang sedang berjalan
-          docker compose exec -T web-app-1 npx prisma migrate deploy
+          docker compose exec -T web-app-1 npx prisma db push --accept-data-loss
+          
+          # 6. Masukkan data template email bawaan (Seed) jika belum ada
+          docker compose exec -T web-app-1 npx tsx scripts/seed-email-templates.ts || true
           
           # 6. Bersihkan image Docker versi lama agar penyimpanan SSD PC tetap lega
           docker image prune -f
