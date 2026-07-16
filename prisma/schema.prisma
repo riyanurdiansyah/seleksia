@@ -21,6 +21,7 @@ model Company {
   instructions Instruction[]
   questions    Question[]
   testGroups   TestGroup[]
+  emailTemplates EmailTemplate[]
 
   smtpHost     String?
   smtpPort     Int?
@@ -56,6 +57,23 @@ model PlatformSetting {
   updatedAt DateTime @updatedAt
 
   @@map("platform_settings")
+}
+
+// ===== Email Templates =====
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  subject   String
+  content   String   @db.Text
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("email_templates")
 }
 
 // ===== Candidates / Users =====

@@ -263,27 +263,17 @@ export default function CompanyClient() {
               {["Business", "Enterprise"].includes(formData.subscriptionPlan) ? (
                 <>
                   <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Alamat Email (Mailcow)</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Alamat Email Pengirim</label>
                     <input
                       type="email"
-                      placeholder="hrd-perusahaan@seleksia.com"
+                      placeholder="hrd@namaperusahaan.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                     <p className="text-[10px] text-[var(--color-text-muted)] font-medium">
-                      Kosongkan jika tidak ingin membuat akun email baru di Mailcow.
+                      Kosongkan jika ingin menggunakan email pengirim default (noreply@seleksia.com). Pastikan domain email sudah diverifikasi di akun Resend.
                     </p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Password Email Mailcow</label>
-                    <input
-                      type="password"
-                      placeholder="Password untuk email baru"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    />
                   </div>
                 </>
               ) : (
@@ -292,7 +282,7 @@ export default function CompanyClient() {
                   <div className="space-y-1">
                     <p className="text-xs text-orange-800 font-semibold">Fitur Email Domain Khusus Terkunci</p>
                     <p className="text-[11px] text-orange-700">
-                      Pembuatan email dengan domain seleksia.com hanya tersedia untuk paket <strong>Business</strong> dan <strong>Enterprise</strong>. 
+                      Fitur email pengirim khusus hanya tersedia untuk paket <strong>Business</strong> dan <strong>Enterprise</strong>. 
                       Paket perusahaan ini saat ini adalah <strong>{formData.subscriptionPlan || "Free"}</strong>.
                     </p>
                   </div>

@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 export const dynamic = 'force-dynamic';
 
+const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
@@ -26,59 +27,35 @@ export async function POST(req: NextRequest) {
         const companyName = company?.name || "Seleksia";
         const appUrl = process.env.NEXTAUTH_URL || "https://seleksia.com";
 
-        // Check if custom SMTP is configured (Mailcow or custom)
-        let smtpConfig = null;
-        if (company && company.smtpUser && company.smtpPass) {
-            smtpConfig = {
-                host: company.smtpHost || process.env.SMTP_HOST || "mail.seleksia.com",
-                port: company.smtpPort || (process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465),
-                user: company.smtpUser,
-                pass: company.smtpPass,
-                sender: company.smtpSender || company.name || "Seleksia Ujian",
-            };
-        } else if (
-            process.env.SMTP_HOST &&
-            process.env.SMTP_PORT &&
-            process.env.SMTP_USER &&
-            process.env.SMTP_PASS
-        ) {
-            // Fallback to global SMTP
-            smtpConfig = {
-                host: process.env.SMTP_HOST,
-                port: parseInt(process.env.SMTP_PORT, 10),
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-                sender: process.env.SMTP_SENDER || "Seleksia",
-            };
-        }
+        // Determine sender email
+        let rawEmail = (company && company.smtpUser) ? company.smtpUser : (process.env.RESEND_DEFAULT_FROM || "noreply@seleksia.com");
+        const senderEmail = rawEmail.includes('<') ? rawEmail.match(/<(.+)>/)?.[1] || rawEmail : rawEmail;
+        const senderName = company?.name ? `${company.name} Assessment` : "TMS Group Assessment";
+        
+        const fromHeader = `${senderName} <${senderEmail}>`;
 
-        if (smtpConfig) {
-            // Send real email using Nodemailer
-            const transporter = nodemailer.createTransport({
-                host: smtpConfig.host,
-                port: smtpConfig.port,
-                secure: smtpConfig.port === 465,
-                auth: {
-                    user: smtpConfig.user,
-                    pass: smtpConfig.pass,
-                },
-                timeout: 10000,
-            } as any);
+        if (process.env.RESEND_API_KEY) {
+            // Send real email using Resend
+            const htmlContent = getEmailWrapper(parseMessageToHtml(message, appUrl), companyName);
 
-            const mailOptions = {
-                from: `"${smtpConfig.sender}" <${smtpConfig.user}>`,
+            const { data, error } = await resend.emails.send({
+                from: fromHeader,
                 to: candidate.email,
                 subject: subject,
                 text: message,
-                html: getEmailWrapper(parseMessageToHtml(message, appUrl), companyName),
-            };
+                html: htmlContent,
+            });
 
-            await transporter.sendMail(mailOptions);
-            console.log(`[SMTP EMAIL SENT] To: ${candidate.email}, Subject: ${subject}`);
+            if (error) {
+                console.error("[RESEND ERROR]", error);
+                return NextResponse.json({ error: error.message || "Failed to send email via Resend" }, { status: 500 });
+            }
+
+            console.log(`[RESEND EMAIL SENT] To: ${candidate.email}, Subject: ${subject}, Id: ${data?.id}`);
         } else {
             // Simulate sending email (600ms delay)
             await new Promise(r => setTimeout(r, 600));
-            console.log(`[EMAIL SIMULATED (No SMTP Config)] To: ${candidate.email}, Subject: ${subject}`);
+            console.log(`[EMAIL SIMULATED (No API Key)] To: ${candidate.email}, Subject: ${subject}`);
         }
 
         return NextResponse.json({

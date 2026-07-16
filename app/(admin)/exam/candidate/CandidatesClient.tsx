@@ -553,7 +553,12 @@ export default function CandidatesClient() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newCandidate),
             });
-            if (!res.ok) throw new Error("Failed to create");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                const errMsg = errData.error || errData.details || "Failed to create";
+                alert(errMsg);
+                throw new Error(errMsg);
+            }
             const created = await res.json();
             setCandidates((prev) => [created, ...prev]);
             setNewCandidate({

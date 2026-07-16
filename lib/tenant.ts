@@ -98,6 +98,22 @@ export async function getTenantPrisma() {
                     }
                     return query(args);
                 }
+            },
+            emailTemplate: {
+                async $allOperations({ operation, args, query }) {
+                    if (operation === 'create' || operation === 'createMany') {
+                        if (args.data) {
+                            if (Array.isArray(args.data)) {
+                                args.data.forEach(d => { d.companyId = companyId; });
+                            } else {
+                                (args.data as any).companyId = companyId;
+                            }
+                        }
+                    } else if (operation !== 'count' && operation !== 'findUnique' && args && typeof args === 'object' && 'where' in args) {
+                        (args as any).where = { ...((args as any).where || {}), companyId };
+                    }
+                    return query(args);
+                }
             }
         }
     });

@@ -97,10 +97,18 @@ export async function POST(req: NextRequest) {
         sendWelcomeEmail(candidate.id, displayId).catch(console.error);
 
         return NextResponse.json(candidate, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
         console.error("POST /api/candidates error:", error);
+        
+        if (error?.code === 'P2002') {
+            return NextResponse.json(
+                { error: "Email sudah digunakan oleh kandidat lain. Silakan gunakan email yang berbeda." },
+                { status: 400 }
+            );
+        }
+
         return NextResponse.json(
-            { error: "Failed to create candidate", details: error instanceof Error ? error.message : String(error) },
+            { error: "Gagal membuat kandidat. Harap hubungi admin.", details: error.message || String(error) },
             { status: 500 }
         );
     }
