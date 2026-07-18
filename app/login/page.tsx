@@ -246,8 +246,6 @@ export default function LoginPage() {
                  <span>SSL 256-bit Encrypted</span>
                </div>
              </form>
-
-          
           </div>
         </div>
       </div>
