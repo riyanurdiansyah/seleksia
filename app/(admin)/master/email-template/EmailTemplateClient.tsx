@@ -17,6 +17,7 @@ export default function EmailTemplateClient() {
     const [isLoading, setIsLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+    const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -94,16 +95,22 @@ export default function EmailTemplateClient() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus template ini?")) return;
+    const handleDeleteClick = (id: string) => {
+        setTemplateToDelete(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!templateToDelete) return;
         
         try {
-            const res = await fetch(`/api/email-templates/${id}`, { method: "DELETE" });
+            const res = await fetch(`/api/email-templates/${templateToDelete}`, { method: "DELETE" });
             if (res.ok) {
                 fetchTemplates();
             }
         } catch (error) {
             console.error("Delete error:", error);
+        } finally {
+            setTemplateToDelete(null);
         }
     };
 
@@ -178,7 +185,7 @@ export default function EmailTemplateClient() {
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(template.id)}
+                                                    onClick={() => handleDeleteClick(template.id)}
                                                     className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                     title="Hapus"
                                                 >
@@ -313,6 +320,39 @@ export default function EmailTemplateClient() {
                                 className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
                             >
                                 Simpan Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {templateToDelete && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-6 py-5 flex items-start gap-4">
+                            <div className="bg-red-100 p-2.5 rounded-full flex-shrink-0 mt-1">
+                                <AlertCircle className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-800">Hapus Template</h2>
+                                <p className="text-slate-500 text-sm mt-1 leading-relaxed">
+                                    Apakah Anda yakin ingin menghapus template ini? Tindakan ini tidak dapat dibatalkan.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                            <button
+                                onClick={() => setTemplateToDelete(null)}
+                                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Ya, Hapus
                             </button>
                         </div>
                     </div>
