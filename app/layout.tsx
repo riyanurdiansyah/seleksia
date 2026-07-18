@@ -8,6 +8,7 @@ const geomini = localFont({
   variable: '--font-geomini',
 });
 
+
 export const metadata = {
   title: "SELEKSIA - Computer Based Test",
   description:
