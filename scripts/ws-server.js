@@ -6,7 +6,7 @@ const wss = new WebSocketServer({ port });
 
 // Store candidateId -> candidateState mapping
 const states = new Map();
-// Store socket -> candidateId mapping to track disconnects
+
 const socketCandidates = new Map();
 
 wss.on("connection", (ws) => {
