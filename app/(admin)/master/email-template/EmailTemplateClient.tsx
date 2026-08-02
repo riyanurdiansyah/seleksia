@@ -56,7 +56,7 @@ export default function EmailTemplateClient() {
             setFormData({
                 name: "",
                 subject: "Undangan Seleksi - {{company_name}}",
-                content: `Halo <strong>{{candidate_name}}</strong>,<br/><br/>Anda telah diundang untuk mengikuti asesmen di platform <strong>{{company_name}}</strong>.<br/><br/>Berikut adalah informasi akun Anda untuk masuk ke sistem:<br/><br/>URL Login: <a href="{{login_url}}">{{login_url}}</a><br/>Username: {{username}}<br/>Password: {{password}}<br/><br/>Silakan masuk dan segera ganti kata sandi Anda demi keamanan.`,
+                content: `Halo <strong>{{candidate_name}}</strong>,<br/><br/>Anda telah diundang untuk mengikuti asesmen di platform <strong>{{company_name}}</strong>.<br/><br/>Berikut adalah informasi akun Anda untuk masuk ke sistem:<br/><br/>URL Login: <a href="{{login_url}}">{{login_url}}</a><br/>Username: {{username}}<br/>Password: {{password}}<br/>Waktu Pelaksanaan: {{waktu_pelaksanaan}}<br/><br/>Silakan masuk dan segera ganti kata sandi Anda demi keamanan.`,
                 isDefault: templates.length === 0 // Make default if it's the first one
             });
         }
@@ -120,7 +120,8 @@ export default function EmailTemplateClient() {
         .replace(/\{\{company_name\}\}/g, "PT Contoh Perusahaan")
         .replace(/\{\{login_url\}\}/g, "https://seleksia.com/login")
         .replace(/\{\{username\}\}/g, "budi@example.com")
-        .replace(/\{\{password\}\}/g, "PSK-001");
+        .replace(/\{\{password\}\}/g, "PSK-001")
+        .replace(/\{\{waktu_pelaksanaan\}\}/g, "02 Agustus 2026 08:00 - 10:00");
 
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -253,6 +254,7 @@ export default function EmailTemplateClient() {
                                                 <span className="bg-white px-1.5 py-0.5 rounded border border-blue-200">{"{{login_url}}"}</span>
                                                 <span className="bg-white px-1.5 py-0.5 rounded border border-blue-200">{"{{username}}"}</span>
                                                 <span className="bg-white px-1.5 py-0.5 rounded border border-blue-200">{"{{password}}"}</span>
+                                                <span className="bg-white px-1.5 py-0.5 rounded border border-blue-200">{"{{waktu_pelaksanaan}}"}</span>
                                             </div>
                                         </div>
                                     </div>

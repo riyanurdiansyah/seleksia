@@ -14,6 +14,7 @@ interface CandidateResult {
     email: string;
     assignedTests: string;
     status: string;
+    waktuPelaksanaan?: string;
 }
 
 export default function WhatsappClient({ initialData }: { initialData: CandidateResult[] }) {
@@ -96,7 +97,8 @@ export default function WhatsappClient({ initialData }: { initialData: Candidate
             .replace(/\{\{name\}\}/g, user.name)
             .replace(/\{\{test_name\}\}/g, user.assignedTests || "Test Assessment")
             .replace(/\{\{displayId\}\}/g, user.displayId)
-            .replace(/\{\{email\}\}/g, user.email);
+            .replace(/\{\{email\}\}/g, user.email)
+            .replace(/\{\{waktu_pelaksanaan\}\}/g, user.waktuPelaksanaan || "-");
     }, []);
 
     const formatPhoneNumber = (phone: string) => {

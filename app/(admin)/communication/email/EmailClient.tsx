@@ -14,6 +14,7 @@ interface CandidateResult {
     email: string;
     assignedTests: string;
     status: string;
+    waktuPelaksanaan?: string;
 }
 
 interface EmailTemplate {
@@ -207,7 +208,8 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
             .replace(/\{\{name\}\}/g, user.name)
             .replace(/\{\{test_name\}\}/g, user.assignedTests || "Test Assessment")
             .replace(/\{\{displayId\}\}/g, user.displayId)
-            .replace(/\{\{email\}\}/g, user.email);
+            .replace(/\{\{email\}\}/g, user.email)
+            .replace(/\{\{waktu_pelaksanaan\}\}/g, user.waktuPelaksanaan || "-");
 
         // Replace custom variables
         customVariables.forEach(v => {
@@ -231,7 +233,8 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
             phone: "+62 812-3456-789",
             email: "peserta@domain.com",
             assignedTests: "Tes Intelegensi Umum, MBTI",
-            status: "Ready"
+            status: "Ready",
+            waktuPelaksanaan: "12 Agustus 2026 08:00 - 10:00"
         };
     }, [selectedUsers, initialData]);
 
