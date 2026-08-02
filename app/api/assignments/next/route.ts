@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
                         questionType: true,
                         description: true,
                         duration: true,
+                        totalQuestionsToUse: true,
                         questions: {
                             select: {
                                 id: true,

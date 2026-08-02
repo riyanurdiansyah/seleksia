@@ -194,9 +194,7 @@ export default function InstructionsPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
                                             { label: "Ujian Dipilih", value: testInfo.name, icon: "assignment" },
-                                            { label: "Kategori", value: (categoryLabel[testInfo.category] || testInfo.category), icon: "category" },
                                             { label: "Durasi", value: `${testInfo.duration} mnt`, icon: "timer" },
-                                            { label: "Batas Lulus", value: "Penilaian Otomatis", icon: "grading" },
                                         ].map((item) => (
                                             <div
                                                 key={item.label}

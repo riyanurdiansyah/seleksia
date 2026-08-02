@@ -44,6 +44,7 @@ interface Test {
     description: string | null;
     questions: Question[];
     duration: number;
+    totalQuestionsToUse: number;
     status: "draft" | "published" | "archived";
     createdAt: string;
 }
@@ -208,6 +209,7 @@ export default function TestsClient() {
         questionType: "multiple_choice" as QuestionType,
         description: "",
         duration: 30,
+        totalQuestionsToUse: 0,
         companyId: "",
     });
 
@@ -320,6 +322,7 @@ export default function TestsClient() {
                     questionType: newTest.questionType,
                     description: newTest.description,
                     duration: newTest.duration,
+                    totalQuestionsToUse: newTest.totalQuestionsToUse,
                     companyId: targetCompanyId || undefined
                 }),
             });
@@ -330,7 +333,7 @@ export default function TestsClient() {
             }
             const created = await res.json();
             setTests((prev) => [created, ...prev]);
-            setNewTest({ name: "", category: "intelligence", questionType: "multiple_choice", description: "", duration: 30, companyId: "" });
+            setNewTest({ name: "", category: "intelligence", questionType: "multiple_choice", description: "", duration: 30, totalQuestionsToUse: 0, companyId: "" });
             setShowCreateModal(false);
         } catch (err: any) {
             setErrorMsg(err.message || "Failed to create test");
@@ -426,11 +429,14 @@ export default function TestsClient() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: newStatus }),
             });
-            if (!res.ok) throw new Error("Failed to update");
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to update");
+            }
             const updated = await res.json();
             setTests((prev) => prev.map((t) => (t.id === id ? updated : t)));
-        } catch (err) {
-            console.error(err);
+        } catch (err: any) {
+            setErrorMsg(err.message || "Failed to update status");
         }
     };
 
@@ -868,9 +874,15 @@ export default function TestsClient() {
                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Description</label>
                                         <textarea value={newTest.description} onChange={(e) => setNewTest((prev) => ({ ...prev, description: e.target.value }))} rows={2} className="w-full px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300 resize-none" placeholder="Brief description of the test..." />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Duration (minutes)</label>
-                                        <input type="number" value={newTest.duration} onChange={(e) => setNewTest((prev) => ({ ...prev, duration: parseInt(e.target.value) || 0 }))} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" min="1" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Duration (minutes)</label>
+                                            <input type="number" value={newTest.duration} onChange={(e) => setNewTest((prev) => ({ ...prev, duration: parseInt(e.target.value) || 0 }))} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" min="1" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5" title="Berapa banyak soal yang akan digunakan dari total bank soal">Soal Digunakan (0=Semua)</label>
+                                            <input type="number" value={newTest.totalQuestionsToUse} onChange={(e) => setNewTest((prev) => ({ ...prev, totalQuestionsToUse: parseInt(e.target.value) || 0 }))} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" min="0" placeholder="0 = Gunakan Semua" />
+                                        </div>
                                     </div>
                                     <div className="flex justify-end pt-2">
                                         <button onClick={handleCreateTest} disabled={!newTest.name} className="flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press disabled:opacity-50 disabled:cursor-not-allowed">
@@ -1096,13 +1108,13 @@ export default function TestsClient() {
             {/* Error Message Modal */}
             <ConfirmDialog
                 open={!!errorMsg}
-                title="Gagal Membuat Paket Soal"
+                title="Perhatian"
                 message={errorMsg}
-                confirmLabel="OK"
-                cancelLabel="Tutup"
+                confirmLabel="Tutup"
+                cancelLabel=""
                 variant="danger"
                 onConfirm={() => setErrorMsg("")}
-                onCancel={() => setErrorMsg("")}
+                onCancel={() => {}}
             />
         </>
     );

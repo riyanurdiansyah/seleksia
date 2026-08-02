@@ -162,6 +162,7 @@ model Test {
   questionType QuestionType
   description  String?
   duration     Int // minutes
+  totalQuestionsToUse Int @default(0) // 0 means use all questions
   status       TestStatus   @default(draft)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt

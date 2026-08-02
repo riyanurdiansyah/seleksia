@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
                 questionType: body.questionType,
                 description: body.description || null,
                 duration: body.duration || 30,
+                totalQuestionsToUse: body.totalQuestionsToUse || 0,
             },
             include: { questions: true },
         });

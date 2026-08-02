@@ -25,6 +25,7 @@ interface TestData {
     questionType: string;
     description: string | null;
     duration: number;
+    totalQuestionsToUse?: number;
     questions: QuestionData[];
 }
 
@@ -216,29 +217,51 @@ export default function ExamPage() {
 
                 setAssignment(asgn);
 
-                // Shuffle questions for randomized order
-                const shuffledQuestions = shuffleArray(asgn.test.questions).map(q => {
-                    let qOptions = q.options || [];
-                    if (q.type === "true_false") {
-                        const valid = qOptions.filter(o => o && o.trim() !== "");
-                        qOptions = valid.length >= 2 ? valid : ["True", "False"];
-                    } else if (q.type === "likert_scale") {
-                        const valid = qOptions.filter(o => o && o.trim() !== "");
-                        qOptions = valid.length > 0 ? valid : ["1", "2", "3", "4", "5"];
+                // Load from localStorage or shuffle new
+                const storageKey = `psikoest_exam_qs_${asgn.id}`;
+                const savedQs = localStorage.getItem(storageKey);
+                let finalQuestions;
+
+                if (savedQs) {
+                    try {
+                        finalQuestions = JSON.parse(savedQs);
+                    } catch (e) {
+                        console.error("Failed to parse saved questions", e);
+                    }
+                }
+
+                if (!finalQuestions || !Array.isArray(finalQuestions) || finalQuestions.length === 0) {
+                    let qsToUse = shuffleArray(asgn.test.questions);
+                    if (asgn.test.totalQuestionsToUse && asgn.test.totalQuestionsToUse > 0) {
+                        qsToUse = qsToUse.slice(0, asgn.test.totalQuestionsToUse);
                     }
 
-                    let shuffledOptions = qOptions.map((opt, i) => ({
-                        text: opt,
-                        originalKey: q.type === "true_false" || q.type === "likert_scale" ? opt : (OPTION_KEYS[i] || String(i))
-                    }));
+                    finalQuestions = qsToUse.map(q => {
+                        let qOptions = q.options || [];
+                        if (q.type === "true_false") {
+                            const valid = qOptions.filter(o => o && o.trim() !== "");
+                            qOptions = valid.length >= 2 ? valid : ["True", "False"];
+                        } else if (q.type === "likert_scale") {
+                            const valid = qOptions.filter(o => o && o.trim() !== "");
+                            qOptions = valid.length > 0 ? valid : ["1", "2", "3", "4", "5"];
+                        }
 
-                    if (q.type === "multiple_choice" || q.type === "multiple_choice_weighted") {
-                        shuffledOptions = shuffleArray(shuffledOptions);
-                    }
+                        let shuffledOptions = qOptions.map((opt, i) => ({
+                            text: opt,
+                            originalKey: q.type === "true_false" || q.type === "likert_scale" ? opt : (OPTION_KEYS[i] || String(i))
+                        }));
 
-                    return { ...q, shuffledOptions, options: qOptions };
-                });
-                setQuestions(shuffledQuestions);
+                        if (q.type === "multiple_choice" || q.type === "multiple_choice_weighted") {
+                            shuffledOptions = shuffleArray(shuffledOptions);
+                        }
+
+                        return { ...q, shuffledOptions, options: qOptions };
+                    });
+
+                    localStorage.setItem(storageKey, JSON.stringify(finalQuestions));
+                }
+
+                setQuestions(finalQuestions);
 
                 setTestName(asgn.test.name);
                 setTestDuration(asgn.test.duration);
@@ -883,6 +906,7 @@ export default function ExamPage() {
         if (!assignment) return;
         setSubmitted(true);
         setShowSubmitModal(false);
+        localStorage.removeItem(`psikoest_exam_qs_${assignment.id}`);
 
         const timeUsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
@@ -905,6 +929,7 @@ export default function ExamPage() {
     const handleTimeExpiredSubmit = async () => {
         if (!assignment || submitted) return;
         setSubmitted(true);
+        localStorage.removeItem(`psikoest_exam_qs_${assignment.id}`);
 
         const timeUsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
 

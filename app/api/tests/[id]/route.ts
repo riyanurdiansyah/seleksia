@@ -63,12 +63,28 @@ export async function PATCH(
 
         // Build update data dynamically
         const data: Record<string, unknown> = {};
-        if (body.status !== undefined) data.status = body.status;
+        
+        if (body.status !== undefined) {
+            if (body.status === "published") {
+                const currentTest = await prisma.test.findUnique({ where: { id }, include: { questions: true } });
+                if (!currentTest) return NextResponse.json({ error: "Test not found" }, { status: 404 });
+                
+                const toUse = body.totalQuestionsToUse !== undefined ? body.totalQuestionsToUse : currentTest.totalQuestionsToUse;
+                if (toUse > 0 && currentTest.questions.length < toUse) {
+                    return NextResponse.json({ 
+                        error: `Gagal mem-publish: Jumlah soal (${currentTest.questions.length}) kurang dari pengaturan total soal yang akan digunakan (${toUse}).` 
+                    }, { status: 400 });
+                }
+            }
+            data.status = body.status;
+        }
+
         if (body.name !== undefined) data.name = body.name;
         if (body.category !== undefined) data.category = body.category;
         if (body.questionType !== undefined) data.questionType = body.questionType;
         if (body.description !== undefined) data.description = body.description;
         if (body.duration !== undefined) data.duration = body.duration;
+        if (body.totalQuestionsToUse !== undefined) data.totalQuestionsToUse = body.totalQuestionsToUse;
 
         const test = await prisma.test.update({
             where: { id },

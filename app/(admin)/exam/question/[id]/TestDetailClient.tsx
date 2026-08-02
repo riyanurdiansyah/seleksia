@@ -32,10 +32,11 @@ interface Test {
     category: TestCategory;
     questionType: QuestionType;
     description: string | null;
-    questions: Question[];
     duration: number;
+    totalQuestionsToUse: number;
     status: "draft" | "published" | "archived";
     createdAt: string;
+    questions: Question[];
 }
 
 const questionTypeConfig: Record<QuestionType, { label: string; icon: string; desc: string }> = {
@@ -75,6 +76,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
     const [editQuestionType, setEditQuestionType] = useState<QuestionType>("multiple_choice");
     const [editDescription, setEditDescription] = useState("");
     const [editDuration, setEditDuration] = useState(30);
+    const [editTotalQuestions, setEditTotalQuestions] = useState(0);
 
     // Add question
     const [showAddQuestion, setShowAddQuestion] = useState(false);
@@ -153,26 +155,36 @@ export default function TestDetailClient({ testId }: { testId: string }) {
     // Delete question confirmation
     const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<{ id: string; text: string } | null>(null);
 
-    /* Fetch test */
-    const fetchTest = useCallback(async () => {
-        try {
-            const res = await fetch(`/api/tests/${testId}`);
-            if (!res.ok) throw new Error("Not found");
-            const data = await res.json();
-            setTest(data);
-            setEditName(data.name);
-            setEditCategory(data.category);
-            setEditQuestionType(data.questionType);
-            setEditDescription(data.description || "");
-            setEditDuration(data.duration);
-        } catch {
-            setTest(null);
-        } finally {
-            setLoading(false);
-        }
-    }, [testId]);
-
-    useEffect(() => { fetchTest(); }, [fetchTest]);
+    /* Fetch test details */
+    useEffect(() => {
+        if (!testId) return;
+        const fetchTest = async () => {
+            try {
+                const res = await fetch(`/api/tests/${testId}`);
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || "Failed to fetch test");
+                }
+                const data = await res.json();
+                setTest(data);
+                
+                // Initialize form states
+                setEditName(data.name);
+                setEditCategory(data.category);
+                setEditQuestionType(data.questionType);
+                setEditDescription(data.description || "");
+                setEditDuration(data.duration);
+                setEditTotalQuestions(data.totalQuestionsToUse || 0);
+            } catch (err: any) {
+                console.error(err);
+                setTest(null);
+                setFetchError(err.message || "Failed to fetch test details");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTest();
+    }, [testId, router]);
 
     /* Save test settings */
     const handleSave = async () => {
@@ -188,6 +200,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     questionType: editQuestionType,
                     description: editDescription,
                     duration: editDuration,
+                    totalQuestionsToUse: editTotalQuestions,
                 }),
             });
             if (!res.ok) throw new Error("Failed");
@@ -210,11 +223,15 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: newStatus }),
             });
-            if (!res.ok) throw new Error("Failed");
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Failed");
+            }
             const updated = await res.json();
             setTest(updated);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            await globalDialog.alert(err.message || "Gagal mengubah status publish.");
         }
     };
 
@@ -517,7 +534,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         return (
             <div className="text-center py-24">
                 <span className="material-symbols-outlined text-5xl text-[var(--color-text-muted)] block mb-3">error</span>
-                <p className="text-[var(--color-text-sub)] mb-4">Test not found</p>
+                <p className="text-[var(--color-text-sub)] mb-4">{fetchError || "Test not found"}</p>
                 <button onClick={() => router.push("/exam/question")} className="text-primary hover:underline text-sm">← Back to Tests</button>
             </div>
         );
@@ -1033,7 +1050,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Test Name</label>
                         <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Category</label>
                             <Select2
@@ -1056,6 +1073,10 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Duration (minutes)</label>
                             <input type="number" value={editDuration} onChange={(e) => setEditDuration(parseInt(e.target.value) || 0)} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" min="1" />
                         </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5" title="Berapa banyak soal yang akan digunakan dari total bank soal">Soal Digunakan (0=Semua)</label>
+                            <input type="number" value={editTotalQuestions} onChange={(e) => setEditTotalQuestions(parseInt(e.target.value) || 0)} className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" min="0" placeholder="0 = Gunakan Semua" />
+                        </div>
                     </div>
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Description</label>
@@ -1072,7 +1093,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     </div>
 
                     <div className="flex justify-end gap-3 pt-2">
-                        <button onClick={() => { setEditName(test.name); setEditCategory(test.category); setEditQuestionType(test.questionType); setEditDescription(test.description || ""); setEditDuration(test.duration); }} className="px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] font-medium text-sm hover:bg-[var(--color-bg-hover)] transition-colors btn-press">
+                        <button onClick={() => { setEditName(test.name); setEditCategory(test.category); setEditQuestionType(test.questionType); setEditDescription(test.description || ""); setEditDuration(test.duration); setEditTotalQuestions(test.totalQuestionsToUse); }} className="px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] font-medium text-sm hover:bg-[var(--color-bg-hover)] transition-colors btn-press">
                             Reset
                         </button>
                         <button onClick={handleSave} disabled={saving || !editName} className="flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press disabled:opacity-50 disabled:cursor-not-allowed">
