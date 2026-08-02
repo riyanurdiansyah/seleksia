@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         
         const fromHeader = `${senderName} <${senderEmail}>`;
 
-        if (process.env.RESEND_API_KEY) {
+        if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes("dummy")) {
             // Send real email using Resend
             const htmlContent = getEmailWrapper(parseMessageToHtml(message, appUrl), companyName);
 
@@ -48,21 +48,27 @@ export async function POST(req: NextRequest) {
 
             if (error) {
                 console.error("[RESEND ERROR]", error);
-                return NextResponse.json({ error: error.message || "Failed to send email via Resend" }, { status: 500 });
+                return NextResponse.json({ error: `Gagal mengirim: ${error.message || "Domain belum diverifikasi/API Key salah"}` }, { status: 500 });
             }
 
             console.log(`[RESEND EMAIL SENT] To: ${candidate.email}, Subject: ${subject}, Id: ${data?.id}`);
+            
+            return NextResponse.json({
+                success: true,
+                recipient: candidate.email,
+                message: `Berhasil dikirim ke ${candidate.email} via Resend`
+            });
         } else {
             // Simulate sending email (600ms delay)
             await new Promise(r => setTimeout(r, 600));
             console.log(`[EMAIL SIMULATED (No API Key)] To: ${candidate.email}, Subject: ${subject}`);
+            
+            return NextResponse.json({
+                success: true,
+                recipient: candidate.email,
+                message: `[SIMULASI] Berhasil disimulasikan ke ${candidate.email}. (API Key Resend belum terbaca, pastikan Restart Server!)`
+            });
         }
-
-        return NextResponse.json({
-            success: true,
-            recipient: candidate.email,
-            message: `Email successfully sent to ${candidate.name} (${candidate.email})`
-        });
     } catch (error: any) {
         console.error("POST /api/communication/email error:", error);
         return NextResponse.json({ error: error.message || "Failed to send email" }, { status: 500 });
