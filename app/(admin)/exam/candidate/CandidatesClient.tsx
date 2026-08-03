@@ -96,10 +96,23 @@ export default function CandidatesClient() {
             "Role (user/admin/proctor - Opsional)",
             "Password (Opsional)",
             "Access Type (range/permanent - Opsional)",
-            "Access Start (YYYY-MM-DD HH:mm - Opsional)",
-            "Access End (YYYY-MM-DD HH:mm - Opsional)"
+            "Access Start (dd/MM/yyyy HH:mm - Opsional)",
+            "Access End (dd/MM/yyyy HH:mm - Opsional)"
         ];
         
+        const formatStringDate = (d: Date) => {
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        };
+        
+        const dStart = new Date();
+        dStart.setDate(dStart.getDate() + 1);
+        dStart.setHours(8, 0, 0, 0);
+        
+        const dEnd = new Date();
+        dEnd.setDate(dEnd.getDate() + 30);
+        dEnd.setHours(17, 0, 0, 0);
+
         const rows = [
             headers,
             [
@@ -110,8 +123,8 @@ export default function CandidatesClient() {
                 "user",
                 "BudiSec123",
                 "range",
-                "2026-06-01",
-                "2026-06-30"
+                formatStringDate(dStart),
+                formatStringDate(dEnd)
             ],
             [
                 "Siti Aminah",
@@ -138,6 +151,7 @@ export default function CandidatesClient() {
         ];
 
         const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
         
         // Column widths
         worksheet["!cols"] = [
@@ -169,8 +183,8 @@ export default function CandidatesClient() {
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 
-                // Use raw: false so Excel dates are converted to strings instead of serial numbers
-                const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, raw: false });
+                // Parse dates properly
+                const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, raw: true });
                 if (rows.length === 0) {
                     setImportError("File Excel kosong");
                     return;
@@ -207,8 +221,30 @@ export default function CandidatesClient() {
                     const role = roleIdx !== -1 ? row[roleIdx]?.toString().trim().toLowerCase() || "user" : "user";
                     const password = passIdx !== -1 ? row[passIdx]?.toString().trim() || "" : "";
                     const accessType = accTypeIdx !== -1 ? row[accTypeIdx]?.toString().trim().toLowerCase() || "range" : "range";
-                    const accessStart = accStartIdx !== -1 ? row[accStartIdx]?.toString().trim() || "" : "";
-                    const accessEnd = accEndIdx !== -1 ? row[accEndIdx]?.toString().trim() || "" : "";
+                    const parseCustomDate = (val: any) => {
+                        if (val instanceof Date) return val.toISOString();
+                        const str = val?.toString().trim();
+                        if (!str) return "";
+                        
+                        // First, explicitly check for our requested dd/MM/yyyy HH:mm or dd-MM-yyyy format
+                        const parts = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2})[:\.](\d{1,2}))?/);
+                        if (parts) {
+                            const day = parseInt(parts[1], 10);
+                            const month = parseInt(parts[2], 10) - 1;
+                            const year = parseInt(parts[3], 10);
+                            const hour = parts[4] ? parseInt(parts[4], 10) : 0;
+                            const minute = parts[5] ? parseInt(parts[5], 10) : 0;
+                            const d = new Date(year, month, day, hour, minute);
+                            if (!isNaN(d.getTime())) return d.toISOString();
+                        }
+
+                        // Fallback to standard JS Date parsing
+                        let d = new Date(str);
+                        return !isNaN(d.getTime()) ? d.toISOString() : str;
+                    };
+
+                    const accessStart = accStartIdx !== -1 ? parseCustomDate(row[accStartIdx]) : "";
+                    const accessEnd = accEndIdx !== -1 ? parseCustomDate(row[accEndIdx]) : "";
 
                     let status: "valid" | "invalid" = "valid";
                     let reason = "";
