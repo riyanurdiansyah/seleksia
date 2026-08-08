@@ -2,6 +2,8 @@ import ResultDetailClient from "./ResultDetailClient";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ResultDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: assignmentId } = await params;
 

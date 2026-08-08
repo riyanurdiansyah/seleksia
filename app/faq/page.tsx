@@ -3,6 +3,8 @@ import PublicPageWrapper from "../components/PublicPageWrapper";
 import FaqAccordion from "../components/FaqAccordion";
 import { Metadata } from "next";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: "FAQ | Seleksia",
     description: "Frequently Asked Questions",

@@ -2,6 +2,8 @@ import DashboardClient from "./DashboardClient";
 import { prisma } from "@/lib/prisma";
 import { getCompanyId } from "@/lib/tenant";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboardPage() {
     const companyId = await getCompanyId();
 

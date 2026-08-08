@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { getCompanyId } from "@/lib/tenant";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ActivityPage() {
     const cookieStore = await cookies();
     const role = cookieStore.get("userRole")?.value || "user";

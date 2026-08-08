@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import ResultsClient from "./ResultsClient";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ResultsPage() {
     // Fetch completed test assignments
     const completedAssignments = await prisma.testAssignment.findMany({

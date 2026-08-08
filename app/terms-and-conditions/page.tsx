@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import PublicPageWrapper from "../components/PublicPageWrapper";
 import { Metadata } from "next";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: "Syarat & Ketentuan | Seleksia",
     description: "Syarat dan Ketentuan Layanan",
