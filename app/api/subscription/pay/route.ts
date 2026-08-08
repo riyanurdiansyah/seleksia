@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
         // Set callback and redirect to include payment ID so we can match it back if needed
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        const redirectUrl = `${baseUrl}/admin/subscription?paymentId=${paymentRecord.id}`;
+        const redirectUrl = `${baseUrl}/subscription?paymentId=${paymentRecord.id}`;
 
         const reqBody = {
             name: admin?.name || "Admin",

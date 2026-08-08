@@ -638,16 +638,9 @@ export default function SubscriptionDashboard() {
                                             className="w-full py-3.5 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
                                         >
                                             <span className="material-symbols-outlined text-lg">payment</span>
-                                            Bayar Sekarang (Mayar.id)
+                                            Bayar Sekarang
                                         </button>
 
-                                        <button
-                                            onClick={handleSimulatePayment}
-                                            className="w-full py-3 bg-transparent hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] text-[var(--color-text-sub)] font-bold text-xs rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
-                                        >
-                                            <span className="material-symbols-outlined text-base">science</span>
-                                            Simulasi Bayar Instan (Uji Coba)
-                                        </button>
                                     </div>
                                 </div>
                             )}
