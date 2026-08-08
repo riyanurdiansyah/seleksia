@@ -19,19 +19,7 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const cookieStore = await cookies();
-    const companyId = cookieStore.get("companyId")?.value;
 
-    if (companyId) {
-        const company = await prisma.company.findUnique({
-            where: { id: companyId },
-            select: { subscriptionStatus: true }
-        });
-
-        if (company?.subscriptionStatus === "pending_payment") {
-            redirect("/payment");
-        }
-    }
 
     return (
         <AdminGuard>

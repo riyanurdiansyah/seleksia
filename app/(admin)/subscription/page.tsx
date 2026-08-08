@@ -52,7 +52,6 @@ export default function SubscriptionDashboard() {
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [paymentStep, setPaymentStep] = useState(1); // 1: Initial screen, 3: Success
     const [paymentError, setPaymentError] = useState("");
-    const [isSnapOpen, setIsSnapOpen] = useState(false);
 
     const fetchSubscriptionData = async () => {
         try {
@@ -79,55 +78,37 @@ export default function SubscriptionDashboard() {
         }
     };
 
-    // Payment processing logic is now handled via direct redirect to DOKU.
+    // Payment processing logic is handled via redirect to Mayar Headless API.
+    // When user returns from Mayar, the URL contains ?paymentId=xxx
+    // We auto-confirm the payment on redirect back.
 
-    // Load dynamic Midtrans Snap SDK based on Global System settings from .env
     useEffect(() => {
-        if (!subData) return;
+        const params = new URLSearchParams(window.location.search);
+        const paymentId = params.get("paymentId");
 
-        const clientKey = (subData as any).midtransClientKey || "";
-        const mode = (subData as any).midtransMode || "sandbox";
-
-        try {
-            // Remove existing Midtrans script if any
-            const existingScript = document.getElementById("midtrans-snap");
-            if (existingScript) existingScript.remove();
-
-            const script = document.createElement("script");
-            script.src = mode === "production"
-                ? "https://app.midtrans.com/snap/snap.js"
-                : "https://app.sandbox.midtrans.com/snap/snap.js";
-            script.setAttribute("data-client-key", clientKey);
-            script.id = "midtrans-snap";
-            document.body.appendChild(script);
-        } catch (err) {
-            console.error("Gagal memuat script Midtrans:", err);
+        if (paymentId) {
+            // Auto-confirm payment on redirect back from Mayar
+            const confirmPayment = async () => {
+                try {
+                    const res = await fetch("/api/subscription/confirm-redirect", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ paymentId })
+                    });
+                    const data = await res.json();
+                    if (data.success && !data.alreadyConfirmed) {
+                        // Payment just confirmed — reload data
+                        await fetchSubscriptionData();
+                    }
+                } catch (err) {
+                    console.error("Auto-confirm error:", err);
+                }
+                // Clean up URL params
+                window.history.replaceState({}, "", window.location.pathname);
+            };
+            confirmPayment();
         }
-
-        // Load DOKU Checkout JS SDK
-        try {
-            const dokuMode = (subData as any).dokuMode || "sandbox";
-            const existingDokuScript = document.getElementById("doku-jokul-checkout");
-            if (existingDokuScript) existingDokuScript.remove();
-
-            const dokuScript = document.createElement("script");
-            dokuScript.src = dokuMode === "production"
-                ? "https://jokul.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js"
-                : "https://sandbox.doku.com/jokul-checkout-js/v1/jokul-checkout-1.0.0.js";
-            dokuScript.id = "doku-jokul-checkout";
-            document.body.appendChild(dokuScript);
-        } catch (err) {
-            console.error("Gagal memuat script DOKU:", err);
-        }
-
-        return () => {
-            const snapScript = document.getElementById("midtrans-snap");
-            if (snapScript) snapScript.remove();
-            
-            const dokuScript = document.getElementById("doku-jokul-checkout");
-            if (dokuScript) dokuScript.remove();
-        };
-    }, [subData]);
+    }, []);
 
     useEffect(() => {
         const checkAccess = async () => {
@@ -161,7 +142,6 @@ export default function SubscriptionDashboard() {
         setSelectedUpgradePlan({ name: planName, price });
         setPaymentStep(1);
         setPaymentError("");
-        setIsSnapOpen(false);
         setShowModal(true);
     };
 
@@ -189,91 +169,12 @@ export default function SubscriptionDashboard() {
             }
 
             if (data.redirectUrl) {
-                // Trigger DOKU Checkout Popup
-                const loadJokulCheckout = (window as any).loadJokulCheckout;
-                if (!loadJokulCheckout) {
-                    setPaymentError("Script DOKU belum selesai dimuat. Silakan coba lagi atau periksa koneksi Anda.");
-                    setIsProcessingPayment(false);
-                    return;
-                }
-
-                setIsSnapOpen(true);
-                loadJokulCheckout(data.redirectUrl);
-                
-                // Note: DOKU Checkout JS does not have built-in on-close callbacks like Midtrans.
-                // We rely on the user closing the modal or the webhook redirecting them back to this page.
-                // Since it's a popup overlay, the page will just wait until the overlay redirects or closes.
-                // But DOKU JS might actually redirect the parent window upon success, or the user clicks "Back to Merchant".
-                // If we want to safely reset state after some time, we can leave it as is or reset on focus.
-                setIsProcessingPayment(false);
-
+                // Redirect to Mayar payment link
+                window.location.href = data.redirectUrl;
             } else {
                 setPaymentError("URL pembayaran tidak ditemukan dari server.");
                 setIsProcessingPayment(false);
             }
-
-        } catch (err) {
-            setPaymentError("Kesalahan koneksi ke gateway pembayaran.");
-            setIsProcessingPayment(false);
-        }
-    };
-
-    const handlePayNowMidtrans = async () => {
-        if (!selectedUpgradePlan) return;
-        setIsProcessingPayment(true);
-        setPaymentError("");
-
-        try {
-            const res = await fetch("/api/subscription/pay-midtrans", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    plan: selectedUpgradePlan.name,
-                    isSimulation: false
-                })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                setPaymentError(data.error || "Gagal memulai pembayaran.");
-                setIsProcessingPayment(false);
-                return;
-            }
-
-            // Trigger Midtrans Snap Popup
-            const snap = (window as any).snap;
-            if (!snap) {
-                setPaymentError("Script Midtrans Snap belum selesai dimuat. Silakan coba lagi.");
-                setIsProcessingPayment(false);
-                return;
-            }
-
-            setIsSnapOpen(true);
-            snap.pay(data.token, {
-                onSuccess: function (result: any) {
-                    setIsSnapOpen(false);
-                    // Usually you don't need to manually verify with backend here if you have Webhook running
-                    // But for immediate UI feedback we can just show success or refresh
-                    setPaymentStep(3); // success
-                    fetchSubscriptionData(); // refresh data
-                },
-                onPending: function () {
-                    setIsSnapOpen(false);
-                    setPaymentError("Menunggu pembayaran Anda diselesaikan.");
-                    setIsProcessingPayment(false);
-                },
-                onError: function () {
-                    setIsSnapOpen(false);
-                    setPaymentError("Terjadi kesalahan saat memproses pembayaran dengan Midtrans.");
-                    setIsProcessingPayment(false);
-                },
-                onClose: function () {
-                    setIsSnapOpen(false);
-                    setPaymentError("Pembayaran dibatalkan.");
-                    setIsProcessingPayment(false);
-                }
-            });
 
         } catch (err) {
             setPaymentError("Kesalahan koneksi ke gateway pembayaran.");
@@ -476,6 +377,96 @@ export default function SubscriptionDashboard() {
                 </div>
             </div>
 
+            {/* Invoices Payment History — moved above plans */}
+            <div className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-xl font-bold text-[var(--color-text-main)]">Riwayat Tagihan & Pembayaran</h3>
+                        <p className="text-xs text-[var(--color-text-sub)]">Lihat riwayat transaksi billing dan cetak kwitansi pembayaran langganan Anda.</p>
+                    </div>
+                    <button
+                        onClick={() => { setLoading(true); fetchSubscriptionData(); }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] hover:border-[var(--color-border-strong)] text-xs font-bold text-[var(--color-text-main)] transition-all btn-press"
+                    >
+                        <span className="material-symbols-outlined text-sm">refresh</span>
+                        Refresh Status
+                    </button>
+                </div>
+
+                <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-3xl overflow-hidden shadow-[var(--shadow-card)]">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr className="bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">
+                                    <th className="p-4 pl-6">Tanggal Transaksi</th>
+                                    <th className="p-4">ID Invoice</th>
+                                    <th className="p-4">Paket</th>
+                                    <th className="p-4">Nominal</th>
+                                    <th className="p-4">Metode Pembayaran</th>
+                                    <th className="p-4">Status</th>
+                                    <th className="p-4 pr-6">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--color-border)] text-[var(--color-text-sub)]">
+                                {!subData?.payments || subData.payments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="p-8 text-center text-[var(--color-text-muted)] italic">
+                                            Belum ada riwayat transaksi pembayaran.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    subData.payments.map((pay) => (
+                                        <tr key={pay.id} className="hover:bg-[var(--color-bg-hover)] transition-colors">
+                                            <td className="p-4 pl-6 font-medium text-[var(--color-text-main)]">{formatDate(pay.createdAt)}</td>
+                                            <td className="p-4 font-mono text-[10px] uppercase text-[var(--color-text-muted)]">{pay.id}</td>
+                                            <td className="p-4"><span className="font-semibold text-[var(--color-text-main)]">{pay.plan}</span></td>
+                                            <td className="p-4 font-bold text-[var(--color-text-main)]">{formatCurrency(pay.amount)}</td>
+                                            <td className="p-4 font-medium">{pay.paymentMethod || "-"}</td>
+                                            <td className="p-4">
+                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                                    ${pay.status === "success" 
+                                                        ? "bg-[var(--color-success-light)] text-[var(--color-success)]" 
+                                                        : pay.status === "pending"
+                                                            ? "bg-[var(--color-warning-light)] text-[var(--color-warning)]"
+                                                            : "bg-[var(--color-danger-light)] text-[var(--color-danger)]"
+                                                    }`}
+                                                >
+                                                    {pay.status === "success" ? "Sukses" : pay.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 pr-6">
+                                                {pay.status === "pending" && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const res = await fetch("/api/subscription/confirm-redirect", {
+                                                                    method: "POST",
+                                                                    headers: { "Content-Type": "application/json" },
+                                                                    body: JSON.stringify({ paymentId: pay.id })
+                                                                });
+                                                                const data = await res.json();
+                                                                if (data.success) {
+                                                                    fetchSubscriptionData();
+                                                                }
+                                                            } catch (err) {
+                                                                console.error("Confirm error:", err);
+                                                            }
+                                                        }}
+                                                        className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white text-[10px] font-bold hover:shadow-md transition-all btn-press"
+                                                    >
+                                                        Konfirmasi
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             {/* Plans Pricing Grid for Upgrading */}
             <div className="space-y-5">
                 <div>
@@ -582,78 +573,15 @@ export default function SubscriptionDashboard() {
                 </div>
             </div>
 
-            {/* Invoices Payment History */}
-            <div className="space-y-4">
-                <div>
-                    <h3 className="text-xl font-bold text-[var(--color-text-main)]">Riwayat Tagihan & Pembayaran</h3>
-                    <p className="text-xs text-[var(--color-text-sub)]">Lihat riwayat transaksi billing dan cetak kwitansi pembayaran langganan Anda.</p>
-                </div>
-
-                <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-3xl overflow-hidden shadow-[var(--shadow-card)]">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
-                            <thead>
-                                <tr className="bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">
-                                    <th className="p-4 pl-6">Tanggal Transaksi</th>
-                                    <th className="p-4">ID Invoice</th>
-                                    <th className="p-4">Paket</th>
-                                    <th className="p-4">Nominal</th>
-                                    <th className="p-4">Metode Pembayaran</th>
-                                    <th className="p-4 pr-6">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[var(--color-border)] text-[var(--color-text-sub)]">
-                                {!subData?.payments || subData.payments.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="p-8 text-center text-[var(--color-text-muted)] italic">
-                                            Belum ada riwayat transaksi pembayaran.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    subData.payments.map((pay) => (
-                                        <tr key={pay.id} className="hover:bg-[var(--color-bg-hover)] transition-colors">
-                                            <td className="p-4 pl-6 font-medium text-[var(--color-text-main)]">{formatDate(pay.createdAt)}</td>
-                                            <td className="p-4 font-mono text-[10px] uppercase text-[var(--color-text-muted)]">{pay.id}</td>
-                                            <td className="p-4"><span className="font-semibold text-[var(--color-text-main)]">{pay.plan}</span></td>
-                                            <td className="p-4 font-bold text-[var(--color-text-main)]">{formatCurrency(pay.amount)}</td>
-                                            <td className="p-4 font-medium">{pay.paymentMethod || "-"}</td>
-                                            <td className="p-4 pr-6">
-                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-                                                    ${pay.status === "success" 
-                                                        ? "bg-[var(--color-success-light)] text-[var(--color-success)]" 
-                                                        : pay.status === "pending"
-                                                            ? "bg-[var(--color-warning-light)] text-[var(--color-warning)]"
-                                                            : "bg-[var(--color-danger-light)] text-[var(--color-danger)]"
-                                                    }`}
-                                                >
-                                                    {pay.status === "success" ? "Sukses" : pay.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
             {/* PREMIUM UPGRADE & PAYMENT MODAL */}
             {showModal && selectedUpgradePlan && typeof document !== "undefined" && createPortal((
-                <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in transition-all duration-300 ${
-                    isSnapOpen ? "opacity-0 pointer-events-none" : "opacity-100"
-                }`}>
-                    <div className={`bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden relative animate-slide-in-up transition-all duration-300 ${
-                        isSnapOpen ? "scale-95" : "scale-100"
-                    }`}>
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in transition-all duration-300 opacity-100">
+                    <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden relative animate-slide-in-up transition-all duration-300 scale-100">
                         
                         {/* Close button */}
                         {!isProcessingPayment && paymentStep < 3 && (
                             <button
-                                onClick={() => {
-                                    setShowModal(false);
-                                    setIsSnapOpen(false);
-                                }}
+                                onClick={() => setShowModal(false)}
                                 className="absolute right-4 top-4 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
@@ -661,7 +589,7 @@ export default function SubscriptionDashboard() {
                         )}
                                                 {/* Modal Header */}
                         <div className="bg-gradient-to-br from-[#1A3C40] to-[#0c5c64] p-6 text-white">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Payment Gateway DOKU</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Payment Gateway Mayar</span>
                             <h3 className="text-xl font-extrabold mt-1">Upgrade ke {selectedUpgradePlan.name} Plan</h3>
                             <div className="mt-4 flex justify-between items-baseline border-t border-white/10 pt-4">
                                 <span className="text-xs text-white/75">Total Tagihan (30 Hari):</span>
@@ -705,25 +633,13 @@ export default function SubscriptionDashboard() {
                                     )}
 
                                     <div className="space-y-3 pt-2">
-                                        {(((subData as any)?.activePaymentGateway || "both") === "doku" || ((subData as any)?.activePaymentGateway || "both") === "both") && (
-                                            <button
-                                                onClick={handlePayNow}
-                                                className="w-full py-3.5 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">payment</span>
-                                                Bayar Sekarang (DOKU)
-                                            </button>
-                                        )}
-
-                                        {(((subData as any)?.activePaymentGateway || "both") === "midtrans" || ((subData as any)?.activePaymentGateway || "both") === "both") && (
-                                            <button
-                                                onClick={handlePayNowMidtrans}
-                                                className="w-full py-3.5 bg-gradient-to-br from-[#0c5c64] to-[#1A3C40] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
-                                                Bayar Sekarang (Midtrans)
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={handlePayNow}
+                                            className="w-full py-3.5 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] hover:shadow-lg text-white font-extrabold text-sm rounded-[var(--radius-sm)] transition-all cursor-pointer text-center flex items-center justify-center gap-2 btn-press"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">payment</span>
+                                            Bayar Sekarang (Mayar.id)
+                                        </button>
 
                                         <button
                                             onClick={handleSimulatePayment}

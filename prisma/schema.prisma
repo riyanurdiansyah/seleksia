@@ -36,14 +36,6 @@ model Company {
   subscriptionStartedAt DateTime?
   subscriptionPayments  SubscriptionPayment[]
 
-  // ===== Midtrans Settings =====
-  midtransServerKey String?
-  midtransClientKey String?
-  midtransMode      String                @default("sandbox") // "sandbox", "production"
-
-  // ===== Gateway Settings =====
-  activePaymentGateway String             @default("both") // "doku", "midtrans", "both"
-
   @@map("companies")
 }
 
@@ -117,6 +109,8 @@ model Candidate {
   resetTokenExpiry     DateTime?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
+
+  subscriptionPayments SubscriptionPayment[]
 
   company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   assignments TestAssignment[]
@@ -371,6 +365,7 @@ model TestGroup {
 model SubscriptionPayment {
   id            String   @id @default(cuid())
   companyId     String
+  candidateId   String?
   plan          String
   amount        Float
   status        String   // "pending", "success", "failed"
@@ -378,7 +373,8 @@ model SubscriptionPayment {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company       Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidate     Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
 
   @@map("subscription_payments")
 }

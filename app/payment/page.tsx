@@ -9,44 +9,10 @@ export default function PaymentPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
-    const [midtransConfig, setMidtransConfig] = useState<{ clientKey: string; mode: string } | null>(null);
-
-    // Midtrans Settings Form State
-    const [showKeyConfig, setShowKeyConfig] = useState(false);
-    const [midtransClientKey, setMidtransClientKey] = useState("");
-    const [midtransServerKey, setMidtransServerKey] = useState("");
-    const [midtransMode, setMidtransMode] = useState("sandbox");
-    const [isSavingKeys, setIsSavingKeys] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
     // Mount and fetch subscription info
     useEffect(() => {
         fetchSubscription();
     }, []);
-
-    // Load Midtrans Script dynamically once settings are resolved
-    useEffect(() => {
-        if (!midtransConfig) return;
-
-        const { clientKey, mode } = midtransConfig;
-
-        // Remove existing snap script if any
-        const existingScript = document.getElementById("midtrans-snap");
-        if (existingScript) existingScript.remove();
-
-        const script = document.createElement("script");
-        script.src = mode === "production"
-            ? "https://app.midtrans.com/snap/snap.js"
-            : "https://app.sandbox.midtrans.com/snap/snap.js";
-        script.setAttribute("data-client-key", clientKey);
-        script.id = "midtrans-snap";
-        document.body.appendChild(script);
-
-        return () => {
-            const snapScript = document.getElementById("midtrans-snap");
-            if (snapScript) snapScript.remove();
-        };
-    }, [midtransConfig]);
 
     const fetchSubscription = async () => {
         try {
@@ -58,11 +24,7 @@ export default function PaymentPage() {
                     plan: data.plan,
                     status: data.status,
                 });
-                
-                setMidtransConfig({
-                    clientKey: data.midtransClientKey || "",
-                    mode: data.midtransMode || "sandbox"
-                });
+
 
                 // If already active, redirect to dashboard
                 if (data.status === "active") {
@@ -78,65 +40,7 @@ export default function PaymentPage() {
         }
     };
 
-    // Load custom keys if they want to configure them
-    const loadCustomKeys = async () => {
-        try {
-            const res = await fetch("/api/settings/midtrans");
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success && result.data) {
-                    setMidtransClientKey(result.data.midtransClientKey);
-                    setMidtransServerKey(result.data.midtransServerKey);
-                    setMidtransMode(result.data.midtransMode);
-                }
-            }
-        } catch (err) {
-            console.error("Failed to load custom keys:", err);
-        }
-    };
 
-    useEffect(() => {
-        if (showKeyConfig) {
-            loadCustomKeys();
-        }
-    }, [showKeyConfig]);
-
-    const handleSaveKeys = async () => {
-        setIsSavingKeys(true);
-        setSaveStatus(null);
-        try {
-            const res = await fetch("/api/settings/midtrans", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    midtransServerKey,
-                    midtransClientKey,
-                    midtransMode
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                setSaveStatus({ type: "success", msg: "Kredensial Midtrans berhasil disimpan." });
-                // Re-init snap script with correct mode
-                const snapScript = document.getElementById("midtrans-snap");
-                if (snapScript) snapScript.remove();
-                
-                const script = document.createElement("script");
-                script.src = midtransMode === "production" 
-                    ? "https://app.midtrans.com/snap/snap.js"
-                    : "https://app.sandbox.midtrans.com/snap/snap.js";
-                script.setAttribute("data-client-key", midtransClientKey);
-                script.id = "midtrans-snap";
-                document.body.appendChild(script);
-            } else {
-                setSaveStatus({ type: "error", msg: data.error || "Gagal menyimpan kredensial." });
-            }
-        } catch {
-            setSaveStatus({ type: "error", msg: "Terjadi kesalahan jaringan." });
-        } finally {
-            setIsSavingKeys(false);
-        }
-    };
 
     const handlePayNow = async () => {
         setIsProcessing(true);
@@ -158,52 +62,12 @@ export default function PaymentPage() {
                 return;
             }
 
-            // Trigger Midtrans Snap Popup
-            const snap = (window as any).snap;
-            if (!snap) {
-                setError("Script Midtrans Snap belum selesai dimuat. Silakan coba lagi.");
+            if (data.redirectUrl) {
+                window.location.href = data.redirectUrl;
+            } else {
+                setError("URL pembayaran tidak ditemukan.");
                 setIsProcessing(false);
-                return;
             }
-
-            snap.pay(data.token, {
-                onSuccess: async function (result: any) {
-                    setIsProcessing(true);
-                    // Verify with backend
-                    try {
-                        const confirmRes = await fetch("/api/subscription/confirm", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ orderId: result.order_id })
-                        });
-                        const confirmData = await confirmRes.json();
-                        if (confirmData.success) {
-                            setSuccessMessage("Pembayaran Berhasil! Mengalihkan ke dashboard...");
-                            setTimeout(() => {
-                                window.location.href = "/dashboard";
-                            }, 1500);
-                        } else {
-                            setError(confirmData.message || "Gagal memverifikasi status pembayaran.");
-                        }
-                    } catch {
-                        setError("Gagal menghubungi server untuk memverifikasi pembayaran.");
-                    } finally {
-                        setIsProcessing(false);
-                    }
-                },
-                onPending: function () {
-                    setError("Menunggu pembayaran Anda diselesaikan.");
-                    setIsProcessing(false);
-                },
-                onError: function () {
-                    setError("Terjadi kesalahan saat memproses pembayaran dengan Midtrans.");
-                    setIsProcessing(false);
-                },
-                onClose: function () {
-                    setError("Pembayaran dibatalkan.");
-                    setIsProcessing(false);
-                }
-            });
 
         } catch {
             setError("Kesalahan koneksi ke gateway pembayaran.");
@@ -334,11 +198,11 @@ export default function PaymentPage() {
                             {isProcessing ? (
                                 <>
                                     <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    Menghubungkan Midtrans...
+                                    Menghubungkan Mayar.id...
                                 </>
                             ) : (
                                 <>
-                                    Bayar Sekarang (Midtrans)
+                                    Bayar Sekarang (Mayar.id)
                                     <span className="material-symbols-outlined text-sm">arrow_forward</span>
                                 </>
                             )}
@@ -356,100 +220,8 @@ export default function PaymentPage() {
                             <button onClick={handleLogout} className="text-[var(--color-text-muted)] hover:text-red-500 font-bold transition-colors">
                                 Keluar & Daftar Ulang
                             </button>
-                            <button 
-                                onClick={() => setShowKeyConfig(!showKeyConfig)}
-                                className="text-[var(--color-primary)] hover:underline font-bold transition-all"
-                            >
-                                {showKeyConfig ? "Sembunyikan Pengaturan Keys" : "Gunakan Akun Midtrans Sendiri (Optional)"}
-                            </button>
                         </div>
                     </div>
-
-                    {/* Toggleable Inline Keys Configuration */}
-                    {showKeyConfig && (
-                        <div className="border-t border-[var(--color-border)] pt-5 mt-4 space-y-4 animate-fade-in">
-                            <h3 className="text-xs font-black uppercase tracking-wider text-[var(--color-text-main)]">
-                                Konfigurasi Kredensial Midtrans Perusahaan
-                            </h3>
-                            <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed font-medium">
-                                Masukkan Client Key dan Server Key Midtrans Anda sendiri untuk menampung transaksi pembayaran langsung ke akun Anda.
-                            </p>
-
-                            <div className="space-y-3.5">
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
-                                        Midtrans Client Key *
-                                    </label>
-                                    <input
-                                        value={midtransClientKey}
-                                        onChange={(e) => setMidtransClientKey(e.target.value)}
-                                        className="w-full h-9 px-3 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary outline-none transition-all"
-                                        placeholder="SB-Mid-client-XXXXXX"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
-                                        Midtrans Server Key *
-                                    </label>
-                                    <input
-                                        value={midtransServerKey}
-                                        onChange={(e) => setMidtransServerKey(e.target.value)}
-                                        type="password"
-                                        className="w-full h-9 px-3 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary outline-none transition-all"
-                                        placeholder="SB-Mid-server-YYYYYY"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
-                                        Environment Mode
-                                    </label>
-                                    <div className="flex gap-4 pt-1">
-                                        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-[var(--color-text-main)]">
-                                            <input 
-                                                type="radio" 
-                                                name="inlineMode" 
-                                                value="sandbox" 
-                                                checked={midtransMode === "sandbox"}
-                                                onChange={() => setMidtransMode("sandbox")}
-                                                className="accent-primary"
-                                            />
-                                            Sandbox
-                                        </label>
-                                        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-[var(--color-text-main)]">
-                                            <input 
-                                                type="radio" 
-                                                name="inlineMode" 
-                                                value="production" 
-                                                checked={midtransMode === "production"}
-                                                onChange={() => setMidtransMode("production")}
-                                                className="accent-primary"
-                                            />
-                                            Production
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {saveStatus && (
-                                    <div className={`p-2.5 rounded-lg text-[10px] font-semibold flex items-center gap-2 ${
-                                        saveStatus.type === "success" ? "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400"
-                                    }`}>
-                                        <span className="material-symbols-outlined text-[16px]">
-                                            {saveStatus.type === "success" ? "check_circle" : "error"}
-                                        </span>
-                                        {saveStatus.msg}
-                                    </div>
-                                )}
-
-                                <button
-                                    onClick={handleSaveKeys}
-                                    disabled={isSavingKeys || !midtransClientKey || !midtransServerKey}
-                                    className="px-4 py-2 bg-gradient-to-br from-primary to-accent text-white font-bold text-xs rounded-lg transition-all btn-press btn-shine disabled:opacity-50"
-                                >
-                                    {isSavingKeys ? "Menyimpan..." : "Simpan Kredensial"}
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

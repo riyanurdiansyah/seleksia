@@ -43,34 +43,20 @@ export async function POST(req: NextRequest) {
         // 3. Hash password
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-        // Calculate subscription parameters
-        const selectedPlan = planName || "Free";
+        // All new registrations start as Free plan
         const now = new Date();
-        let amount = 0;
-        let subStatus = "active"; // Free is active by default
-        let redirectTo = "/dashboard";
-
-        if (selectedPlan === "Starter") {
-            amount = 290000;
-            subStatus = "pending_payment";
-            redirectTo = "/payment";
-        } else if (selectedPlan === "Business") {
-            amount = 750000;
-            subStatus = "pending_payment";
-            redirectTo = "/payment";
-        }
 
         // 4. Perform database transaction
         const result = await prisma.$transaction(async (tx) => {
-            // Create Company
+            // Create Company — always Free, always active
             const company = await tx.company.create({
                 data: {
                     name: companyName,
                     slug: normalizedSlug,
-                    subscriptionPlan: selectedPlan,
-                    subscriptionStatus: subStatus,
-                    subscriptionStartedAt: selectedPlan === "Free" ? now : null,
-                    subscriptionExpiresAt: null,
+                    subscriptionPlan: "Free",
+                    subscriptionStatus: "active",
+                    subscriptionStartedAt: now,
+                    subscriptionExpiresAt: null, // Free plan never expires
                 }
             });
 
@@ -112,19 +98,6 @@ export async function POST(req: NextRequest) {
                 )
             );
 
-            // Log initial payment if not free
-            if (amount > 0) {
-                await tx.subscriptionPayment.create({
-                    data: {
-                        companyId: company.id,
-                        plan: selectedPlan,
-                        amount: amount,
-                        status: "pending",
-                        paymentMethod: "Midtrans Gateway",
-                    }
-                });
-            }
-
             return { company, admin };
         });
 
@@ -138,7 +111,7 @@ export async function POST(req: NextRequest) {
                 email: result.admin.email,
                 role: result.admin.role,
             },
-            redirectTo: redirectTo,
+            redirectTo: "/dashboard",
         });
 
         response.cookies.set("companyId", result.company.id, { path: "/", httpOnly: true });

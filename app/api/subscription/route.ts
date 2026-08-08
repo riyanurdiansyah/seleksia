@@ -17,7 +17,12 @@ export async function GET() {
             where: { id: companyId },
             include: {
                 subscriptionPayments: {
-                    orderBy: { createdAt: "desc" }
+                    orderBy: { createdAt: "desc" },
+                    include: {
+                        candidate: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
                 }
             }
         });
@@ -48,8 +53,8 @@ export async function GET() {
             where: { name: planName }
         });
 
-        let candidateLimit = 10;
-        let testLimit = 3;
+        let candidateLimit = 3;
+        let testLimit = 1;
 
         if (dbPlan) {
             candidateLimit = dbPlan.maxCandidates;
@@ -84,12 +89,6 @@ export async function GET() {
                 }
             },
             payments: company.subscriptionPayments,
-            midtransClientKey: process.env.MIDTRANS_IS_PRODUCTION === "true" 
-                ? (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "")
-                : (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY_SB || ""),
-            midtransMode: process.env.MIDTRANS_IS_PRODUCTION === "true" ? "production" : "sandbox",
-            dokuMode: process.env.DOKU_IS_PRODUCTION === "true" ? "production" : "sandbox",
-            activePaymentGateway: company.activePaymentGateway
         });
 
     } catch (error) {

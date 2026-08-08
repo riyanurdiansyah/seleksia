@@ -15,7 +15,8 @@ export async function checkSubscriptionAccess(companyId: string, action: ActionT
     
     // Check if subscription is active and not expired
     const isActive = company.subscriptionStatus === 'active';
-    const isExpired = company.subscriptionExpiresAt ? company.subscriptionExpiresAt < now : true;
+    // null expiresAt means no expiration (e.g. Free plan) — treat as not expired
+    const isExpired = company.subscriptionExpiresAt ? company.subscriptionExpiresAt < now : false;
     
     // If not active or expired, it's read-only mode
     if (!isActive || isExpired) {
@@ -35,8 +36,8 @@ export async function checkSubscriptionAccess(companyId: string, action: ActionT
     });
 
     // Fallback limits if plan not found in DB
-    let maxCandidates = 10;
-    let maxTests = 3;
+    let maxCandidates = 3;
+    let maxTests = 1;
 
     if (plan) {
         maxCandidates = plan.maxCandidates;

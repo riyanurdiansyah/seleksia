@@ -1,23 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getCompanyId } from "@/lib/tenant";
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
-
-function generateDokuSignature(
-    clientId: string,
-    secretKey: string,
-    requestId: string,
-    requestTimestamp: string,
-    requestTarget: string,
-    body: any
-) {
-    const digestStr = crypto.createHash('sha256').update(JSON.stringify(body)).digest('base64');
-    const signatureStr = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${requestTimestamp}\nRequest-Target:${requestTarget}\nDigest:${digestStr}`;
-    const hmac = crypto.createHmac('sha256', secretKey).update(signatureStr).digest('base64');
-    return `HMACSHA256=${hmac}`;
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -29,7 +14,6 @@ export async function POST(req: NextRequest) {
         const body = await req.json().catch(() => ({}));
         const { isSimulation, plan: requestedPlan } = body;
 
-        // Fetch company and admin info
         const company = await prisma.company.findUnique({
             where: { id: companyId },
             include: {
@@ -57,7 +41,6 @@ export async function POST(req: NextRequest) {
 
         const amount = planRecord.price;
 
-        // Find or create pending payment record
         let paymentRecord = await prisma.subscriptionPayment.findFirst({
             where: {
                 companyId,
@@ -70,16 +53,16 @@ export async function POST(req: NextRequest) {
             paymentRecord = await prisma.subscriptionPayment.create({
                 data: {
                     companyId,
+                    candidateId: admin?.id || null,
                     plan,
                     amount,
                     status: "pending",
-                    paymentMethod: "DOKU Gateway"
+                    paymentMethod: "Mayar Gateway"
                 }
             });
         }
 
         if (isSimulation) {
-            // Simulated payment activation
             const now = new Date();
             const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
@@ -109,60 +92,50 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Resolve DOKU Config from .env
-        const isProd = process.env.DOKU_IS_PRODUCTION === "true";
-        const clientId = process.env.DOKU_CLIENT_ID;
-        const secretKey = process.env.DOKU_SECRET_KEY;
-        const mode = isProd ? "production" : "sandbox";
+        const apiKey = process.env.MAYAR_API_KEY;
+        const isProduction = process.env.MAYAR_IS_PRODUCTION === "true";
+        const mode = isProduction ? "production" : "sandbox";
 
-        if (!clientId || !secretKey || clientId === "" || secretKey === "") {
+        if (!apiKey || apiKey.trim() === "") {
             return NextResponse.json({
-                error: `Kredensial DOKU ${isProd ? "" : "Sandbox "}belum diset oleh sistem di file .env. Silakan gunakan mode Simulasi Uji Coba.`,
+                error: `Kredensial Mayar belum diset di server (.env).`,
                 needsConfig: true
             }, { status: 400 });
         }
 
-        const dokuUrl = mode === "production"
-            ? "https://api.doku.com"
-            : "https://api-sandbox.doku.com";
-        const requestTarget = "/checkout/v1/payment";
+        const mayarUrl = mode === "production"
+            ? "https://api.mayar.id/hl/v1/invoice/create"
+            : "https://api.mayar.club/hl/v1/invoice/create";
 
-        const requestId = crypto.randomUUID();
-        const requestTimestamp = new Date().toISOString().substring(0, 19) + "Z"; // e.g. 2023-01-01T00:00:00Z
+        // Set callback and redirect to include payment ID so we can match it back if needed
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const redirectUrl = `${baseUrl}/admin/subscription?paymentId=${paymentRecord.id}`;
 
         const reqBody = {
-            order: {
-                amount: amount,
-                invoice_number: paymentRecord.id,
-                currency: "IDR",
-                callback_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/admin/subscription`
-            },
-            payment: {
-                payment_due_date: 60 // 60 minutes
-            },
-            customer: {
-                name: admin?.name || "Admin",
-                email: admin?.email || "admin@example.com"
-            }
+            name: admin?.name || "Admin",
+            email: admin?.email || "admin@example.com",
+            mobile: "000000000000",
+            amount: amount,
+            description: `Pembayaran Langganan ${plan} Plan [ID: ${paymentRecord.id}]`,
+            items: [
+                {
+                    name: `${plan} Plan (30 Hari)`,
+                    quantity: 1,
+                    price: amount,
+                    rate: amount,
+                    description: "Langganan CBT"
+                }
+            ],
+            redirectUrl: redirectUrl,
+            // Mayar often supports reference or external_id, passing it just in case:
+            reference: paymentRecord.id
         };
 
-        const signature = generateDokuSignature(
-            clientId,
-            secretKey,
-            requestId,
-            requestTimestamp,
-            requestTarget,
-            reqBody
-        );
-
-        const response = await fetch(`${dokuUrl}${requestTarget}`, {
+        const response = await fetch(mayarUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Client-Id": clientId,
-                "Request-Id": requestId,
-                "Request-Timestamp": requestTimestamp,
-                "Signature": signature
+                "Authorization": `Bearer ${apiKey}`
             },
             body: JSON.stringify(reqBody)
         });
@@ -170,16 +143,19 @@ export async function POST(req: NextRequest) {
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("DOKU API Error:", data);
+            console.error("Mayar API Error:", JSON.stringify(data, null, 2));
             return NextResponse.json({
-                error: data.error?.message || "Gagal menghubungkan ke DOKU. Silakan gunakan Simulasi Uji Coba."
+                error: `Error dari Mayar: ${JSON.stringify(data)}`
             }, { status: response.status });
         }
 
-        // Response from DOKU Checkout API contains response.payment.url
+        // Return the payment link from Mayar response
+        // Usually Mayar returns the URL in data.data.link or data.link
+        const paymentLink = data.data?.link || data.link || data.redirectUrl;
+
         return NextResponse.json({
             success: true,
-            redirectUrl: data.response?.payment?.url,
+            redirectUrl: paymentLink,
             mode: mode
         });
 
