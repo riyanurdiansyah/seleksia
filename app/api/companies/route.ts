@@ -3,32 +3,36 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyId } from "@/lib/tenant";
 
+export const dynamic = 'force-dynamic';
+
 // GET all companies
 export async function GET() {
     try {
         const cookieStore = await cookies();
-        const role = cookieStore.get("userRole")?.value || "user";
+        const role = cookieStore.get("userRole")?.value;
+        const companyId = cookieStore.get("companyId")?.value;
         
-        let whereClause = {};
+        let whereClause: any = {};
         
-        if (role !== "superadmin") {
-            const companyId = await getCompanyId();
+        if (role && role !== "superadmin") {
             if (companyId) {
                 whereClause = { id: companyId };
             } else {
-                // If they are not superadmin and somehow don't have a companyId, return empty
-                return NextResponse.json([]);
+                const tenantCompanyId = await getCompanyId();
+                if (tenantCompanyId && tenantCompanyId !== "default-company-id") {
+                    whereClause = { id: tenantCompanyId };
+                }
             }
         }
 
         const companies = await prisma.company.findMany({
             where: whereClause,
-            select: { id: true, name: true, smtpUser: true, subscriptionPlan: true }
+            select: { id: true, name: true, slug: true, phone: true, smtpUser: true, subscriptionPlan: true }
         });
         return NextResponse.json(companies);
-    } catch (error) {
+    } catch (error: any) {
         console.error("GET /api/companies error:", error);
-        return NextResponse.json({ error: "Failed to fetch companies" }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Failed to fetch companies" }, { status: 500 });
     }
 }
 
@@ -36,7 +40,7 @@ export async function GET() {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { name, email, password } = body;
+        const { name, email, password, phone } = body;
         if (!name) {
             return NextResponse.json({ error: "Name is required" }, { status: 400 });
         }
@@ -54,6 +58,7 @@ export async function POST(req: Request) {
             data: { 
                 name, 
                 slug,
+                ...(phone ? { phone: String(phone).trim() } : {}),
                 ...(email ? {
                     smtpUser: email,
                     smtpSender: name

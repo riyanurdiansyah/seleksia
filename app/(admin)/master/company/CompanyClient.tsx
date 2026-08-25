@@ -11,6 +11,7 @@ interface CompanyItem {
   id: string;
   name: string;
   slug?: string;
+  phone?: string | null;
   smtpUser?: string | null;
   subscriptionPlan?: string;
 }
@@ -23,7 +24,7 @@ export default function CompanyClient() {
   const [actionLoading, setActionLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [formData, setFormData] = useState({ id: "", name: "", email: "", password: "", smtpUser: "", subscriptionPlan: "Free" });
+  const [formData, setFormData] = useState({ id: "", name: "", phone: "", email: "", password: "", smtpUser: "", subscriptionPlan: "Free" });
   const { access, loading: rbacLoading } = useRbac("/master/company");
 
   const fetchCompanies = async () => {
@@ -49,14 +50,22 @@ export default function CompanyClient() {
   }, []);
 
   const handleOpenCreate = () => {
-    setFormData({ id: "", name: "", email: "", password: "", smtpUser: "", subscriptionPlan: "Free" });
+    setFormData({ id: "", name: "", phone: "", email: "", password: "", smtpUser: "", subscriptionPlan: "Free" });
     setIsEditing(false);
     setIsModalOpen(true);
     setErrorMsg("");
   };
 
   const handleOpenEdit = (company: CompanyItem) => {
-    setFormData({ id: company.id, name: company.name, email: "", password: "", smtpUser: company.smtpUser || "", subscriptionPlan: company.subscriptionPlan || "Free" });
+    setFormData({ 
+      id: company.id, 
+      name: company.name, 
+      phone: company.phone || "",
+      email: "", 
+      password: "", 
+      smtpUser: company.smtpUser || "", 
+      subscriptionPlan: company.subscriptionPlan || "Free" 
+    });
     setIsEditing(true);
     setIsModalOpen(true);
     setErrorMsg("");
@@ -101,9 +110,10 @@ export default function CompanyClient() {
         ? { 
             id: formData.id, 
             name: formData.name,
+            phone: formData.phone,
             ...((!formData.smtpUser && formData.email) ? { email: formData.email, password: formData.password } : {})
           }
-        : { name: formData.name, email: formData.email, password: formData.password };
+        : { name: formData.name, phone: formData.phone, email: formData.email, password: formData.password };
 
       const res = await fetch(url, {
         method,
@@ -133,14 +143,22 @@ export default function CompanyClient() {
     { header: "ID", accessorKey: "id", sortable: true, filterable: true },
     { header: "Nama Perusahaan", accessorKey: "name", sortable: true, filterable: true },
     {
-      header: "Email Seleksia",
-      cell: (row) => row.smtpUser ? (
+      header: "Slug / Email Seleksia",
+      cell: (row) => (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
-          <span className="material-symbols-outlined text-[13px]">mail</span>
-          {row.smtpUser}
+          <span className="material-symbols-outlined text-[13px]">alternate_email</span>
+          {row.slug ? `${row.slug}@seleksia.com` : (row.smtpUser || "seleksia.com")}
         </span>
+      ),
+      sortable: false,
+      filterable: true,
+    },
+    {
+      header: "No. Kontak CS",
+      cell: (row) => row.phone ? (
+        <span className="text-[12px] font-medium text-slate-700">{row.phone}</span>
       ) : (
-        <span className="text-[11px] text-[var(--color-text-muted)] italic">Tidak ada</span>
+        <span className="text-[11px] text-[var(--color-text-muted)] italic">-</span>
       ),
       sortable: false,
       filterable: true,
@@ -180,7 +198,17 @@ export default function CompanyClient() {
           <h1 className="text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
             Manajemen Perusahaan
           </h1>
-          <Breadcrumb />
+          <div className="flex items-center gap-3">
+            {access.canCreate && (
+              <button
+                onClick={handleOpenCreate}
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[#0f766e] hover:bg-[#115e59] transition-all shadow-[0_4px_15px_rgba(15,118,110,0.3)] hover:shadow-[0_6px_20px_rgba(15,118,110,0.4)] hover:translate-y-[-2px] active:translate-y-0 w-full sm:w-auto btn-press cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px] font-bold">add</span>
+                Tambah Perusahaan
+              </button>
+            )}
+          </div>
         </div>
         <p className="text-[var(--color-text-sub)] text-sm font-medium">
           Atur data perusahaan yang terdaftar dalam sistem.
@@ -206,26 +234,8 @@ export default function CompanyClient() {
          {/* Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            {/* <div className="flex flex-wrap items-center gap-2"> */}
-              {/* <button
-                type="button"
-                className="flex items-center gap-1.5 px-4 py-2 border border-gray-100 rounded-xl text-xs font-bold bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 cursor-pointer shadow-sm btn-press"
-              >
-                <span className="material-symbols-outlined text-[14px] text-gray-400 font-bold">cloud_download</span>
-                Export
-              </button> */}
-            {/* </div> */}
           </div>
           <div className="w-full sm:w-auto">
-            {access.canCreate && (
-              <button
-                onClick={handleOpenCreate}
-                className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-extrabold text-white bg-[#0f766e] hover:bg-[#115e59] transition-all shadow-[0_4px_15px_rgba(15,118,110,0.3)] hover:shadow-[0_6px_20px_rgba(15,118,110,0.4)] hover:translate-y-[-2px] active:translate-y-0 w-full sm:w-auto btn-press cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px] font-bold">add</span>
-                Tambah Perusahaan
-              </button>
-            )}
           </div>
         </div>
         
@@ -258,12 +268,25 @@ export default function CompanyClient() {
               required
             />
           </div>
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">No. Telepon / WhatsApp CS</label>
+            <input
+              type="text"
+              placeholder="Cth: 0812-3456-7890"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            />
+            <p className="text-[10px] text-[var(--color-text-muted)] font-medium">
+              Akan disisipkan ke template email via variabel <code className="font-bold text-primary">{"{{company_phone}}"}</code>.
+            </p>
+          </div>
           {(!isEditing || !formData.smtpUser) && (
             <>
               {["Business", "Enterprise"].includes(formData.subscriptionPlan) ? (
                 <>
                   <div className="space-y-1.5">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Alamat Email Pengirim</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Alamat Email Pengirim Khusus (Opsional)</label>
                     <input
                       type="email"
                       placeholder="hrd@namaperusahaan.com"
@@ -272,7 +295,7 @@ export default function CompanyClient() {
                       className="w-full px-3 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                     <p className="text-[10px] text-[var(--color-text-muted)] font-medium">
-                      Kosongkan jika ingin menggunakan email pengirim default (noreply@seleksia.com). Pastikan domain email sudah diverifikasi di akun Resend.
+                      Kosongkan untuk menggunakan otomatis email slug perusahaan (<code className="text-primary font-bold">slug@seleksia.com</code>).
                     </p>
                   </div>
                 </>

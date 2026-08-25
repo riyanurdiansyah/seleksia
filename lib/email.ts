@@ -5,15 +5,15 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
 
 function formatWaktuPelaksanaan(start: Date | null | undefined, end: Date | null | undefined): string {
     if (!start || !end) return "Belum ditentukan";
-    
+
     const idLocale = "id-ID";
     const dateOptions: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'long', year: 'numeric' };
     const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
-    
+
     const formatTime = (d: Date) => d.toLocaleTimeString(idLocale, timeOptions).replace('.', ':');
     const formatDate = (d: Date) => d.toLocaleDateString(idLocale, dateOptions);
 
-    const isSameDay = 
+    const isSameDay =
         start.getDate() === end.getDate() &&
         start.getMonth() === end.getMonth() &&
         start.getFullYear() === end.getFullYear();
@@ -29,7 +29,7 @@ export async function sendWelcomeEmail(candidateId: string, plainPassword?: stri
     try {
         const candidate = await prisma.candidate.findUnique({
             where: { id: candidateId },
-            include: { 
+            include: {
                 company: true,
                 assignments: {
                     include: { test: true }
@@ -97,14 +97,28 @@ export async function sendWelcomeEmail(candidateId: string, plainPassword?: stri
                 </div>
             `;
 
+        const companyEmail = senderEmail;
+        const companyPhone = company?.phone || "-";
+        const companySlug = company?.slug || "";
+
         if (template) {
             subject = template.subject
-                .replace(/\{\{company_name\}\}/g, company?.name || "Seleksia");
-                
+                .replace(/\{\{company_name\}\}/g, company?.name || "Seleksia")
+                .replace(/\{\{company_email\}\}/g, companyEmail)
+                .replace(/\{\{support_email\}\}/g, companyEmail)
+                .replace(/\{\{company_phone\}\}/g, companyPhone)
+                .replace(/\{\{phone\}\}/g, companyPhone)
+                .replace(/\{\{company_slug\}\}/g, companySlug);
+
             htmlContent = template.content
                 .replace(/\{\{candidate_name\}\}/g, candidate.name)
                 .replace(/\{\{name\}\}/g, candidate.name)
                 .replace(/\{\{company_name\}\}/g, company?.name || "Seleksia")
+                .replace(/\{\{company_email\}\}/g, companyEmail)
+                .replace(/\{\{support_email\}\}/g, companyEmail)
+                .replace(/\{\{company_phone\}\}/g, companyPhone)
+                .replace(/\{\{phone\}\}/g, companyPhone)
+                .replace(/\{\{company_slug\}\}/g, companySlug)
                 .replace(/\{\{login_url\}\}/g, loginUrl)
                 .replace(/\{\{username\}\}/g, candidate.email)
                 .replace(/\{\{email\}\}/g, candidate.email)
@@ -112,13 +126,6 @@ export async function sendWelcomeEmail(candidateId: string, plainPassword?: stri
                 .replace(/\{\{displayId\}\}/g, candidate.displayId)
                 .replace(/\{\{waktu_pelaksanaan\}\}/g, waktuPelaksanaan)
                 .replace(/\{\{test_name\}\}/g, testName);
-
-            // Jika template custom tidak mengandung {{waktu_pelaksanaan}}, 
-            // otomatis tambahkan info waktu pelaksanaan ke akhir email
-            if (!template.content.includes('{{waktu_pelaksanaan}}')) {
-                const waktuHtml = `<br/><div style="background-color: #f0fdf4; padding: 12px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #059669;"><p style="margin: 0; font-size: 14px;"><strong>⏰ Waktu Pelaksanaan:</strong> ${waktuPelaksanaan}</p></div>`;
-                htmlContent += waktuHtml;
-            }
         }
 
         const { error } = await resend.emails.send({

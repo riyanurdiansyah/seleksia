@@ -10,6 +10,9 @@ export async function GET(req: NextRequest) {
         const company = await prisma.company.findUnique({
             where: { id: companyId },
             select: {
+                name: true,
+                slug: true,
+                phone: true,
                 smtpHost: true,
                 smtpPort: true,
                 smtpUser: true,
@@ -25,6 +28,10 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             success: true,
             data: {
+                name: company.name,
+                slug: company.slug,
+                phone: company.phone || "",
+                companyEmail: company.slug ? `${company.slug}@seleksia.com` : "support@seleksia.com",
                 smtpHost: company.smtpHost || "",
                 smtpPort: company.smtpPort || "",
                 smtpUser: company.smtpUser || "",
@@ -43,10 +50,10 @@ export async function POST(req: NextRequest) {
     try {
         const companyId = await getCompanyId();
         const body = await req.json();
-        const { smtpHost, smtpPort, smtpUser, smtpPass, smtpSender, useCustomSmtp } = body;
+        const { smtpHost, smtpPort, smtpUser, smtpPass, smtpSender, useCustomSmtp, phone } = body;
 
         // If useCustomSmtp is false, we clear the fields
-        const dataToUpdate = useCustomSmtp ? {
+        const dataToUpdate: any = useCustomSmtp ? {
             smtpHost: smtpHost || null,
             smtpPort: smtpPort ? parseInt(smtpPort, 10) : null,
             smtpUser: smtpUser || null,
@@ -59,6 +66,10 @@ export async function POST(req: NextRequest) {
             smtpPass: null,
             smtpSender: null,
         };
+
+        if (phone !== undefined) {
+            dataToUpdate.phone = phone ? phone.trim() : null;
+        }
 
         await prisma.company.update({
             where: { id: companyId },

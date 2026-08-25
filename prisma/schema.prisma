@@ -30,6 +30,7 @@ model Company {
   smtpUser     String?
   smtpPass     String?
   smtpSender   String?
+  phone        String?
 
   // ===== Subscription System =====
   subscriptionPlan      String                @default("Free") // "Free", "Starter", "Business", "Enterprise"

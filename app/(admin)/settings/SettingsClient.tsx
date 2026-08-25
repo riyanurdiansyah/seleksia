@@ -96,6 +96,9 @@ export default function SettingsClient() {
     const [smtpUser, setSmtpUser] = useState("");
     const [smtpPass, setSmtpPass] = useState("");
     const [smtpSender, setSmtpSender] = useState("");
+    const [companyPhone, setCompanyPhone] = useState("");
+    const [companySlug, setCompanySlug] = useState("");
+    const [companyEmail, setCompanyEmail] = useState("");
     const [testRecipient, setTestRecipient] = useState("");
 
     const [isLoading, setIsLoading] = useState(false);
@@ -121,6 +124,9 @@ export default function SettingsClient() {
                         setSmtpUser(res.data.smtpUser);
                         setSmtpPass(res.data.smtpPass);
                         setSmtpSender(res.data.smtpSender);
+                        setCompanyPhone(res.data.phone || "");
+                        setCompanySlug(res.data.slug || "");
+                        setCompanyEmail(res.data.companyEmail || "");
                     }
                 })
                 .catch(err => console.error("Error loading SMTP settings:", err))
@@ -145,11 +151,12 @@ export default function SettingsClient() {
                     smtpUser,
                     smtpPass,
                     smtpSender,
+                    phone: companyPhone,
                 })
             });
             const data = await res.json();
             if (data.success) {
-                setSaveStatus({ type: "success", msg: "Pengaturan SMTP berhasil disimpan." });
+                setSaveStatus({ type: "success", msg: "Pengaturan email & kontak perusahaan berhasil disimpan." });
             } else {
                 setSaveStatus({ type: "error", msg: data.error || "Gagal menyimpan pengaturan." });
             }
@@ -279,14 +286,58 @@ export default function SettingsClient() {
                 {/* Email Server (SMTP) Section */}
                 {activeTab === "email" && (
                     <div className="p-6 space-y-6">
+                        {/* Company Contact & Email Info Section */}
+                        <div className="bg-primary/5 border border-primary/20 rounded-[var(--radius-md)] p-5 space-y-4">
+                            <div className="flex items-center gap-2.5">
+                                <span className="material-symbols-outlined text-primary text-[22px]">contact_support</span>
+                                <div>
+                                    <h4 className="text-sm font-bold text-[var(--color-text-main)]">Kontak & Identitas Perusahaan</h4>
+                                    <p className="text-xs text-[var(--color-text-sub)]">Informasi ini akan disisipkan secara dinamis ke dalam template email undangan peserta.</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
+                                        Email Resmi Perusahaan (Slug Domain)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={companyEmail || (companySlug ? `${companySlug}@seleksia.com` : "support@seleksia.com")}
+                                        className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-card)] border border-[var(--color-border)] text-sm font-mono font-bold text-primary cursor-not-allowed outline-none"
+                                    />
+                                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1 font-medium">
+                                        Gunakan variabel <code className="bg-[var(--color-bg-elevated)] px-1 py-0.5 rounded font-bold text-primary">{"{{company_email}}"}</code> di template.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
+                                        No. Telepon / WhatsApp Bantuan (CS)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={companyPhone}
+                                        onChange={(e) => setCompanyPhone(e.target.value)}
+                                        placeholder="Cth: 0812-3456-7890 / +6281234567890"
+                                        className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all outline-none"
+                                    />
+                                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1 font-medium">
+                                        Gunakan variabel <code className="bg-[var(--color-bg-elevated)] px-1 py-0.5 rounded font-bold text-primary">{"{{company_phone}}"}</code> di template.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Title Header */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-border)] pb-5">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-border)] pb-5 pt-2">
                             <div>
                                 <h3 className="text-lg font-bold text-[var(--color-text-main)]">
                                     Konfigurasi Email Server (SMTP)
                                 </h3>
                                 <p className="text-sm text-[var(--color-text-sub)]">
-                                    Atur pengiriman email undangan ujian peserta menggunakan server email (SMTP) perusahaan Anda sendiri.
+                                    Atur pengiriman email undangan ujian peserta menggunakan server email (SMTP) perusahaan Anda sendiri (Opsional).
                                 </p>
                             </div>
                             

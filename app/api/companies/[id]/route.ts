@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 // PUT update company (superadmin only)
 export async function PUT(req: Request) {
   try {
-    const { id, name, email, password } = await req.json();
+    const { id, name, email, password, phone } = await req.json();
     if (!id || !name) {
       return NextResponse.json({ error: "id and name are required" }, { status: 400 });
     }
@@ -33,6 +33,7 @@ export async function PUT(req: Request) {
       data: { 
         name, 
         slug,
+        ...(phone !== undefined ? { phone: phone ? String(phone).trim() : null } : {}),
         ...smtpData
       },
       select: { id: true, name: true }
