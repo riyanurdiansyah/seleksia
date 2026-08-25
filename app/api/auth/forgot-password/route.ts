@@ -38,12 +38,18 @@ export async function POST(req: NextRequest) {
             }
         });
 
-        // Use the first company's SMTP settings if available, otherwise fallback to env
-        const company = candidates[0].company;
-        
-        let rawEmail = (company && company.smtpUser) ? company.smtpUser : (process.env.RESEND_DEFAULT_FROM || "noreply@seleksia.com");
-        const senderEmail = rawEmail.includes('<') ? rawEmail.match(/<(.+)>/)?.[1] || rawEmail : rawEmail;
-        const senderName = company?.name ? `${company.name} Assessment` : "TMS Group Assessment";
+        // Determine sender email (Prioritize company.slug@seleksia.com)
+        let senderEmail = "support@seleksia.com";
+        if (company?.slug) {
+            senderEmail = `${company.slug.toLowerCase()}@seleksia.com`;
+        } else if (company?.smtpUser) {
+            const raw = company.smtpUser;
+            senderEmail = raw.includes('<') ? raw.match(/<(.+)>/)?.[1] || raw : raw;
+        } else {
+            const raw = process.env.RESEND_DEFAULT_FROM || "support@seleksia.com";
+            senderEmail = raw.includes('<') ? raw.match(/<(.+)>/)?.[1] || raw : raw;
+        }
+        const senderName = company?.name ? `${company.name} Assessment` : "Seleksia Assessment";
 
         if (!process.env.RESEND_API_KEY) {
             console.warn("Resend API key not configured. Cannot send password reset email.");
@@ -63,6 +69,7 @@ export async function POST(req: NextRequest) {
             const { error } = await resend.emails.send({
                 from: `${senderName} <${senderEmail}>`,
                 to: email,
+                replyTo: senderEmail,
                 subject: "Reset Password Konfirmasi",
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">

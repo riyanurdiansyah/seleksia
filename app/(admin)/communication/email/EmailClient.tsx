@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Breadcrumb from "../../components/Breadcrumb";
 import Select2 from "../../components/Select2";
+import InboxTab from "./InboxTab";
 
 interface CandidateResult {
     id: string;
@@ -72,6 +73,8 @@ const DEFAULT_VARIABLES: CustomVariable[] = [
 export default function EmailClient({ initialData }: { initialData: CandidateResult[] }) {
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    const [activeMainTab, setActiveMainTab] = useState<"broadcast" | "inbox">("broadcast");
 
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
     const [emailSubject, setEmailSubject] = useState("");
@@ -427,6 +430,37 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
                 </div>
             </div>
 
+            {/* Main Navigation Tabs */}
+            <div className="flex items-center gap-3 border-b border-[var(--color-border)] pb-2">
+                <button
+                    onClick={() => setActiveMainTab("broadcast")}
+                    className={`px-5 py-2.5 rounded-[var(--radius-md)] text-sm font-bold flex items-center gap-2.5 transition-all cursor-pointer ${
+                        activeMainTab === "broadcast"
+                            ? "bg-primary text-white shadow-md shadow-primary/25"
+                            : "bg-[var(--color-bg-card)] text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border)]"
+                    }`}
+                >
+                    <span className="material-symbols-outlined text-[20px]">forward_to_inbox</span>
+                    <span>Kirim Undangan (Broadcast)</span>
+                </button>
+
+                <button
+                    onClick={() => setActiveMainTab("inbox")}
+                    className={`px-5 py-2.5 rounded-[var(--radius-md)] text-sm font-bold flex items-center gap-2.5 transition-all cursor-pointer ${
+                        activeMainTab === "inbox"
+                            ? "bg-primary text-white shadow-md shadow-primary/25"
+                            : "bg-[var(--color-bg-card)] text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] border border-[var(--color-border)]"
+                    }`}
+                >
+                    <span className="material-symbols-outlined text-[20px]">inbox</span>
+                    <span>Kotak Masuk (Inbox Email)</span>
+                </button>
+            </div>
+
+            {activeMainTab === "inbox" ? (
+                <InboxTab />
+            ) : (
+                <>
             {/* Dashboard / Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Stat 1: Selected Recipients */}
@@ -1197,6 +1231,8 @@ export default function EmailClient({ initialData }: { initialData: CandidateRes
                         </div>
                     </div>
                 </div>
+            )}
+                </>
             )}
         </div>
     );

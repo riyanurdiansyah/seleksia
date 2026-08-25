@@ -8,9 +8,10 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  maxWidth?: string;
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }: ModalProps) {
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -27,7 +28,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-xl)] border border-[var(--color-border)] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-in-up">
+      <div className={`bg-[var(--color-bg-card)] rounded-[var(--radius-xl)] border border-[var(--color-border)] shadow-2xl w-full ${maxWidth} max-h-[90vh] overflow-y-auto animate-slide-in-up`}>
         <div className="flex items-center justify-between p-5 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-bg-card)] z-10">
           {title && <h3 className="text-lg font-bold text-[var(--color-text-main)]">{title}</h3>}
           <button

@@ -27,10 +27,18 @@ export async function POST(req: NextRequest) {
         const companyName = company?.name || "Seleksia";
         const appUrl = process.env.NEXTAUTH_URL || "https://seleksia.com";
 
-        // Determine sender email
-        let rawEmail = (company && company.smtpUser) ? company.smtpUser : (process.env.RESEND_DEFAULT_FROM || "noreply@seleksia.com");
-        const senderEmail = rawEmail.includes('<') ? rawEmail.match(/<(.+)>/)?.[1] || rawEmail : rawEmail;
-        const senderName = company?.name ? `${company.name} Assessment` : "TMS Group Assessment";
+        // Determine sender email (Prioritize company.slug@seleksia.com)
+        let senderEmail = "support@seleksia.com";
+        if (company?.slug) {
+            senderEmail = `${company.slug.toLowerCase()}@seleksia.com`;
+        } else if (company?.smtpUser) {
+            const raw = company.smtpUser;
+            senderEmail = raw.includes('<') ? raw.match(/<(.+)>/)?.[1] || raw : raw;
+        } else {
+            const raw = process.env.RESEND_DEFAULT_FROM || "support@seleksia.com";
+            senderEmail = raw.includes('<') ? raw.match(/<(.+)>/)?.[1] || raw : raw;
+        }
+        const senderName = company?.name ? `${company.name} Assessment` : "Seleksia Assessment";
         
         const fromHeader = `${senderName} <${senderEmail}>`;
 
@@ -41,6 +49,7 @@ export async function POST(req: NextRequest) {
             const { data, error } = await resend.emails.send({
                 from: fromHeader,
                 to: candidate.email,
+                replyTo: senderEmail,
                 subject: subject,
                 text: message,
                 html: htmlContent,
