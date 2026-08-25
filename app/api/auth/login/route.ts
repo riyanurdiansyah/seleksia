@@ -12,14 +12,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Username and password are required" }, { status: 400 });
         }
 
-        // Find candidate by email or displayId
-        const candidate = await prisma.candidate.findFirst({
+        // Find candidate(s) by email or displayId (ordered by newest first)
+        const candidates = await prisma.candidate.findMany({
             where: {
                 OR: [
                     { email: username.toLowerCase() },
                     { displayId: username.toUpperCase() },
                 ],
             },
+            orderBy: { createdAt: "desc" },
             include: {
                 assignments: {
                     where: { status: "assigned" },
@@ -32,13 +33,21 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        if (!candidate) {
+        if (!candidates.length) {
             return NextResponse.json({ error: "Invalid credentials. Account not found." }, { status: 401 });
         }
 
-        // Verify password with bcrypt
-        const passwordMatch = await bcrypt.compare(password, candidate.password);
-        if (!passwordMatch) {
+        // Verify password against matching candidates
+        let candidate = null;
+        for (const c of candidates) {
+            const passwordMatch = await bcrypt.compare(password, c.password);
+            if (passwordMatch) {
+                candidate = c;
+                break;
+            }
+        }
+
+        if (!candidate) {
             return NextResponse.json({ error: "Invalid credentials. Wrong password." }, { status: 401 });
         }
 
