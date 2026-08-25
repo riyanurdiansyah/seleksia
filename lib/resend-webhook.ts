@@ -28,7 +28,7 @@ export function extractEmailAddress(raw: string | undefined | null): string {
 export function isSeleksiaDomain(email: string, targetDomain = "seleksia.com"): boolean {
   const pureEmail = extractEmailAddress(email);
   if (!pureEmail.includes("@")) return false;
-  
+
   const domain = pureEmail.split("@")[1]?.toLowerCase();
   if (!domain) return false;
 
@@ -139,7 +139,7 @@ export async function matchCandidateAndCompany(fromEmail: string, toEmail: strin
   // 2. If company is not found yet, check toEmail
   if (!companyId && toEmail) {
     const [localPart] = toEmail.split("@");
-    
+
     // Check if localPart matches a company slug
     if (localPart) {
       const companyBySlug = await prisma.company.findUnique({
@@ -170,25 +170,46 @@ export async function matchCandidateAndCompany(fromEmail: string, toEmail: strin
  * Fetches full inbound email details from Resend API if payload only contains an ID
  */
 export async function fetchResendInboundEmailDetails(emailId: string) {
-  if (!process.env.RESEND_API_KEY) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
     return null;
   }
 
   try {
-    // Try using Resend receiving API if supported
-    if ((resend.emails as any).receiving?.get) {
-      const { data, error } = await (resend.emails as any).receiving.get(emailId);
-      if (!error && data) {
-        return data;
-      }
+    // 1. Try direct fetch to Resend Receiving API
+    const res = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data;
     }
 
-    // Fallback to resend.emails.get
-    if (resend.emails.get) {
-      const { data, error } = await resend.emails.get(emailId);
-      if (!error && data) {
-        return data;
-      }
+    // 2. Try direct fetch to standard emails API
+    const res2 = await fetch(`https://api.resend.com/emails/${emailId}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (res2.ok) {
+      const data = await res2.json();
+      return data;
+    }
+
+    const errData = await res.json().catch(() => ({}));
+    if (errData?.name === "restricted_api_key" || errData?.statusCode === 401) {
+      console.error(
+        `[Resend Inbound] ⚠️ API Key permission error: "${errData?.message || 'Restricted API Key'}". ` +
+        `API Key saat ini hanya memiliki izin "Sending access". Silakan buat API Key baru dengan permission "Full access" di Dashboard Resend agar sistem dapat membaca isi teks email masuk.`
+      );
+    } else {
+      console.warn(`[Resend Inbound] Could not fetch email details (${res.status}):`, errData);
     }
   } catch (err) {
     console.warn(`[Resend Webhook] Could not fetch detailed email from API for ID ${emailId}:`, err);
