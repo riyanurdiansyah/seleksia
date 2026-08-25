@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.111.0",
     "@prisma/client": "^6.19.2",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "file-saver": "^2.0.5",
     "lucide-react": "^1.24.0",
     "next": "16.1.6",
@@ -22,10 +23,9 @@
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
     "resend": "^6.17.2",
+    "tsx": "^4.21.0",
     "ws": "^8.21.0",
-    "xlsx": "^0.18.5",
-    "dotenv": "^17.4.2",
-    "tsx": "^4.21.0"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -43,6 +43,7 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "optionalDependencies": {
+    "@next/swc-darwin-arm64": "^16.1.6",
     "@next/swc-linux-x64-gnu": "16.1.6",
     "@next/swc-linux-x64-musl": "16.1.6"
   }

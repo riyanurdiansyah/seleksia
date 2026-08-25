@@ -6,13 +6,11 @@ export const dynamic = 'force-dynamic';
 
 async function ensureSubscriptionMenu() {
     try {
-        // Check if menu with path '/subscription' exists
         const existing = await prisma.menu.findFirst({
             where: { path: "/subscription" }
         });
 
         if (!existing) {
-            // Create menu and set permissions for admin and superadmin
             await prisma.menu.create({
                 data: {
                     name: "Subscription",
@@ -104,6 +102,33 @@ async function ensureSuperAdminMenus() {
                 }
             });
         }
+
+        const reportsExists = await prisma.menu.findFirst({ where: { path: "/reports" } });
+        if (!reportsExists) {
+            await prisma.menu.create({
+                data: {
+                    name: "Laporan User",
+                    path: "/reports",
+                    icon: "support_agent",
+                    isActive: true,
+                    parentId: null,
+                    sortOrder: 100,
+                    roleAccess: {
+                        createMany: {
+                            data: [
+                                {
+                                    role: Role.superadmin,
+                                    canRead: true,
+                                    canCreate: true,
+                                    canUpdate: true,
+                                    canDelete: true
+                                }
+                            ]
+                        }
+                    }
+                }
+            });
+        }
     } catch (err) {
         console.error("Failed to ensure superadmin menus:", err);
     }
@@ -111,12 +136,10 @@ async function ensureSuperAdminMenus() {
 
 export async function GET(req: NextRequest) {
     try {
+        await ensureSuperAdminMenus();
         const { searchParams } = new URL(req.url);
         const role = (searchParams.get("role") || "admin") as Role;
 
-        // Initialization scripts have been disabled here to prevent race conditions
-        // and to respect explicit menu deletions by the user.
-        // Fetch parent menus with their submenus where role has canRead
         const menus = await prisma.menu.findMany({
             where: {
                 parentId: null,

@@ -22,6 +22,8 @@ model Company {
   questions    Question[]
   testGroups   TestGroup[]
   emailTemplates EmailTemplate[]
+  userReports  UserReport[]
+  inboundEmails InboundEmail[]
 
   smtpHost     String?
   smtpPort     Int?
@@ -107,10 +109,13 @@ model Candidate {
   aiPersonalityInsight String?         @db.Text
   resetToken           String?
   resetTokenExpiry     DateTime?
+  hasCompletedOnboarding Boolean @default(false)
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
   subscriptionPayments SubscriptionPayment[]
+  userReports          UserReport[]
+  inboundEmails        InboundEmail[]
 
   company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   assignments TestAssignment[]
@@ -440,3 +445,60 @@ model Article {
 
   @@map("articles")
 }
+
+// ===== User Reports & Feedback =====
+
+model UserReport {
+  id            String   @id @default(cuid())
+  companyId     String?
+  candidateId   String?
+  reporterName  String
+  reporterEmail String
+  category      String   @default("general") // "bug", "feature_request", "billing", "general"
+  subject       String
+  message       String   @db.Text
+  status        String   @default("pending") // "pending", "in_progress", "resolved", "closed"
+  adminNote     String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+
+  @@map("user_reports")
+}
+
+// ===== Inbound Emails (Resend Webhook) =====
+
+model InboundEmail {
+  id          String   @id @default(cuid())
+  resendId    String?  @unique // Resend Email ID (e.g. from webhook data.email_id)
+  messageId   String?  // Message-ID from headers
+  from        String   // Original from string e.g. "John Doe <john@example.com>"
+  fromEmail   String   // Extracted pure email e.g. "john@example.com"
+  to          String   // Original to string/list e.g. "support@seleksia.com"
+  toEmail     String   // Primary recipient email e.g. "support@seleksia.com"
+  subject     String?
+  text        String?  @db.Text
+  html        String?  @db.Text
+  rawHeaders  String?  @db.Text // JSON string of all headers
+  attachments String?  @db.Text // JSON string of attachments metadata
+  status      String   @default("received") // "received", "processed", "ignored", "failed"
+  error       String?  @db.Text
+
+  // Optional associations
+  companyId   String?
+  company     Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  candidateId String?
+  candidate   Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([toEmail])
+  @@index([fromEmail])
+  @@index([companyId])
+  @@index([candidateId])
+  @@map("inbound_emails")
+}
+

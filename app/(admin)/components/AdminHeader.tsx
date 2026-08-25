@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import ReportModal from "./ReportModal";
+import OnboardingTour from "./OnboardingTour";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
     "/dashboard": { title: "Dashboard", subtitle: "Welcome back! Here's what's happening today." },
@@ -43,6 +45,8 @@ export default function AdminHeader() {
     const pathname = usePathname();
     const [notifOpen, setNotifOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+    const [tourManualOpen, setTourManualOpen] = useState(false);
     const [searchFocused, setSearchFocused] = useState(false);
     const notifRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
@@ -199,6 +203,26 @@ export default function AdminHeader() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-1.5">
+                {/* Report Issue / Help Button */}
+                <button
+                    onClick={() => setReportModalOpen(true)}
+                    className="rounded-xl px-3 py-1.5 flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 hover:bg-emerald-100 transition-all cursor-pointer shadow-xs mr-1"
+                    title="Kirim Laporan / Feedback ke Tim Seleksia"
+                >
+                    <span className="material-symbols-outlined text-[16px]">support_agent</span>
+                    <span className="hidden md:inline">Bantuan & Lapor</span>
+                </button>
+
+                {/* Tour / Guide Button */}
+                <button
+                    onClick={() => setTourManualOpen(true)}
+                    className="rounded-xl px-3 py-1.5 flex items-center gap-1.5 text-xs font-bold text-purple-600 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900 hover:bg-purple-100 transition-all cursor-pointer shadow-xs mr-1"
+                    title="Putar Ulang Panduan Aplikasi (Tour)"
+                >
+                    <span className="material-symbols-outlined text-[16px]">help</span>
+                    <span className="hidden md:inline">Panduan Tour</span>
+                </button>
+
                 {/* Notifications */}
                 <div className="relative" ref={notifRef}>
                     <button
@@ -303,6 +327,12 @@ export default function AdminHeader() {
                     )}
                 </div>
             </div>
+
+            {/* Global Report & Support Modal */}
+            <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} />
+
+            {/* Global Interactive Onboarding Tour */}
+            <OnboardingTour forceShow={tourManualOpen} onClose={() => setTourManualOpen(false)} />
         </header>
     );
 }

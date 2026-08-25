@@ -266,6 +266,17 @@ The full article content formatted in Markdown. Include appropriate headings (H2
             return match ? match[1].trim() : '';
         };
 
+        // Default high quality HR/Recruitment/Tech cover images from Unsplash
+        const defaultCoverImages = [
+            "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+            "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80",
+        ];
+        const randomCoverImage = defaultCoverImages[Math.floor(Math.random() * defaultCoverImages.length)];
+
         const result = {
             title: extractTag('title'),
             slug: extractTag('slug'),
@@ -274,6 +285,7 @@ The full article content formatted in Markdown. Include appropriate headings (H2
             seoDescription: extractTag('seoDescription'),
             seoKeywords: extractTag('seoKeywords'),
             content: extractTag('content'),
+            coverImage: extractTag('coverImage') || randomCoverImage,
         };
         
         // If it somehow fails to parse the tags, fallback to simple parsing or throw an error

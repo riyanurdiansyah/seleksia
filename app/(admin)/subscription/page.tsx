@@ -536,7 +536,7 @@ export default function SubscriptionDashboard() {
                                 
                                 {plan.price === 0 ? (
                                     <a
-                                        href="https://wa.me/6281234567890?text=Halo%20Seleksia%20saya%20tertarik%20dengan%20paket%20Enterprise"
+                                        href="https://wa.me/6285111410005?text=Halo%20Seleksia%20saya%20tertarik%20dengan%20paket%20Enterprise"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-full mt-6 py-3.5 rounded-[var(--radius-sm)] bg-[var(--color-brand-navy)] hover:bg-[#0f2427] text-white font-bold text-xs text-center block transition-all btn-press shadow-sm"

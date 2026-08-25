@@ -1140,10 +1140,10 @@ export default function ExamPage() {
 
                                             return optionsList.map((opt, idx) => {
                                                 const displayKey = question.type === "true_false"
-                                                    ? opt.text
+                                                    ? (opt.text === "True" ? "T" : opt.text === "False" ? "F" : OPTION_KEYS[idx] || String(idx + 1))
                                                     : question.type === "likert_scale"
-                                                    ? opt.text
-                                                    : (OPTION_KEYS[idx] || String(idx));
+                                                    ? String(idx + 1)
+                                                    : (OPTION_KEYS[idx] || String(idx + 1));
                                                 const originalKey = opt.originalKey;
                                                 const selected = answers[question.id] === originalKey;
                                                 return (
@@ -1162,11 +1162,7 @@ export default function ExamPage() {
                                                                     : "border-[var(--color-border-strong)] dark:border-slate-600 text-[var(--color-text-muted)] group-hover:border-primary/40"
                                                                     }`}
                                                             >
-                                                                {question.type === "true_false"
-                                                                    ? (opt.text === "True" ? "T" : "F")
-                                                                    : question.type === "likert_scale"
-                                                                    ? opt.text
-                                                                    : displayKey}
+                                                                {displayKey}
                                                             </div>
                                                             {opt.text.startsWith("/") ? (
                                                                 <img src={opt.text} alt="Option pattern" className="max-h-20 object-contain rounded bg-[var(--color-bg-card)] dark:bg-slate-900 p-1 border border-[var(--color-border)]" />
