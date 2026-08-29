@@ -21,9 +21,16 @@ export default async function ResultsPage() {
             test: {
                 select: {
                     name: true,
+                    description: true,
                     category: true,
                     duration: true,
                     questionType: true,
+                    scoringConfig: true,
+                    company: {
+                        select: {
+                            scoringConfig: true
+                        }
+                    },
                     questions: {
                         select: { id: true, type: true, correctAnswer: true, optionWeights: true, competency: true, text: true }
                     }
@@ -58,15 +65,18 @@ export default async function ResultsPage() {
                 unscorableCount++;
             }
 
-            const candidateAnswer = a.answers.find(ans => ans.questionId === q.id);
-            if (candidateAnswer) {
-                if (isWeighted) {
-                    const weights = (q.optionWeights as Record<string, number>) || {};
-                    if (typeof weights[candidateAnswer.answer] === 'number') {
-                        totalWeightedScore += weights[candidateAnswer.answer];
+            if (isWeighted && q.optionWeights) {
+                const ans = a.answers.find(ans => ans.questionId === q.id);
+                if (ans) {
+                    const weights = q.optionWeights as Record<string, number>;
+                    if (typeof weights[ans.answer] === "number") {
+                        totalWeightedScore += weights[ans.answer];
                     }
-                } else if (isNormalScorable) {
-                    if (candidateAnswer.answer === q.correctAnswer) {
+                }
+            } else if (isNormalScorable) {
+                const ans = a.answers.find(ans => ans.questionId === q.id);
+                if (ans) {
+                    if (ans.answer === q.correctAnswer) {
                         correctNormal++;
                     }
                 }
@@ -76,11 +86,14 @@ export default async function ResultsPage() {
         const overallNormalScore = a.test.questions.length > 0 ? Math.round((correctNormal / a.test.questions.length) * 100) : 0;
         const calculatedNormalScore = normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0;
 
-        // Compute 3-layer Competency Profile
+        // Resolve active scoring config: per-test override > company default > global fallback
+        const activeScoringConfig = a.test.scoringConfig || a.test.company?.scoringConfig || null;
+
+        // Compute 3-layer Competency Profile with dynamic tenant config
         const competencyProfile = calculateCompetencyProfile(
             a.test.questions.map(q => ({
                 id: q.id,
-                competency: q.competency,
+                competency: q.competency?.trim() || a.test.description?.trim() || "General Competency",
                 correctAnswer: q.correctAnswer,
                 optionWeights: q.optionWeights as Record<string, number> | null,
                 type: q.type,
@@ -89,7 +102,8 @@ export default async function ResultsPage() {
             a.answers.map(ans => ({
                 questionId: ans.questionId,
                 answer: ans.answer
-            }))
+            })),
+            activeScoringConfig as any
         );
 
         return {
@@ -97,6 +111,7 @@ export default async function ResultsPage() {
             candidateName: a.candidate.name,
             candidateId: a.candidate.displayId,
             testName: a.test.name,
+            testDescription: a.test.description || "",
             category: a.test.category,
             batch: a.candidate.batch || "-",
             completedAt: a.completedAt ? a.completedAt.toISOString() : "",

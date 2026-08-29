@@ -14,6 +14,9 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             candidate: true,
             test: {
                 include: {
+                    company: {
+                        select: { scoringConfig: true }
+                    },
                     questions: {
                         orderBy: { sortOrder: "asc" }
                     }
@@ -73,7 +76,7 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             displayId: q.displayId,
             type: q.type,
             text: q.text,
-            competency: q.competency || null,
+            competency: q.competency?.trim() || assignment.test.description?.trim() || "General Competency",
             options: q.options,
             correctAnswer: q.correctAnswer,
             candidateAnswer: candidateAnswer?.answer || null,
@@ -95,7 +98,7 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
     const competencyProfile = calculateCompetencyProfile(
         assignment.test.questions.map(q => ({
             id: q.id,
-            competency: q.competency,
+            competency: q.competency?.trim() || assignment.test.description?.trim() || "General Competency",
             correctAnswer: q.correctAnswer,
             optionWeights: q.optionWeights as Record<string, number> | null,
             type: q.type,
@@ -104,8 +107,21 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
         assignment.answers.map(ans => ({
             questionId: ans.questionId,
             answer: ans.answer
-        }))
+        })),
+        (assignment.test.scoringConfig || assignment.test.company?.scoringConfig || null) as any
     );
+
+    const rawAiRows: any[] = await prisma.$queryRaw`
+        SELECT "aiRecommendation", "aiRecommendationGeneratedAt", "aiPromptContext"
+        FROM "test_assignments"
+        WHERE "id" = ${assignmentId}
+        LIMIT 1
+    `;
+    const aiRecommendation = rawAiRows[0]?.aiRecommendation || (assignment as any).aiRecommendation || null;
+    const aiRecommendationGeneratedAt = rawAiRows[0]?.aiRecommendationGeneratedAt
+        ? new Date(rawAiRows[0].aiRecommendationGeneratedAt).toISOString()
+        : (assignment as any).aiRecommendationGeneratedAt ? (assignment as any).aiRecommendationGeneratedAt.toISOString() : null;
+    const aiPromptContext = rawAiRows[0]?.aiPromptContext || (assignment as any).aiPromptContext || null;
 
     const resultData = {
         id: assignment.id,
@@ -123,11 +139,15 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
         test: {
             id: assignment.test.id,
             name: assignment.test.name,
+            description: assignment.test.description || null,
             category: assignment.test.category,
-            questionType: assignment.test.questionType,
             duration: assignment.test.duration,
+            questionType: assignment.test.questionType,
             totalQuestions
         },
+        aiRecommendation,
+        aiRecommendationGeneratedAt,
+        aiPromptContext,
         examSession: {
             timeUsedSeconds: assignment.examSession?.timeUsedSeconds || 0,
             autoSubmitted: assignment.examSession?.autoSubmitted || false,

@@ -85,6 +85,7 @@ export async function PATCH(
         if (body.description !== undefined) data.description = body.description;
         if (body.duration !== undefined) data.duration = body.duration;
         if (body.totalQuestionsToUse !== undefined) data.totalQuestionsToUse = body.totalQuestionsToUse;
+        if (body.scoringConfig !== undefined) data.scoringConfig = body.scoringConfig;
 
         const test = await prisma.test.update({
             where: { id },

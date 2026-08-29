@@ -8,6 +8,14 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import Select2 from "../../../components/Select2";
 import * as XLSX from "xlsx";
 
+import { 
+    CustomScoringConfig, 
+    PRESET_SCORING_SCHEMES, 
+    ScoringBand, 
+    RecommendationRule, 
+    GatekeeperRule 
+} from "@/lib/competencyScoring";
+
 /* ===== Types ===== */
 type QuestionType = "multiple_choice" | "multiple_choice_weighted" | "true_false" | "likert_scale" | "forced_choice" | "number_series" | "image_pattern" | "essay";
 type TestCategory = "intelligence" | "personality" | "aptitude" | "projective";
@@ -36,6 +44,7 @@ interface Test {
     duration: number;
     totalQuestionsToUse: number;
     status: "draft" | "published" | "archived";
+    scoringConfig?: CustomScoringConfig | null;
     createdAt: string;
     questions: Question[];
 }
@@ -70,7 +79,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<"questions" | "settings">("questions");
+    const [activeTab, setActiveTab] = useState<"questions" | "settings" | "scoring">("questions");
 
     // Edit form
     const [editName, setEditName] = useState("");
@@ -79,6 +88,10 @@ export default function TestDetailClient({ testId }: { testId: string }) {
     const [editDescription, setEditDescription] = useState("");
     const [editDuration, setEditDuration] = useState(30);
     const [editTotalQuestions, setEditTotalQuestions] = useState(0);
+
+    // Scoring Scheme State
+    const [scoringConfig, setScoringConfig] = useState<CustomScoringConfig>(PRESET_SCORING_SCHEMES["5_tier_sales"]);
+    const [selectedPreset, setSelectedPreset] = useState<string>("5_tier_sales");
 
     // Add question
     const [showAddQuestion, setShowAddQuestion] = useState(false);
@@ -179,6 +192,12 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                 setEditDescription(data.description || "");
                 setEditDuration(data.duration);
                 setEditTotalQuestions(data.totalQuestionsToUse || 0);
+
+                if (data.scoringConfig) {
+                    setScoringConfig(data.scoringConfig);
+                } else {
+                    setScoringConfig(PRESET_SCORING_SCHEMES["5_tier_sales"]);
+                }
             } catch (err: any) {
                 console.error(err);
                 setTest(null);
@@ -190,7 +209,16 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         fetchTest();
     }, [testId, router]);
 
-    /* Save test settings */
+    /* Apply Preset Scoring Scheme */
+    const handleApplyPreset = (presetKey: string) => {
+        const preset = PRESET_SCORING_SCHEMES[presetKey];
+        if (preset) {
+            setSelectedPreset(presetKey);
+            setScoringConfig(JSON.parse(JSON.stringify(preset)));
+        }
+    };
+
+    /* Save test settings & scoring config */
     const handleSave = async () => {
         if (!test) return;
         setSaving(true);
@@ -205,13 +233,16 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     description: editDescription,
                     duration: editDuration,
                     totalQuestionsToUse: editTotalQuestions,
+                    scoringConfig: scoringConfig,
                 }),
             });
             if (!res.ok) throw new Error("Failed");
             const updated = await res.json();
             setTest(updated);
+            await globalDialog.alert("Pengaturan skema penilaian berhasil disimpan!");
         } catch (err) {
             console.error(err);
+            await globalDialog.alert("Gagal menyimpan pengaturan test.");
         } finally {
             setSaving(false);
         }
@@ -603,8 +634,11 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                 <button onClick={() => setActiveTab("questions")} className={`py-3 border-b-2 font-medium text-sm mr-6 transition-colors ${activeTab === "questions" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-sub)]"}`}>
                     <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">quiz</span>Questions ({test.questions.length})</span>
                 </button>
+                <button onClick={() => setActiveTab("scoring")} className={`py-3 border-b-2 font-medium text-sm mr-6 transition-colors ${activeTab === "scoring" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-sub)]"}`}>
+                    <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">tune</span>Scoring Scheme & Thresholds</span>
+                </button>
                 <button onClick={() => setActiveTab("settings")} className={`py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === "settings" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-sub)]"}`}>
-                    <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">settings</span>Settings</span>
+                    <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">settings</span>General Settings</span>
                 </button>
             </div>
 
@@ -1072,6 +1106,433 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* ===== SCORING SCHEME & THRESHOLDS TAB ===== */}
+            {activeTab === "scoring" && (
+                <div className="space-y-6">
+                    {/* Header & Presets Bar */}
+                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <h3 className="text-base font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
+                                    Skema Penilaian & Standar Kelulusan (Multi-Tenant)
+                                </h3>
+                                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                                    Sesuaikan rentang nilai, label grade, ambang batas rekomendasi hiring, dan kompetensi kunci (gatekeeper) sesuai standar perusahaan Anda.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-bold text-[var(--color-text-sub)]">Template Preset:</span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleApplyPreset("5_tier_sales")}
+                                    className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-bold transition-all border ${selectedPreset === "5_tier_sales" ? "bg-primary text-white border-primary shadow-xs" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]"}`}
+                                >
+                                    🎯 5-Tier Standard
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleApplyPreset("3_tier_simple")}
+                                    className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-bold transition-all border ${selectedPreset === "3_tier_simple" ? "bg-primary text-white border-primary shadow-xs" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]"}`}
+                                >
+                                    📊 3-Tier Simple
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleApplyPreset("academic_grade")}
+                                    className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-bold transition-all border ${selectedPreset === "academic_grade" ? "bg-primary text-white border-primary shadow-xs" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)] border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]"}`}
+                                >
+                                    🏆 Academic Grade (A-E)
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Scheme Name input */}
+                        <div className="pt-2">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">Nama Skema Penilaian</label>
+                            <input
+                                type="text"
+                                value={scoringConfig.schemeName || ""}
+                                onChange={(e) => setScoringConfig(prev => ({ ...prev, schemeName: e.target.value }))}
+                                placeholder="e.g. Standar Penilaian Rekrutmen Sales 2026"
+                                className="w-full h-10 px-4 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Section 1: Score Category Bands */}
+                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px] text-amber-500">category</span>
+                                    1. Rentang Nilai & Kategori Grade (Score Bands)
+                                </h4>
+                                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                                    Tentukan pembagian kelompok nilai dari skor 0 hingga 100 beserta nama labelnya.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setScoringConfig(prev => ({
+                                        ...prev,
+                                        bands: [...(prev.bands || []), { min: 0, max: 50, label: "CUSTOM GRADE", description: "" }]
+                                    }));
+                                }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-bold bg-[var(--color-primary-light)] text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">add</span>
+                                Tambah Rentang
+                            </button>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-[var(--color-border)] text-[11px] font-bold uppercase text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)]">
+                                        <th className="p-2.5 w-24">Min (%)</th>
+                                        <th className="p-2.5 w-24">Max (%)</th>
+                                        <th className="p-2.5 w-48">Nama Label Kategori</th>
+                                        <th className="p-2.5">Deskripsi / Keterangan</th>
+                                        <th className="p-2.5 w-16 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(scoringConfig.bands || []).map((band, idx) => (
+                                        <tr key={idx} className="border-b border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors">
+                                            <td className="p-2">
+                                                <input
+                                                    type="number"
+                                                    value={band.min}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        setScoringConfig(prev => {
+                                                            const newBands = [...(prev.bands || [])];
+                                                            newBands[idx] = { ...newBands[idx], min: val };
+                                                            return { ...prev, bands: newBands };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)] text-center font-mono"
+                                                    min="0"
+                                                    max="100"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <input
+                                                    type="number"
+                                                    value={band.max}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        setScoringConfig(prev => {
+                                                            const newBands = [...(prev.bands || [])];
+                                                            newBands[idx] = { ...newBands[idx], max: val };
+                                                            return { ...prev, bands: newBands };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)] text-center font-mono"
+                                                    min="0"
+                                                    max="100"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    value={band.label}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setScoringConfig(prev => {
+                                                            const newBands = [...(prev.bands || [])];
+                                                            newBands[idx] = { ...newBands[idx], label: val };
+                                                            return { ...prev, bands: newBands };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)]"
+                                                    placeholder="e.g. HIGH"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    value={band.description || ""}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setScoringConfig(prev => {
+                                                            const newBands = [...(prev.bands || [])];
+                                                            newBands[idx] = { ...newBands[idx], description: val };
+                                                            return { ...prev, bands: newBands };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-sub)]"
+                                                    placeholder="Keterangan kategori..."
+                                                />
+                                            </td>
+                                            <td className="p-2 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setScoringConfig(prev => ({
+                                                            ...prev,
+                                                            bands: (prev.bands || []).filter((_, i) => i !== idx)
+                                                        }));
+                                                    }}
+                                                    className="p-1 rounded text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors"
+                                                    title="Hapus Baris"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Section 2: Hiring Recommendations Rules */}
+                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px] text-emerald-500">verified</span>
+                                    2. Aturan Rekomendasi Perekrutan (Hiring Decisions)
+                                </h4>
+                                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                                    Tentukan kriteria kelulusan berdasarkan Overall Score kandidat.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setScoringConfig(prev => ({
+                                        ...prev,
+                                        recommendations: [...(prev.recommendations || []), { type: "CUSTOM", label: "Disarankan", minOverallScore: 70, description: "" }]
+                                    }));
+                                }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-bold bg-[var(--color-primary-light)] text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">add</span>
+                                Tambah Aturan
+                            </button>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-[var(--color-border)] text-[11px] font-bold uppercase text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)]">
+                                        <th className="p-2.5 w-28">Min Score (%)</th>
+                                        <th className="p-2.5 w-60">Label Rekomendasi</th>
+                                        <th className="p-2.5">Penjelasan / Rationale</th>
+                                        <th className="p-2.5 w-16 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(scoringConfig.recommendations || []).map((rec, idx) => (
+                                        <tr key={idx} className="border-b border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors">
+                                            <td className="p-2">
+                                                <input
+                                                    type="number"
+                                                    value={rec.minOverallScore}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        setScoringConfig(prev => {
+                                                            const newRecs = [...(prev.recommendations || [])];
+                                                            newRecs[idx] = { ...newRecs[idx], minOverallScore: val };
+                                                            return { ...prev, recommendations: newRecs };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)] text-center font-mono"
+                                                    min="0"
+                                                    max="100"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    value={rec.label}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setScoringConfig(prev => {
+                                                            const newRecs = [...(prev.recommendations || [])];
+                                                            newRecs[idx] = { ...newRecs[idx], label: val };
+                                                            return { ...prev, recommendations: newRecs };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)]"
+                                                    placeholder="e.g. Recommended"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    value={rec.description || ""}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setScoringConfig(prev => {
+                                                            const newRecs = [...(prev.recommendations || [])];
+                                                            newRecs[idx] = { ...newRecs[idx], description: val };
+                                                            return { ...prev, recommendations: newRecs };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-sub)]"
+                                                    placeholder="Alasan / tindak lanjut rekomendasi..."
+                                                />
+                                            </td>
+                                            <td className="p-2 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setScoringConfig(prev => ({
+                                                            ...prev,
+                                                            recommendations: (prev.recommendations || []).filter((_, i) => i !== idx)
+                                                        }));
+                                                    }}
+                                                    className="p-1 rounded text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors"
+                                                    title="Hapus Aturan"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Section 3: Gatekeeper Rules */}
+                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px] text-purple-500">policy</span>
+                                    3. Syarat Mutlak & Batas Kritis (Gatekeeper Rules)
+                                </h4>
+                                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                                    Kompetensi yang wajib lolos. Jika skor di bawah batas minimal, sistem otomatis memberi peringatan *"Deep Dive Review"*.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setScoringConfig(prev => ({
+                                        ...prev,
+                                        gatekeepers: [...(prev.gatekeepers || []), { competency: "Integrity", minScore: 80, action: "DEEP_DIVE", actionLabel: "Wawancara Khusus" }]
+                                    }));
+                                }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-bold bg-[var(--color-primary-light)] text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">add</span>
+                                Tambah Gatekeeper
+                            </button>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-[var(--color-border)] text-[11px] font-bold uppercase text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)]">
+                                        <th className="p-2.5 w-60">Nama Kompetensi Kunci</th>
+                                        <th className="p-2.5 w-28">Batas Min (%)</th>
+                                        <th className="p-2.5">Status / Aksi Jika Gagal (Custom Name)</th>
+                                        <th className="p-2.5 w-16 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(scoringConfig.gatekeepers || []).map((gate, idx) => (
+                                        <tr key={idx} className="border-b border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors">
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    value={gate.competency}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setScoringConfig(prev => {
+                                                            const newGates = [...(prev.gatekeepers || [])];
+                                                            newGates[idx] = { ...newGates[idx], competency: val };
+                                                            return { ...prev, gatekeepers: newGates };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)]"
+                                                    placeholder="e.g. Integrity, Compliance"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <input
+                                                    type="number"
+                                                    value={gate.minScore}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        setScoringConfig(prev => {
+                                                            const newGates = [...(prev.gatekeepers || [])];
+                                                            newGates[idx] = { ...newGates[idx], minScore: val };
+                                                            return { ...prev, gatekeepers: newGates };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)] text-center font-mono"
+                                                    min="0"
+                                                    max="100"
+                                                />
+                                            </td>
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    value={gate.actionLabel || ""}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setScoringConfig(prev => {
+                                                            const newGates = [...(prev.gatekeepers || [])];
+                                                            newGates[idx] = { ...newGates[idx], actionLabel: val };
+                                                            return { ...prev, gatekeepers: newGates };
+                                                        });
+                                                    }}
+                                                    className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-main)]"
+                                                    placeholder="e.g. Wawancara Khusus / Review Lanjutan"
+                                                />
+                                            </td>
+                                            <td className="p-2 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setScoringConfig(prev => ({
+                                                            ...prev,
+                                                            gatekeepers: (prev.gatekeepers || []).filter((_, i) => i !== idx)
+                                                        }));
+                                                    }}
+                                                    className="p-1 rounded text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors"
+                                                    title="Hapus Gatekeeper"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Bottom Save Bar */}
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={() => handleApplyPreset("5_tier_sales")}
+                            className="px-4 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] font-medium text-sm hover:bg-[var(--color-bg-hover)] transition-colors btn-press"
+                        >
+                            Reset ke Standar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-6 py-2.5 rounded-[var(--radius-sm)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] btn-press disabled:opacity-50"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">{saving ? "progress_activity" : "check"}</span>
+                            {saving ? "Menyimpan Skema..." : "Simpan Skema Penilaian"}
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* ===== SETTINGS TAB ===== */}

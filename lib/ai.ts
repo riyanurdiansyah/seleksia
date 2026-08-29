@@ -304,3 +304,126 @@ The full article content formatted in Markdown. Include appropriate headings (H2
   }
 }
 
+export interface RecommendationContext {
+  candidateName: string;
+  testName: string;
+  testDescription?: string;
+  overallScore: number;
+  overallCategory: string;
+  hiringRecommendation: string;
+  recommendationRationale?: string;
+  competencies?: { name: string; score: number; status: string; passedBenchmark: boolean }[];
+  topStrengths?: string[];
+  topDevelopmentAreas?: string[];
+  violationsCount?: number;
+  userCustomPrompt?: string;
+}
+
+export async function generateExecutiveRecommendation(ctx: RecommendationContext): Promise<string> {
+  const competencyDetailsText = (ctx.competencies || [])
+    .map(c => `- ${c.name}: ${c.score}% (${c.status}) [Benchmark: ${c.passedBenchmark ? 'Lolos' : 'Di Bawah Target'}]`)
+    .join('\n');
+
+  const strengthsText = (ctx.topStrengths && ctx.topStrengths.length > 0)
+    ? ctx.topStrengths.join(', ')
+    : 'Merata pada seluruh butir asesmen';
+
+  const devAreasText = (ctx.topDevelopmentAreas && ctx.topDevelopmentAreas.length > 0)
+    ? ctx.topDevelopmentAreas.join(', ')
+    : 'Tidak terdeteksi area kelemahan signifikan';
+
+  const prompt = `Anda adalah seorang Senior HR Consultant, Industrial Psychologist, dan Talent Acquisition Specialist berpengalaman.
+Tugas Anda adalah menyusun Laporan Rekomendasi Tindak Lanjut Eksekutif untuk Recruiter dan Hiring Manager (User) berdasarkan hasil asesmen kandidat berikut.
+
+=== DATA ASESMEN KANDIDAT ===
+- Nama Kandidat: ${ctx.candidateName}
+- Nama Tes: ${ctx.testName}
+- Deskripsi Tes: ${ctx.testDescription || 'Tes Asesmen Kompetensi'}
+- Skor Keseluruhan: ${ctx.overallScore} / 100
+- Kategori Nilai: ${ctx.overallCategory}
+- Rekomendasi Awal Sistem: ${ctx.hiringRecommendation}
+- Catatan Rationale Sistem: ${ctx.recommendationRationale || '-'}
+- Catatan Pengawasan / Pelanggaran: ${ctx.violationsCount || 0} pelanggaran terdeteksi
+
+=== PROFIL & PEMETAAN KOMPETENSI ===
+- Kekuatan Utama (Top Strengths): ${strengthsText}
+- Area Perlu Pengembangan (Development Areas): ${devAreasText}
+${competencyDetailsText ? `\nRincian Skor Kompetensi:\n${competencyDetailsText}` : ''}
+
+${ctx.userCustomPrompt ? `=== KONTEKS / INSTRUKSI TAMBAHAN DARI RECRUITER ===\n"${ctx.userCustomPrompt}"\n` : ''}
+
+=== FORMAT LAPORAN YANG HARUS ANDA BUAT ===
+Tuliskan rekomendasi dalam Bahasa Indonesia profesional, to-the-point, berbobot, dan aplikatif dalam format Markdown terstruktur dengan 4 bagian utama berikut:
+
+### 1. 🎯 Keputusan Penerimaan & Evaluasi Holistik
+(Jelaskan secara ringkas justifikasi penerimaan kandidat berdasarkan kesesuaian skor dan deskripsi tes di atas. Berikan kesimpulan apakah kandidat ini "Sangat Disarankan", "Disarankan dengan Catatan", atau "Perlu Dipertimbangkan").
+
+### 2. 🔍 Panduan Validasi Wawancara User (Behavioral Interview Guide)
+(Berikan 2-3 pertanyaan wawancara berbasis perilaku / STAR method yang spesifik dan relevan dengan kekuatan serta kelemahan kompetensi kandidat untuk digali lebih lanjut oleh User saat sesi interview).
+
+### 3. 🚀 Rekomendasi Onboarding & Rencana Pelatihan (30-60-90 Days Plan)
+(Rekomendasikan fokus modul pelatihan spesifik untuk 30 hari, 60 hari, dan 90 hari pertama guna memaksimalkan performa kandidat jika diterima).
+
+### 4. ⚖️ Mitigasi Risiko & Rekomendasi Penempatan
+(Sebutkan potensi risiko operasional/perilaku dan cara manajemen memitigasinya dalam penempatan tim sehari-hari).
+
+Gunakan bahasa yang lugas, tidak bertele-tele, serta langsung actionable bagi Recruiter & User!`;
+
+  const buildIntelligentReport = () => {
+    const isHigh = ctx.overallScore >= 80;
+    const isMid = ctx.overallScore >= 65 && ctx.overallScore < 80;
+    
+    return `### 1. 🎯 Keputusan Penerimaan & Evaluasi Holistik
+Berdasarkan hasil asesmen pada tes **${ctx.testName}** (${ctx.testDescription || 'Asesmen Standar'}), kandidat **${ctx.candidateName}** meraih skor akhir **${ctx.overallScore}/100 (${ctx.overallCategory})** dengan rekomendasi akhir **${ctx.hiringRecommendation}**. ${isHigh ? 'Kandidat menunjukkan penguasaan materi yang sangat solid, pemahaman konseptual yang tajam, dan siap langsung diterjunkan ke lingkungan kerja operasional.' : isMid ? 'Kandidat memiliki fondasi yang cukup baik namun memerlukan pendampingan berkala pada area spesifik.' : 'Kandidat membutuhkan program pelatihan intensif sebelum dapat menjalankan tugas mandiri.'}
+
+${ctx.userCustomPrompt ? `> **Catatan Penyelarasan Kebutuhan Tim:** *"Kandidat telah dievaluasi dengan mempertimbangkan konteks khusus: ${ctx.userCustomPrompt}"*\n` : ''}
+### 2. 🔍 Panduan Validasi Wawancara User (Behavioral Interview Guide)
+1. **Validasi Pengambilan Keputusan Strategis**: *"Ceritakan situasi nyata saat Anda harus menganalisis data pasar atau mengeksekusi target ${ctx.testDescription || 'pekerjaan'} dalam kondisi serba terbatas. Bagaimana urutan prioritas yang Anda ambil?"*
+2. **Validasi Area Kompetensi & Pemecahan Masalah**: *"Dalam menghadapi hambatan operasional atau penolakan klien/user, bagaimana metode evaluasi mandiri yang biasa Anda lakukan untuk membalikkan situasi?"*
+3. **Penyelarasan Integritas & Kerja Tim**: *"Bagaimana Anda menyikapi perbedaan pendapat teknis dengan rekan sejawat atau pimpinan saat mengejar target tenggat waktu bersama?"*
+
+### 3. 🚀 Rekomendasi Onboarding & Rencana Pelatihan (30-60-90 Days Plan)
+- **Hari 1 - 30 (Foundation & Business Context)**: Pembekalan komprehensif terkait SOP internal perusahaan, pemahaman produk/layanan mendalam, serta pengenalan alur kerja tim terkait *${ctx.testDescription || ctx.testName}*.
+- **Hari 31 - 60 (Shadowing & Guided Execution)**: Penugasan proyek percontohan dengan pendampingan langsung dari mentor/senior, difokuskan pada penguatan area *${devAreasText}*.
+- **Hari 61 - 90 (Autonomous Target & Performance Review)**: Pelepasan bertahap untuk penanganan tugas/akun secara mandiri disertai evaluasi pencapaian KPI kuartal pertama.
+
+### 4. ⚖️ Mitigasi Risiko & Rekomendasi Penempatan
+Pastikan adanya sesi *1-on-1 feedback* mingguan selama bulan pertama untuk mempercepat proses adaptasi dan menjaga ritme kerja yang konsisten sesuai standar ekspektasi tim.`;
+  };
+
+  try {
+    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.startsWith("placeholder")) {
+      return buildIntelligentReport();
+    }
+
+    const aiConfig = await getAIConfig(2500, 0.7);
+
+    const apiCall = anthropic.messages.create({
+      model: aiConfig.model,
+      max_tokens: 3000,
+      temperature: aiConfig.temperature,
+      system: 'Anda adalah Senior Talent Acquisition Consultant dan Industrial Psychologist.',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    // 8-second safety timeout
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000));
+    const msg: any = await Promise.race([apiCall, timeout]);
+
+    if (msg && msg.content && msg.content[0] && msg.content[0].type === 'text') {
+      return msg.content[0].text;
+    }
+    
+    return buildIntelligentReport();
+  } catch (error: any) {
+    console.error('Error generating executive recommendation, falling back to structured engine:', error);
+    return buildIntelligentReport();
+  }
+}
+
+

@@ -49,11 +49,15 @@ interface DetailData {
     test: {
         id: string;
         name: string;
+        description?: string | null;
         category: string;
         questionType: string;
         duration: number;
         totalQuestions: number;
     };
+    aiRecommendation?: string | null;
+    aiRecommendationGeneratedAt?: string | null;
+    aiPromptContext?: string | null;
     examSession: {
         timeUsedSeconds: number;
         autoSubmitted: boolean;
@@ -101,10 +105,15 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
     const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
     const [gradingAnswerId, setGradingAnswerId] = useState<string | null>(null);
 
+    // AI Executive Recommendation States
+    const [aiModalOpen, setAiModalOpen] = useState(false);
+    const [userCustomPrompt, setUserCustomPrompt] = useState("");
+    const [isGeneratingAiRec, setIsGeneratingAiRec] = useState(false);
+
     const m = Math.floor(data.examSession.timeUsedSeconds / 60);
     const s = data.examSession.timeUsedSeconds % 60;
     const timeLimitSeconds = data.test.duration * 60;
-    
+
     const timePercentage = useMemo(() => {
         if (timeLimitSeconds <= 0) return 0;
         return Math.min(Math.round((data.examSession.timeUsedSeconds / timeLimitSeconds) * 100), 100);
@@ -138,86 +147,88 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
 
     const exportToExcel = () => {
         const worksheetData: any[][] = [
-            ["ASSESSMENT PERFORMANCE DOSSIER - SALES COMPETENCY REPORT"],
+            ["LAPORAN HASIL ASESMEN KANDIDAT - SELEKSIA"],
             [],
-            ["1. CANDIDATE PROFILE"],
-            ["Name", data.candidate.name],
-            ["Display ID", data.candidate.displayId],
+            ["1. PROFIL KANDIDAT"],
+            ["Nama Lengkap", data.candidate.name],
+            ["ID Kandidat", data.candidate.displayId],
             ["Email", data.candidate.email],
             ["Batch", data.candidate.batch || "-"],
             [],
-            ["2. OVERALL ASSESSMENT RESULTS"],
-            ["Test Name", data.test.name],
-            ["Overall Score", `${data.overallNormalScore} / 100`],
-            ["Category Level", overallCatInfo.label],
-            ["Hiring Recommendation", compProfile?.hiringRecommendation || "N/A"],
-            ["Recommendation Rationale", compProfile?.recommendationRationale || "-"],
-            ["Duration Limit", `${data.test.duration}m`],
-            ["Time Spent", `${m}m ${s}s`],
-            ["Proctoring Violations", `${data.violations.length} Flags Detected`],
+            ["2. HASIL TES & KEPUTUSAN REKOMENDASI"],
+            ["Nama Tes", data.test.name],
+            ["Skor Akhir", `${data.overallNormalScore} / 100`],
+            ["Tingkat Kategori", overallCatInfo.label],
+            ["Rekomendasi Penerimaan", compProfile?.hiringRecommendation || "N/A"],
+            ["Alasan Rekomendasi", compProfile?.recommendationRationale || "-"],
+            ["Batas Waktu", `${data.test.duration} menit`],
+            ["Waktu Pengerjaan", `${m} menit ${s} detik`],
+            ["Pelanggaran Pengawasan", `${data.violations.length} Catatan Terdeteksi`],
             []
         ];
 
         if (compProfile?.competencies && compProfile.competencies.length > 0) {
-            worksheetData.push(["3. COMPETENCY PROFILE MATRIX"]);
-            worksheetData.push(["No", "Competency Name", "Score (0-100)", "Correct / Total", "Status", "Delta vs Overall", "Benchmark Target", "Benchmark Result"]);
-            
+            worksheetData.push(["3. MATRIKS PROFIL KOMPETENSI"]);
+            worksheetData.push(["No", "Nama Kompetensi", "Skor (0-100)", "Benar / Total", "Status", "Selisih vs Rata-rata", "Target Benchmark", "Hasil Benchmark"]);
+
             compProfile.competencies.forEach((c, idx) => {
                 const deltaStr = c.deltaVsOverall > 0 ? `+${c.deltaVsOverall}` : `${c.deltaVsOverall}`;
                 worksheetData.push([
                     (idx + 1).toString(),
                     c.name,
                     c.score.toString(),
-                    `${c.correctCount}/${c.totalCount}`,
+                    `${c.correctCount} / ${c.totalCount}`,
                     c.status,
                     deltaStr,
                     `${c.benchmarkMin}%`,
-                    c.passedBenchmark ? "PASSED" : "BELOW TARGET"
+                    c.passedBenchmark ? "Memenuhi Target" : "Di Bawah Target"
                 ]);
             });
             worksheetData.push([]);
         }
 
-        worksheetData.push(["4. DETAILED ANSWERS AUDIT"]);
-        worksheetData.push(["No", "Competency", "Question Text", "Candidate Selection", "Correct Key Solution", "Status", "Point / Weight"]);
+        worksheetData.push(["4. AUDIT RINCIAN LEMBAR JAWABAN"]);
+        worksheetData.push(["No", "Pertanyaan", "Kompetensi", "Tipe Soal", "Status Jawaban", "Poin Diperoleh", "Jawaban Kandidat", "Kunci Jawaban"]);
 
         data.answers.forEach((ans, idx) => {
             const cleanText = ans.text.replace(/<[^>]*>/g, "");
-            const statusMsg = ans.isCorrect 
-                ? "Correct" 
-                : ans.candidateAnswer 
-                    ? "Incorrect" 
-                    : "Skipped";
+            const statusMsg = ans.isCorrect
+                ? "Benar"
+                : ans.candidateAnswer
+                    ? "Salah"
+                    : "Dilewati";
 
-            const pointOrWeight = ans.type === "multiple_choice_weighted" 
+            const pointOrWeight = ans.type === "multiple_choice_weighted"
                 ? (ans.earnedWeight || 0).toString()
                 : ans.isCorrect ? "1" : "0";
 
             worksheetData.push([
                 (idx + 1).toString(),
-                ans.competency || "General",
                 cleanText,
+                ans.competency || "General Competency",
+                ans.type === "multiple_choice_weighted" ? "Multiple Choice (Berbobot)" : ans.type,
+                statusMsg,
+                pointOrWeight,
                 ans.candidateAnswer || "-",
-                ans.correctAnswer || (ans.type === "multiple_choice_weighted" ? "Weighted Evaluation" : "-"),
-                ans.type === "multiple_choice_weighted" ? "Weighted Evaluation" : statusMsg,
-                pointOrWeight
+                ans.correctAnswer || "-"
             ]);
         });
 
         const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        
+
         worksheet["!cols"] = [
             { wch: 6 },
             { wch: 35 },
-            { wch: 60 },
-            { wch: 25 },
             { wch: 25 },
             { wch: 20 },
-            { wch: 15 }
+            { wch: 15 },
+            { wch: 18 },
+            { wch: 20 },
+            { wch: 20 }
         ];
 
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Recap Dossier");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Hasil Asesmen");
 
         const sanitizedCandidateName = data.candidate.name.replace(/[^a-zA-Z0-9]/g, "_");
         const sanitizedTestName = data.test.name.replace(/[^a-zA-Z0-9]/g, "_");
@@ -234,14 +245,14 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ candidateId: data.candidate.id })
             });
-            
+
             const result = await res.json();
-            
+
             if (!res.ok) {
                 await globalDialog.alert("Gagal: " + (result.error || result.details || "Failed to generate insight"));
                 return;
             }
-            
+
             setData(prev => ({
                 ...prev,
                 candidate: {
@@ -265,18 +276,18 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ answerId })
             });
-            
+
             const result = await res.json();
-            
+
             if (!res.ok) {
                 await globalDialog.alert("Gagal: " + (result.error || result.details || "Failed to grade essay"));
                 return;
             }
-            
+
             setData(prev => ({
                 ...prev,
-                answers: prev.answers.map(ans => 
-                    ans.answerId === answerId 
+                answers: prev.answers.map(ans =>
+                    ans.answerId === answerId
                         ? { ...ans, score: result.evaluation.score, aiFeedback: result.evaluation.aiFeedback }
                         : ans
                 )
@@ -286,6 +297,40 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
             await globalDialog.alert("Terjadi kesalahan jaringan atau server saat koreksi otomatis.");
         } finally {
             setGradingAnswerId(null);
+        }
+    };
+
+    const handleGenerateAiRecommendation = async () => {
+        try {
+            setIsGeneratingAiRec(true);
+            const res = await fetch("/api/ai/recommendation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    assignmentId: data.id,
+                    userCustomPrompt: userCustomPrompt.trim() || undefined
+                })
+            });
+
+            const result = await res.json();
+
+            if (!res.ok) {
+                await globalDialog.alert("Gagal: " + (result.error || result.details || "Gagal membuat rekomendasi AI"));
+                return;
+            }
+
+            setData(prev => ({
+                ...prev,
+                aiRecommendation: result.aiRecommendation,
+                aiRecommendationGeneratedAt: result.aiRecommendationGeneratedAt,
+                aiPromptContext: result.aiPromptContext
+            }));
+            setAiModalOpen(false);
+        } catch (err: any) {
+            console.error("AI Generation error:", err);
+            await globalDialog.alert("Terjadi kesalahan jaringan atau server saat membuat rekomendasi AI.");
+        } finally {
+            setIsGeneratingAiRec(false);
         }
     };
 
@@ -303,14 +348,14 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h1 className="text-xl md:text-2xl font-black text-[var(--color-text-main)] tracking-tight">
-                                    Sales Assessment Performance Dossier
+                                    Laporan Hasil Asesmen Kandidat
                                 </h1>
                                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${overallCatInfo.bg} ${overallCatInfo.text} ${overallCatInfo.border}`}>
                                     {overallCatInfo.label}
                                 </span>
                             </div>
                             <p className="text-xs text-[var(--color-text-sub)] mt-1 font-medium">
-                                3-Layer Competency Profile, Decision Flags, and Answer Audits for {data.candidate.name}.
+                                Profil Kompetensi, Rekomendasi Kelulusan, dan Audit Lembar Jawaban untuk {data.candidate.name}.
                             </p>
                         </div>
                     </div>
@@ -320,19 +365,18 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                             className="px-4 py-2 rounded-[var(--radius-sm)] text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 border border-emerald-500/20 shadow-md shadow-emerald-600/10 hover:shadow-lg transition-all btn-press cursor-pointer flex-shrink-0"
                         >
                             <span className="material-symbols-outlined text-[16px]">download</span>
-                            Export Full Dossier (XLS)
+                            Export Laporan Lengkap (XLS)
                         </button>
-                        <Breadcrumb />
                     </div>
                 </div>
             </div>
 
             {/* Split Grid Workspace */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                
+
                 {/* LEFT: Candidate & Session Dossier Summary Panel */}
                 <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-20">
-                    
+
                     {/* Card 1: User Profile Header */}
                     <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 relative overflow-hidden flex flex-col items-center text-center">
                         <div className="card-shimmer" />
@@ -358,45 +402,23 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 <span className="font-semibold">Test: {data.test.name}</span>
                             </div>
                         </div>
-
-                        {/* AI Personality Insight */}
-                        <div className="w-full mt-4 border-t border-[var(--color-border)] pt-4">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-                                    AI Personality Insight
-                                </span>
-                                {!data.candidate.aiPersonalityInsight && (
-                                    <button onClick={handleGenerateInsight} disabled={isGeneratingInsight} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-[9px] font-bold uppercase transition hover:bg-purple-200 disabled:opacity-50">
-                                        {isGeneratingInsight ? "Generating..." : "Generate"}
-                                    </button>
-                                )}
-                            </div>
-                            {data.candidate.aiPersonalityInsight ? (
-                                <div className="text-left text-[11px] text-[var(--color-text-sub)] prose prose-sm dark:prose-invert max-h-40 overflow-y-auto custom-scrollbar pr-1 bg-[var(--color-bg-elevated)] p-2 rounded border border-[var(--color-border)] whitespace-pre-wrap">
-                                    {data.candidate.aiPersonalityInsight}
-                                </div>
-                            ) : (
-                                <p className="text-[10px] text-[var(--color-text-muted)] italic text-left">Belum ada insight. Klik generate untuk menganalisis karakteristik kandidat.</p>
-                            )}
-                        </div>
                     </div>
 
                     {/* Card 2: Score Display Panel */}
                     <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 relative overflow-hidden flex flex-col items-center">
                         <div className="card-shimmer" />
                         <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] self-start">Overall Test Score</p>
-                        
+
                         <div className="relative flex items-center justify-center mt-3.5">
                             <div className={`size-32 rounded-full border-[10px] flex flex-col items-center justify-center shadow-[var(--shadow-xs)]
-                                ${data.overallNormalScore >= 80 
-                                    ? "border-emerald-500/20 text-emerald-600 dark:text-emerald-400" 
-                                    : data.overallNormalScore >= 70 
-                                        ? "border-yellow-500/20 text-yellow-600 dark:text-yellow-400" 
-                                        : data.overallNormalScore >= 60 
-                                            ? "border-orange-500/20 text-orange-600 dark:text-orange-400" 
+                                ${data.overallNormalScore >= 80
+                                    ? "border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                    : data.overallNormalScore >= 70
+                                        ? "border-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                                        : data.overallNormalScore >= 60
+                                            ? "border-orange-500/20 text-orange-600 dark:text-orange-400"
                                             : "border-red-500/20 text-red-600 dark:text-red-400"}`}>
-                                
+
                                 <span className="text-3xl font-black">{data.overallNormalScore}</span>
                                 <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">
                                     {overallCatInfo.label}
@@ -414,7 +436,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                     {data.correctNormalCount} / {data.test.totalQuestions} Questions
                                 </span>
                             </div>
-                            
+
                             <div className={`flex justify-between items-center px-3 py-2 rounded-lg border ${overallCatInfo.bg} ${overallCatInfo.border}`}>
                                 <span className={`text-[10px] font-bold uppercase ${overallCatInfo.text}`}>
                                     Score Group
@@ -437,10 +459,10 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 </span>
                             </div>
                             <div className="w-full bg-[var(--color-bg-elevated)] h-2 rounded-full overflow-hidden">
-                                <div 
+                                <div
                                     className={`h-full transition-all duration-300 rounded-full
-                                        ${timePercentage >= 90 ? "bg-red-500" : timePercentage >= 70 ? "bg-amber-500" : "bg-primary"}`} 
-                                    style={{ width: `${timePercentage}%` }} 
+                                        ${timePercentage >= 90 ? "bg-red-500" : timePercentage >= 70 ? "bg-amber-500" : "bg-primary"}`}
+                                    style={{ width: `${timePercentage}%` }}
                                 />
                             </div>
                             {data.examSession.autoSubmitted && (
@@ -455,11 +477,11 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                     <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 relative overflow-hidden">
                         <div className="card-shimmer" />
                         <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Security & Proctoring</p>
-                        
+
                         <div className="flex items-center gap-3">
                             <div className={`size-9 rounded-xl flex items-center justify-center flex-shrink-0
-                                ${data.violations.length === 0 
-                                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
+                                ${data.violations.length === 0
+                                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
                                     : "bg-red-500/10 text-red-600 border border-red-500/20"}`}>
                                 <span className="material-symbols-outlined text-[18px]">
                                     {data.violations.length === 0 ? "verified" : "warning"}
@@ -479,7 +501,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
 
                 {/* RIGHT: Detailed audit content workspace */}
                 <div className="lg:col-span-8 flex flex-col gap-6">
-                    
+
                     {/* Navigation Bar inside Workspace */}
                     <div className="bg-[var(--color-bg-card)] p-2 rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-xs)] flex gap-2">
                         <button
@@ -491,7 +513,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 }`}
                         >
                             <span className="material-symbols-outlined text-[18px]">analytics</span>
-                            Competency Profile & Dossier
+                            Ringkasan & Profil Kompetensi
                         </button>
 
                         <button
@@ -503,7 +525,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 }`}
                         >
                             <span className="material-symbols-outlined text-[18px]">fact_check</span>
-                            Answer Sheets ({data.answers.length})
+                            Lembar Jawaban ({data.answers.length})
                         </button>
 
                         <button
@@ -515,7 +537,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 }`}
                         >
                             <span className="material-symbols-outlined text-[18px]">gavel</span>
-                            Proctoring Timeline
+                            Log Pengawasan
                             {data.violations.length > 0 && (
                                 <span className="absolute top-1.5 right-2 bg-red-500 text-white font-bold font-sans text-[8px] px-1.5 py-0.5 rounded-full border border-white">
                                     {data.violations.length}
@@ -531,7 +553,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                         {/* TAB 1: 3-LAYER COMPETENCY PROFILE & EXECUTIVE DOSSIER */}
                         {viewMode === "overview" && (
                             <div className="space-y-8 animate-fade-in flex-1">
-                                
+
                                 {/* LAYER 1: EXECUTIVE DECISION & HIRING RECOMMENDATION BANNER */}
                                 {compProfile && (
                                     <div className={`p-5 rounded-2xl border ${compProfile.recommendationBadgeColor.bg} ${compProfile.recommendationBadgeColor.border} space-y-3 relative overflow-hidden`}>
@@ -613,10 +635,10 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                     {compProfile.competencies.map((comp, idx) => {
                                                         const statusStyle = STATUS_BADGE_CONFIG[comp.status] || STATUS_BADGE_CONFIG["Adequate"];
                                                         const deltaStr = comp.deltaVsOverall > 0 ? `+${comp.deltaVsOverall}` : `${comp.deltaVsOverall}`;
-                                                        const deltaColor = comp.deltaVsOverall > 0 
-                                                            ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30" 
-                                                            : comp.deltaVsOverall < 0 
-                                                                ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30" 
+                                                        const deltaColor = comp.deltaVsOverall > 0
+                                                            ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
+                                                            : comp.deltaVsOverall < 0
+                                                                ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
                                                                 : "text-gray-600 bg-gray-50 dark:bg-gray-800";
 
                                                         return (
@@ -665,7 +687,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                                 </td>
                                                                 <td className="py-3 px-3">
                                                                     <div className="w-full bg-[var(--color-bg-elevated)] h-2.5 rounded-full overflow-hidden border border-[var(--color-border)]">
-                                                                        <div 
+                                                                        <div
                                                                             className={`h-full rounded-full transition-all duration-500
                                                                                 ${comp.score >= 90 ? "bg-blue-500" : comp.score >= 80 ? "bg-emerald-500" : comp.score >= 70 ? "bg-yellow-500" : comp.score >= 60 ? "bg-orange-500" : "bg-red-500"}`}
                                                                             style={{ width: `${comp.score}%` }}
@@ -688,7 +710,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 {/* LAYER 3: TOP STRENGTHS & DEVELOPMENT AREAS CARDS */}
                                 {compProfile && compProfile.hasCompetencies && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                        
+
                                         {/* Card Top Strengths */}
                                         <div className="p-5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 space-y-3">
                                             <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-extrabold text-xs uppercase tracking-wider">
@@ -748,20 +770,90 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 )}
 
                                 {/* Recruiter Action & Follow-up Guide */}
-                                <div className="p-5 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent rounded-2xl border border-[var(--color-border-strong)] space-y-2">
-                                    <h4 className="text-xs font-black uppercase text-[var(--color-text-main)] flex items-center gap-1.5">
-                                        <span className="material-symbols-outlined text-[16px] text-primary">lightbulb</span>
-                                        Rekomendasi Tindak Lanjut Recruiter & User
-                                    </h4>
-                                    <div className="text-xs text-[var(--color-text-sub)] space-y-1.5 leading-relaxed font-medium">
-                                        <p>
-                                            • <strong>Keputusan Penerimaan:</strong> {compProfile?.recommendationRationale || "Gunakan skor keseluruhan dan profil kompetensi sebagai acuan."}
-                                        </p>
-                                        <p>
-                                            • <strong>Fokus Onboarding & Training:</strong> Jika kandidat diterima, fokuskan modul pelatihan pada <strong>{compProfile?.topDevelopmentAreas.map(d => d.name).join(", ") || "kompetensi terkait"}</strong> untuk mempercepat kurva performa di lapangan.
-                                        </p>
+                                {data.aiRecommendation ? (
+                                    <div className="p-6 bg-gradient-to-br from-primary/10 via-[var(--color-bg-card)] to-accent/5 rounded-2xl border border-primary/30 shadow-[var(--shadow-sm)] space-y-4 animate-fade-in relative overflow-hidden">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                                                    <span className="material-symbols-outlined text-[18px]">psychology</span>
+                                                </div>
+                                                <h4 className="text-sm font-black text-[var(--color-text-main)]">
+                                                    Rekomendasi Tindak Lanjut Eksekutif & Panduan User
+                                                </h4>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-primary/15 to-accent/15 text-primary border border-primary/20">
+                                                    <span className="material-symbols-outlined text-[13px]">auto_awesome</span>
+                                                    Dianalisis oleh AI
+                                                </span>
+                                                {data.aiRecommendationGeneratedAt && (
+                                                    <span className="text-[10px] text-[var(--color-text-muted)] font-mono">
+                                                        {new Date(data.aiRecommendationGeneratedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {data.aiPromptContext && (
+                                            <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-sub)] italic flex items-start gap-2">
+                                                <span className="material-symbols-outlined text-[15px] text-primary flex-shrink-0 mt-0.5">format_quote</span>
+                                                <div>
+                                                    <strong className="not-italic text-[var(--color-text-main)]">Konteks Tambahan Recruiter: </strong>
+                                                    "{data.aiPromptContext}"
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-[var(--color-text-main)] space-y-3 leading-relaxed">
+                                            {data.aiRecommendation.split("\n\n").map((para, idx) => {
+                                                if (para.startsWith("### ")) {
+                                                    return (
+                                                        <h5 key={idx} className="text-xs font-bold uppercase tracking-wider text-primary pt-2 pb-1 border-b border-[var(--color-border)]">
+                                                            {para.replace("### ", "")}
+                                                        </h5>
+                                                    );
+                                                }
+                                                return (
+                                                    <p key={idx} className="whitespace-pre-line text-xs leading-relaxed text-[var(--color-text-sub)]">
+                                                        {para}
+                                                    </p>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="p-6 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent rounded-2xl border border-[var(--color-border-strong)] space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div>
+                                                <h4 className="text-xs font-black uppercase text-[var(--color-text-main)] flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[16px] text-primary">lightbulb</span>
+                                                    Rekomendasi Tindak Lanjut Recruiter & User
+                                                </h4>
+                                                <p className="text-[11px] text-[var(--color-text-sub)] mt-0.5 font-medium">
+                                                    Gunakan rekomendasi sistem dasar di bawah atau generate analisis AI komprehensif.
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setAiModalOpen(true)}
+                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-[var(--radius-sm)] text-xs font-bold bg-gradient-to-r from-primary to-accent text-white hover:shadow-[0_4px_20px_var(--color-primary-glow)] hover:translate-y-[-1px] transition-all cursor-pointer shadow-md btn-press flex-shrink-0"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                                                Generate Rekomendasi AI (1x)
+                                            </button>
+                                        </div>
+
+                                        <div className="text-xs text-[var(--color-text-sub)] space-y-1.5 leading-relaxed font-medium bg-[var(--color-bg-card)] p-4 rounded-xl border border-[var(--color-border)]">
+                                            <p>
+                                                • <strong>Keputusan Penerimaan:</strong> {compProfile?.recommendationRationale || "Gunakan skor keseluruhan dan profil kompetensi sebagai acuan."}
+                                            </p>
+                                            <p>
+                                                • <strong>Fokus Onboarding & Training:</strong> Jika kandidat diterima, fokuskan modul pelatihan pada <strong>{compProfile?.topDevelopmentAreas.map(d => d.name).join(", ") || "kompetensi terkait"}</strong> untuk mempercepat kurva performa di lapangan.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -814,11 +906,11 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                             <div className={`absolute left-0 top-0 bottom-0 w-1
                                                 ${ans.type === "multiple_choice_weighted"
                                                     ? "bg-primary"
-                                                    : ans.isCorrect 
-                                                        ? "bg-emerald-500" 
-                                                        : ans.candidateAnswer 
-                                                            ? "bg-red-500" 
-                                                            : "bg-[var(--color-text-muted)]"}`} 
+                                                    : ans.isCorrect
+                                                        ? "bg-emerald-500"
+                                                        : ans.candidateAnswer
+                                                            ? "bg-red-500"
+                                                            : "bg-[var(--color-text-muted)]"}`}
                                             />
 
                                             <div className="pl-3.5 flex flex-col md:flex-row gap-6">
@@ -838,10 +930,10 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                             </span>
                                                         ) : (
                                                             <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded
-                                                                ${ans.isCorrect 
-                                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
-                                                                    : ans.candidateAnswer 
-                                                                        ? "bg-red-500/10 text-red-600 dark:text-red-400" 
+                                                                ${ans.isCorrect
+                                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                                                    : ans.candidateAnswer
+                                                                        ? "bg-red-500/10 text-red-600 dark:text-red-400"
                                                                         : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"}`}>
                                                                 {ans.isCorrect ? "Correct" : ans.candidateAnswer ? "Incorrect" : "Skipped"}
                                                             </span>
@@ -892,8 +984,8 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                                 </div>
                                                             ) : (
                                                                 <div className={`px-2.5 py-1.5 rounded flex items-center gap-1.5 font-bold font-sans
-                                                                    ${ans.isCorrect 
-                                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" 
+                                                                    ${ans.isCorrect
+                                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                                                                         : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"}`}>
                                                                     <span className="material-symbols-outlined text-[14px]">
                                                                         {ans.isCorrect ? "check_circle" : "cancel"}
@@ -949,10 +1041,10 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                         {data.violations.map((v) => (
                                             <div key={v.id} className="relative group/timeline-item">
                                                 <div className={`absolute -left-[31px] top-1.5 size-4 rounded-full border-2 flex items-center justify-center bg-[var(--color-bg-card)] transition-all duration-300
-                                                    ${v.severity >= 3 
-                                                        ? "border-red-500 text-red-500 shadow-md shadow-red-500/20" 
-                                                        : v.severity === 2 
-                                                            ? "border-amber-500 text-amber-500 shadow-md shadow-amber-500/20" 
+                                                    ${v.severity >= 3
+                                                        ? "border-red-500 text-red-500 shadow-md shadow-red-500/20"
+                                                        : v.severity === 2
+                                                            ? "border-amber-500 text-amber-500 shadow-md shadow-amber-500/20"
                                                             : "border-yellow-400 text-yellow-600 shadow-md shadow-yellow-400/20"}`}
                                                 >
                                                     <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -965,10 +1057,10 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                                 {v.type.replace(/_/g, ' ')}
                                                             </p>
                                                             <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded
-                                                                ${v.severity >= 3 
-                                                                    ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20" 
-                                                                    : v.severity === 2 
-                                                                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" 
+                                                                ${v.severity >= 3
+                                                                    ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                                                                    : v.severity === 2
+                                                                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                                                                         : "bg-yellow-400/10 text-yellow-700 dark:text-yellow-400 border border-yellow-400/20"}`}
                                                             >
                                                                 Severity Lvl {v.severity}
@@ -993,6 +1085,117 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                 </div>
 
             </div>
+
+            {/* Modal Popup: AI Recommendation Prompt */}
+            {aiModalOpen && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-[8px] z-[9999] flex items-center justify-center p-4">
+                    <div className="absolute inset-0" onClick={() => !isGeneratingAiRec && setAiModalOpen(false)} />
+                    <div className="relative w-full max-w-lg bg-[var(--color-bg-card)] rounded-3xl border border-[var(--color-border-strong)] shadow-[0_20px_40px_rgba(0,0,0,0.4)] animate-slide-in-up overflow-hidden">
+                        <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)]">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl text-primary border border-primary/20">
+                                    <span className="material-symbols-outlined text-[22px]">auto_awesome</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-[var(--color-text-main)]">
+                                        Generate Rekomendasi Tindak Lanjut AI
+                                    </h3>
+                                    <p className="text-xs text-[var(--color-text-sub)] mt-0.5">
+                                        Analisis eksekutif untuk Recruiter & Hiring Manager
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setAiModalOpen(false)}
+                                disabled={isGeneratingAiRec}
+                                className="size-8 rounded-full flex items-center justify-center hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Data Snapshot Card */}
+                            <div className="p-3.5 bg-[var(--color-bg-elevated)] rounded-xl border border-[var(--color-border)] space-y-2 text-xs">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[var(--color-text-muted)] font-medium">Nama Tes:</span>
+                                    <span className="font-bold text-[var(--color-text-main)]">{data.test.name}</span>
+                                </div>
+                                {data.test.description && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[var(--color-text-muted)] font-medium">Deskripsi Tes:</span>
+                                        <span className="font-semibold text-primary truncate max-w-[260px]">{data.test.description}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[var(--color-text-muted)] font-medium">Skor Akhir & Kategori:</span>
+                                    <span className="font-mono font-bold text-[var(--color-text-main)]">{data.overallNormalScore}/100 ({overallCatInfo.label})</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[var(--color-text-muted)] font-medium">Status Rekomendasi:</span>
+                                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{compProfile?.hiringRecommendation || "N/A"}</span>
+                                </div>
+                            </div>
+
+                            {/* Custom Prompt Input */}
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold text-[var(--color-text-main)]">
+                                    Deskripsi Tambahan / Konteks Posisi (Opsional)
+                                </label>
+                                <textarea
+                                    value={userCustomPrompt}
+                                    onChange={(e) => setUserCustomPrompt(e.target.value)}
+                                    disabled={isGeneratingAiRec}
+                                    placeholder="Contoh: Kandidat melamar untuk posisi Senior Sales Executive B2B. Tim membutuhkan orang yang kuat di negosiasi kontrak besar dan closing cepat. Mohon buatkan pertanyaan wawancara dan rencana onboarding yang selaras..."
+                                    rows={4}
+                                    className="w-full p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-primary transition-all disabled:opacity-50 resize-none leading-relaxed"
+                                />
+                                <p className="text-[11px] text-[var(--color-text-muted)]">
+                                    Bisa dikosongkan jika ingin AI membuat analisis murni dari data hasil tes dan profil kompetensi.
+                                </p>
+                            </div>
+
+                            {/* 1x Rule Warning Alert */}
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-300">
+                                <span className="material-symbols-outlined text-[18px] text-amber-500 flex-shrink-0 mt-0.5">info</span>
+                                <p className="leading-relaxed">
+                                    <strong>Penting:</strong> Fitur generate rekomendasi AI ini hanya dapat dilakukan <strong>1 kali</strong> dan akan disimpan secara permanen pada hasil tes kandidat ini.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 p-6 border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
+                            <button
+                                type="button"
+                                onClick={() => setAiModalOpen(false)}
+                                disabled={isGeneratingAiRec}
+                                className="px-4 py-2 rounded-[var(--radius-sm)] text-xs font-semibold text-[var(--color-text-sub)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-hover)] transition-all cursor-pointer disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleGenerateAiRecommendation}
+                                disabled={isGeneratingAiRec}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-sm)] text-xs font-bold bg-gradient-to-r from-primary to-accent text-white hover:shadow-[0_4px_20px_var(--color-primary-glow)] transition-all cursor-pointer disabled:opacity-50 btn-press"
+                            >
+                                {isGeneratingAiRec ? (
+                                    <>
+                                        <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                                        Menganalisis & Menyusun Laporan...
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                                        Mulai Analisis AI
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

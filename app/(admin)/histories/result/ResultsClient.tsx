@@ -11,6 +11,7 @@ interface ResultData {
     candidateName: string;
     candidateId: string;
     testName: string;
+    testDescription?: string;
     category: string;
     batch: string;
     completedAt: string;
@@ -128,6 +129,166 @@ const OVERALL_CATEGORY_BADGES: Record<string, {
     }
 };
 
+export function getRecommendationBadgeTheme(rawRec: string, overallScore?: number, gateViolations?: number) {
+    const lower = (rawRec || "").toLowerCase().trim();
+    
+    // 1. Negative / Fail / Not Recommended (Check first so "tidak lolos" is not caught by "lolos")
+    if (
+        lower.includes("tidak") ||
+        lower.includes("not") ||
+        lower.includes("gagal") ||
+        lower.includes("fail") ||
+        lower.includes("belum") ||
+        lower.includes("rendah") ||
+        lower.includes("grade e") ||
+        (overallScore !== undefined && overallScore < 60 && !lower.includes("rekomendasi") && !lower.includes("recommend") && !lower.includes("lolos"))
+    ) {
+        return {
+            badgeTheme: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+            iconName: "cancel",
+            displayLabel: rawRec
+        };
+    }
+
+    // 2. Check gatekeeper / deep dive
+    if ((gateViolations && gateViolations > 0 && overallScore !== undefined && overallScore >= 60) || lower.includes("deep dive") || lower.includes("review") || lower.includes("wawancara")) {
+        return {
+            badgeTheme: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
+            iconName: "policy",
+            displayLabel: rawRec
+        };
+    }
+
+    // 3. Recommended / Positive / Lolos / Grade A/B / Rekomendasi
+    if (
+        lower.includes("rekomendasi") ||
+        lower.includes("recommend") ||
+        lower.includes("lolos") ||
+        lower.includes("pass") ||
+        lower.includes("disarankan") ||
+        lower.includes("tinggi") ||
+        lower.includes("sangat baik") ||
+        lower.includes("grade a") ||
+        lower.includes("grade b") ||
+        (overallScore !== undefined && overallScore >= 80)
+    ) {
+        return {
+            badgeTheme: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+            iconName: "check_circle",
+            displayLabel: rawRec
+        };
+    }
+
+    // 4. Consider / Pertimbangan / Conditional
+    if (
+        lower.includes("consider") ||
+        lower.includes("pertimbang") ||
+        lower.includes("cukup") ||
+        lower.includes("sedang") ||
+        lower.includes("grade c") ||
+        (overallScore !== undefined && overallScore >= 70)
+    ) {
+        return {
+            badgeTheme: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+            iconName: "help_outline",
+            displayLabel: rawRec
+        };
+    }
+
+    // 5. Development Required / Pelatihan / Kurang
+    if (
+        lower.includes("develop") ||
+        lower.includes("pelatihan") ||
+        lower.includes("kurang") ||
+        lower.includes("grade d") ||
+        (overallScore !== undefined && overallScore >= 60)
+    ) {
+        return {
+            badgeTheme: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20",
+            iconName: "trending_up",
+            displayLabel: rawRec
+        };
+    }
+
+    // Default fallback based on score or red
+    if (overallScore !== undefined && overallScore >= 75) {
+        return {
+            badgeTheme: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+            iconName: "check_circle",
+            displayLabel: rawRec
+        };
+    }
+
+    return {
+        badgeTheme: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+        iconName: "cancel",
+        displayLabel: rawRec
+    };
+}
+
+export function getCategoryBadge(rawCat: string, score?: number) {
+    const key = (rawCat || "").toUpperCase().trim();
+    if (OVERALL_CATEGORY_BADGES[key]) {
+        return OVERALL_CATEGORY_BADGES[key];
+    }
+    
+    // Dynamic matching by score or keywords
+    const lower = key.toLowerCase();
+    if (lower.includes("sangat") || lower.includes("very") || lower.includes("grade a") || (score !== undefined && score >= 90)) {
+        return {
+            bg: "bg-emerald-50/80 dark:bg-emerald-950/40",
+            text: "text-emerald-700 dark:text-emerald-300",
+            border: "border-emerald-200/80 dark:border-emerald-800/60",
+            dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]",
+            bar: "bg-gradient-to-r from-emerald-500 to-teal-400",
+            boxBg: "bg-emerald-50/90 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
+            label: rawCat
+        };
+    }
+    if (lower.includes("high") || lower.includes("tinggi") || lower.includes("baik") || lower.includes("grade b") || (score !== undefined && score >= 80)) {
+        return {
+            bg: "bg-teal-50/80 dark:bg-teal-950/40",
+            text: "text-teal-700 dark:text-teal-300",
+            border: "border-teal-200/80 dark:border-teal-800/60",
+            dot: "bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.7)]",
+            bar: "bg-teal-500",
+            boxBg: "bg-teal-50/90 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60",
+            label: rawCat
+        };
+    }
+    if (lower.includes("middle") || lower.includes("sedang") || lower.includes("cukup") || lower.includes("grade c") || (score !== undefined && score >= 70)) {
+        return {
+            bg: "bg-amber-50/80 dark:bg-amber-950/40",
+            text: "text-amber-700 dark:text-amber-300",
+            border: "border-amber-200/80 dark:border-amber-800/60",
+            dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]",
+            bar: "bg-amber-500",
+            boxBg: "bg-amber-50/90 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
+            label: rawCat
+        };
+    }
+    if (lower.includes("low") || lower.includes("kurang") || lower.includes("grade d") || (score !== undefined && score >= 60)) {
+        return {
+            bg: "bg-orange-50/80 dark:bg-orange-950/40",
+            text: "text-orange-700 dark:text-orange-300",
+            border: "border-orange-200/80 dark:border-orange-800/60",
+            dot: "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.7)]",
+            bar: "bg-orange-500",
+            boxBg: "bg-orange-50/90 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
+            label: rawCat
+        };
+    }
+    return {
+        bg: "bg-rose-50/80 dark:bg-rose-950/40",
+        text: "text-rose-700 dark:text-rose-300",
+        border: "border-rose-200/80 dark:border-rose-800/60",
+        dot: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]",
+        bar: "bg-rose-500",
+        boxBg: "bg-rose-50/90 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
+        label: rawCat
+    };
+}
+
 export default function ResultsClient({ initialData }: { initialData: ResultData[] }) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -198,6 +359,9 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                 const avgScore = Math.round(results.reduce((acc, r) => acc + (r.overallNormalScore || 0), 0) / totalTests);
                 const totalGateViolations = results.reduce((acc, r) => acc + (r.competencyProfile?.gateViolationsCount || 0), 0);
 
+                const customGateRec = results.find(r => (r.competencyProfile?.gateViolationsCount || 0) > 0)?.competencyProfile?.hiringRecommendation;
+                const topRec = results[0]?.competencyProfile?.hiringRecommendation;
+
                 let displayLabel = "Development Required";
                 let iconName = "trending_up";
                 let badgeTheme = "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20";
@@ -208,13 +372,13 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                     iconName = "cancel";
                     badgeTheme = "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20";
                     scoreTheme = "bg-rose-50/90 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60";
-                } else if (totalGateViolations > 0 || results.some(r => r.competencyProfile?.hiringRecommendation === "REVIEW / DEEP DIVE INTERVIEW")) {
-                    displayLabel = "Deep Dive Review";
+                } else if (totalGateViolations > 0) {
+                    displayLabel = (customGateRec && !customGateRec.toUpperCase().includes("NOT RECOMMENDED")) ? customGateRec : "Syarat Mutlak Tidak Terpenuhi";
                     iconName = "policy";
                     badgeTheme = "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20";
-                    scoreTheme = "bg-purple-50/90 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-orange-200 dark:border-orange-800/60";
+                    scoreTheme = "bg-purple-50/90 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60";
                 } else if (avgScore >= 80) {
-                    displayLabel = "Recommended";
+                    displayLabel = topRec || "Recommended";
                     iconName = "check_circle";
                     badgeTheme = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20";
                     scoreTheme = "bg-emerald-50/90 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60";
@@ -302,9 +466,9 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                             <span className="text-sm font-bold text-[var(--color-text-main)] truncate block">{row.testName}</span>
                             <div className="flex gap-1.5 items-center mt-0.5 text-[10px] text-[var(--color-text-muted)] flex-wrap">
                                 <span className="font-medium">{row.answeredCount} Answered</span>
-                                {row.competencyProfile?.topStrengths && row.competencyProfile.topStrengths.length > 0 && (
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50/50 dark:bg-emerald-950/30 px-1.5 py-0.2 rounded border border-emerald-200/40">
-                                        ⭐ {row.competencyProfile.topStrengths[0]}
+                                {row.testDescription && (
+                                    <span className="text-teal-700 dark:text-teal-300 font-semibold bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800/60 max-w-[280px] truncate" title={row.testDescription}>
+                                        {row.testDescription}
                                     </span>
                                 )}
                             </div>
@@ -320,7 +484,7 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
             filterable: true,
             cell: (row) => {
                 const categoryKey = row.competencyProfile?.overallCategory || (row.overallNormalScore >= 90 ? "VERY HIGH" : row.overallNormalScore >= 80 ? "HIGH" : row.overallNormalScore >= 70 ? "MIDDLE" : row.overallNormalScore >= 60 ? "MIDDLE LOW" : "LOW");
-                const style = OVERALL_CATEGORY_BADGES[categoryKey] || OVERALL_CATEGORY_BADGES["MIDDLE"];
+                const style = getCategoryBadge(categoryKey, row.overallNormalScore);
 
                 return (
                     <div className="flex items-center gap-3 py-1">
@@ -351,43 +515,11 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                 if (!rec) return <span className="text-xs text-[var(--color-text-muted)] font-mono">-</span>;
 
                 const rawRec = rec.hiringRecommendation;
-                const isRec = rawRec === "RECOMMENDED";
-                const isDeepDive = rawRec === "REVIEW / DEEP DIVE INTERVIEW";
-                const isConsider = rawRec === "CONSIDER / FURTHER ASSESSMENT";
-                const isDevRequired = rawRec === "DEVELOPMENT REQUIRED / CONSIDER";
-                const isNotRec = rawRec === "NOT RECOMMENDED";
-
-                const displayLabel = isRec
-                    ? "Recommended"
-                    : isDeepDive
-                        ? "Deep Dive Review"
-                        : isConsider
-                            ? "Consider Assessment"
-                            : isDevRequired
-                                ? "Development Required"
-                                : isNotRec
-                                    ? "Not Recommended"
-                                    : rawRec;
-
-                const badgeTheme = isRec
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
-                    : isDeepDive
-                        ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
-                        : isConsider
-                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-                            : isDevRequired
-                                ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20"
-                                : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20";
-
-                const iconName = isRec
-                    ? "check_circle"
-                    : isDeepDive
-                        ? "policy"
-                        : isConsider
-                            ? "help_outline"
-                            : isDevRequired
-                                ? "trending_up"
-                                : "cancel";
+                const { badgeTheme, iconName, displayLabel } = getRecommendationBadgeTheme(
+                    rawRec,
+                    row.overallNormalScore,
+                    rec.gateViolationsCount
+                );
 
                 return (
                     <div className="flex flex-col gap-1 py-1">
