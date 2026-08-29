@@ -296,8 +296,15 @@ export function calculateCompetencyProfile(
             maxPoints = weightValues.length > 0 ? Math.max(...weightValues) : 1;
             if (maxPoints <= 0) maxPoints = 1;
             
-            if (candidateAnswer && typeof weights[candidateAnswer] === "number") {
-                earnedPoints = weights[candidateAnswer];
+            if (candidateAnswer) {
+                const ansKey = candidateAnswer.trim();
+                if (typeof weights[ansKey] === "number") {
+                    earnedPoints = weights[ansKey];
+                } else if (typeof weights[ansKey.toUpperCase()] === "number") {
+                    earnedPoints = weights[ansKey.toUpperCase()];
+                } else if (typeof weights[ansKey.toLowerCase()] === "number") {
+                    earnedPoints = weights[ansKey.toLowerCase()];
+                }
             }
         } else if (q.correctAnswer && q.correctAnswer.trim() !== "") {
             maxPoints = 1;

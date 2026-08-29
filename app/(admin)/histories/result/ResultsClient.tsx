@@ -129,6 +129,14 @@ const OVERALL_CATEGORY_BADGES: Record<string, {
     }
 };
 
+const STATUS_BADGE_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
+    "Key Strength": { bg: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-300", icon: "⭐" },
+    "Strength": { bg: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-300", icon: "🟢" },
+    "Adequate": { bg: "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800", text: "text-yellow-700 dark:text-yellow-300", icon: "🟡" },
+    "Development Area": { bg: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800", text: "text-orange-700 dark:text-orange-300", icon: "🟠" },
+    "Critical Development": { bg: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-300", icon: "🔴" }
+};
+
 export function getRecommendationBadgeTheme(rawRec: string, overallScore?: number, gateViolations?: number) {
     const lower = (rawRec || "").toLowerCase().trim();
     
@@ -506,33 +514,32 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
             }
         },
         {
-            header: "Hiring Recommendation",
-            accessorKey: "hiringRecommendation",
+            header: "Status",
+            accessorKey: "status",
             sortable: true,
             filterable: true,
             cell: (row) => {
-                const rec = row.competencyProfile;
-                if (!rec) return <span className="text-xs text-[var(--color-text-muted)] font-mono">-</span>;
+                const score = row.overallNormalScore;
+                const status = score >= 90 ? "Key Strength"
+                    : score >= 80 ? "Strength"
+                    : score >= 70 ? "Adequate"
+                    : score >= 60 ? "Development Area"
+                    : "Critical Development";
 
-                const rawRec = rec.hiringRecommendation;
-                const { badgeTheme, iconName, displayLabel } = getRecommendationBadgeTheme(
-                    rawRec,
-                    row.overallNormalScore,
-                    rec.gateViolationsCount
-                );
+                const style = STATUS_BADGE_CONFIG[status] || STATUS_BADGE_CONFIG["Adequate"];
 
                 return (
                     <div className="flex flex-col gap-1 py-1">
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badgeTheme} w-max shadow-2xs`}>
-                            <span className="material-symbols-outlined text-[15px]">{iconName}</span>
-                            <span>{displayLabel}</span>
-                        </div>
-                        {rec.gateViolationsCount > 0 && (
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${style.bg} ${style.text} w-max shadow-2xs`}>
+                            <span>{style.icon}</span>
+                            <span>{status}</span>
+                        </span>
+                        {row.competencyProfile?.gateViolationsCount && row.competencyProfile.gateViolationsCount > 0 ? (
                             <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 pl-1">
                                 <span className="material-symbols-outlined text-[13px] text-amber-500">warning</span>
-                                <span>{rec.gateViolationsCount} Gatekeeper Alert</span>
+                                <span>{row.competencyProfile.gateViolationsCount} Gatekeeper Alert</span>
                             </div>
-                        )}
+                        ) : null}
                     </div>
                 );
             }
@@ -579,7 +586,7 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
     const selectedCandidate = candidateIdFilter ? groupedCandidates.find(c => c.candidateId === candidateIdFilter) : null;
 
     return (
-        <div className="space-y-6 animate-slide-in-up">
+        <div className="space-y-6 pb-20 animate-slide-in-up">
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>

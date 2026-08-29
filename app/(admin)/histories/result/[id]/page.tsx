@@ -60,8 +60,13 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
         let earnedWeight = 0;
         if (isWeighted && candidateAnswer?.answer) {
             const weights = (q.optionWeights as Record<string, number>) || {};
-            if (typeof weights[candidateAnswer.answer] === 'number') {
-                earnedWeight = weights[candidateAnswer.answer];
+            const ansKey = candidateAnswer.answer.trim();
+            if (typeof weights[ansKey] === 'number') {
+                earnedWeight = weights[ansKey];
+            } else if (typeof weights[ansKey.toUpperCase()] === 'number') {
+                earnedWeight = weights[ansKey.toUpperCase()];
+            } else if (typeof weights[ansKey.toLowerCase()] === 'number') {
+                earnedWeight = weights[ansKey.toLowerCase()];
             }
         }
 
@@ -90,10 +95,6 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
         };
     });
 
-    // Score calculation
-    const calculatedNormalScore = normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0;
-    const overallNormalScore = totalQuestions > 0 ? Math.round((correctNormal / totalQuestions) * 100) : 0;
-
     // 3-Layer Competency Profile Evaluation
     const competencyProfile = calculateCompetencyProfile(
         assignment.test.questions.map(q => ({
@@ -110,6 +111,15 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
         })),
         (assignment.test.scoringConfig || assignment.test.company?.scoringConfig || null) as any
     );
+
+    const isTestWeighted = assignment.test.questionType === "multiple_choice_weighted" || weightedCount > 0;
+    const calculatedNormalScore = isTestWeighted
+        ? competencyProfile.overallScore
+        : (normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0);
+
+    const overallNormalScore = isTestWeighted
+        ? competencyProfile.overallScore
+        : (totalQuestions > 0 ? Math.round((correctNormal / totalQuestions) * 100) : 0);
 
     const rawAiRows: any[] = await prisma.$queryRaw`
         SELECT "aiRecommendation", "aiRecommendationGeneratedAt", "aiPromptContext"

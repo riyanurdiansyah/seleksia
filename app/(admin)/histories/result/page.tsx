@@ -67,10 +67,15 @@ export default async function ResultsPage() {
 
             if (isWeighted && q.optionWeights) {
                 const ans = a.answers.find(ans => ans.questionId === q.id);
-                if (ans) {
+                if (ans && ans.answer) {
                     const weights = q.optionWeights as Record<string, number>;
-                    if (typeof weights[ans.answer] === "number") {
-                        totalWeightedScore += weights[ans.answer];
+                    const ansKey = ans.answer.trim();
+                    if (typeof weights[ansKey] === "number") {
+                        totalWeightedScore += weights[ansKey];
+                    } else if (typeof weights[ansKey.toUpperCase()] === "number") {
+                        totalWeightedScore += weights[ansKey.toUpperCase()];
+                    } else if (typeof weights[ansKey.toLowerCase()] === "number") {
+                        totalWeightedScore += weights[ansKey.toLowerCase()];
                     }
                 }
             } else if (isNormalScorable) {
@@ -82,9 +87,6 @@ export default async function ResultsPage() {
                 }
             }
         });
-
-        const overallNormalScore = a.test.questions.length > 0 ? Math.round((correctNormal / a.test.questions.length) * 100) : 0;
-        const calculatedNormalScore = normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0;
 
         // Resolve active scoring config: per-test override > company default > global fallback
         const activeScoringConfig = a.test.scoringConfig || a.test.company?.scoringConfig || null;
@@ -105,6 +107,15 @@ export default async function ResultsPage() {
             })),
             activeScoringConfig as any
         );
+
+        const isTestWeighted = a.test.questionType === "multiple_choice_weighted" || weightedCount > 0;
+        const overallNormalScore = isTestWeighted
+            ? competencyProfile.overallScore
+            : (a.test.questions.length > 0 ? Math.round((correctNormal / a.test.questions.length) * 100) : 0);
+
+        const calculatedNormalScore = isTestWeighted
+            ? competencyProfile.overallScore
+            : (normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0);
 
         return {
             id: a.id,

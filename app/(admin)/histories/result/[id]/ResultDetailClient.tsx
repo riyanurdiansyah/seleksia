@@ -127,6 +127,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
     const compProfile = data.competencyProfile;
 
     const overallCatInfo = OVERALL_CATEGORY_CONFIG[compProfile?.overallCategory || (data.overallNormalScore >= 80 ? "HIGH" : data.overallNormalScore >= 70 ? "MIDDLE" : data.overallNormalScore >= 60 ? "MIDDLE LOW" : "LOW")] || OVERALL_CATEGORY_CONFIG["MIDDLE"];
+    const isWeighted = data.test.questionType === "multiple_choice_weighted" || data.weightedCount > 0;
 
     // Distinct list of competencies for filtering
     const distinctCompetencies = useMemo(() => {
@@ -169,20 +170,26 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
 
         if (compProfile?.competencies && compProfile.competencies.length > 0) {
             worksheetData.push(["3. MATRIKS PROFIL KOMPETENSI"]);
-            worksheetData.push(["No", "Nama Kompetensi", "Skor (0-100)", "Benar / Total", "Status", "Selisih vs Rata-rata", "Target Benchmark", "Hasil Benchmark"]);
+            const matrixHeaders = ["No", "Nama Kompetensi", "Skor (0-100)"];
+            if (!isWeighted) matrixHeaders.push("Benar / Total");
+            matrixHeaders.push("Status", "Selisih vs Rata-rata", "Target Benchmark", "Hasil Benchmark");
+            worksheetData.push(matrixHeaders);
 
             compProfile.competencies.forEach((c, idx) => {
                 const deltaStr = c.deltaVsOverall > 0 ? `+${c.deltaVsOverall}` : `${c.deltaVsOverall}`;
-                worksheetData.push([
+                const rowData: string[] = [
                     (idx + 1).toString(),
                     c.name,
-                    c.score.toString(),
-                    `${c.correctCount} / ${c.totalCount}`,
+                    c.score.toString()
+                ];
+                if (!isWeighted) rowData.push(`${c.correctCount} / ${c.totalCount}`);
+                rowData.push(
                     c.status,
                     deltaStr,
                     `${c.benchmarkMin}%`,
                     c.passedBenchmark ? "Memenuhi Target" : "Di Bawah Target"
-                ]);
+                );
+                worksheetData.push(rowData);
             });
             worksheetData.push([]);
         }
@@ -335,7 +342,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-24">
             {/* Header Area */}
             <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 md:p-8 shadow-[var(--shadow-card)]">
                 <div className="absolute -right-16 -top-16 w-44 h-44 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
@@ -430,10 +437,13 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                         <div className="w-full mt-5 space-y-2">
                             <div className="flex justify-between items-center px-3 py-2 bg-[var(--color-bg-elevated)] rounded-lg border border-[var(--color-border)]">
                                 <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">
-                                    Correct Answers
+                                    {data.test.questionType === "multiple_choice_weighted" || data.weightedCount > 0 ? "Total Poin Bobot" : "Jawaban Benar"}
                                 </span>
                                 <span className="text-xs font-black text-[var(--color-text-main)]">
-                                    {data.correctNormalCount} / {data.test.totalQuestions} Questions
+                                    {data.test.questionType === "multiple_choice_weighted" || data.weightedCount > 0
+                                        ? `${data.totalWeightedScore} Poin (${data.answers.filter(a => !!a.candidateAnswer).length}/${data.test.totalQuestions} Soal)`
+                                        : `${data.correctNormalCount} / ${data.test.totalQuestions} Soal`
+                                    }
                                 </span>
                             </div>
 
@@ -470,31 +480,6 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                     🔴 System Force Submitted
                                 </div>
                             )}
-                        </div>
-                    </div>
-
-                    {/* Card 3: Proctoring Safety Context */}
-                    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 relative overflow-hidden">
-                        <div className="card-shimmer" />
-                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Security & Proctoring</p>
-
-                        <div className="flex items-center gap-3">
-                            <div className={`size-9 rounded-xl flex items-center justify-center flex-shrink-0
-                                ${data.violations.length === 0
-                                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                                    : "bg-red-500/10 text-red-600 border border-red-500/20"}`}>
-                                <span className="material-symbols-outlined text-[18px]">
-                                    {data.violations.length === 0 ? "verified" : "warning"}
-                                </span>
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-bold text-[var(--color-text-main)]">
-                                    {data.violations.length === 0 ? "Trust Score: Optimal" : `${data.violations.length} Flags Detected`}
-                                </p>
-                                <p className="text-[10px] text-[var(--color-text-sub)] mt-0.5 font-medium truncate">
-                                    {data.violations.length === 0 ? "Zero behavioral violations" : "Proctoring flags require inspection"}
-                                </p>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -623,7 +608,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                 <thead>
                                                     <tr className="border-b border-[var(--color-border)] text-[10px] font-black uppercase text-[var(--color-text-muted)] tracking-wider">
                                                         <th className="py-2.5 px-3">Kompetensi</th>
-                                                        <th className="py-2.5 px-3 text-center">Soal Benar</th>
+                                                        {!isWeighted && <th className="py-2.5 px-3 text-center">Soal Benar</th>}
                                                         <th className="py-2.5 px-3 text-center">Score</th>
                                                         <th className="py-2.5 px-3 text-center">Status</th>
                                                         <th className="py-2.5 px-3 text-center">vs Overall</th>
@@ -656,9 +641,11 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                                         </div>
                                                                     </div>
                                                                 </td>
-                                                                <td className="py-3 px-3 text-center font-mono font-semibold text-[var(--color-text-sub)]">
-                                                                    {comp.correctCount}/{comp.totalCount}
-                                                                </td>
+                                                                {!isWeighted && (
+                                                                    <td className="py-3 px-3 text-center font-mono font-semibold text-[var(--color-text-sub)]">
+                                                                        {comp.correctCount}/{comp.totalCount}
+                                                                    </td>
+                                                                )}
                                                                 <td className="py-3 px-3 text-center">
                                                                     <span className="font-extrabold text-sm text-[var(--color-text-main)] font-mono">
                                                                         {comp.score}
