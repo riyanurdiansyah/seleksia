@@ -31,6 +31,7 @@ export async function POST(
                 options: body.options || [],
                 optionWeights: body.optionWeights || null,
                 correctAnswer: body.correctAnswer || null,
+                competency: body.competency || null,
                 imageUrl: body.imageUrl || null,
                 timeLimit: body.timeLimit || null,
                 sortOrder: count,

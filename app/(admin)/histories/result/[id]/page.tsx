@@ -1,6 +1,7 @@
 import ResultDetailClient from "./ResultDetailClient";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { calculateCompetencyProfile } from "@/lib/competencyScoring";
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,7 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             displayId: q.displayId,
             type: q.type,
             text: q.text,
+            competency: q.competency || null,
             options: q.options,
             correctAnswer: q.correctAnswer,
             candidateAnswer: candidateAnswer?.answer || null,
@@ -88,6 +90,22 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
     // Score calculation
     const calculatedNormalScore = normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0;
     const overallNormalScore = totalQuestions > 0 ? Math.round((correctNormal / totalQuestions) * 100) : 0;
+
+    // 3-Layer Competency Profile Evaluation
+    const competencyProfile = calculateCompetencyProfile(
+        assignment.test.questions.map(q => ({
+            id: q.id,
+            competency: q.competency,
+            correctAnswer: q.correctAnswer,
+            optionWeights: q.optionWeights as Record<string, number> | null,
+            type: q.type,
+            text: q.text
+        })),
+        assignment.answers.map(ans => ({
+            questionId: ans.questionId,
+            answer: ans.answer
+        }))
+    );
 
     const resultData = {
         id: assignment.id,
@@ -129,8 +147,10 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
         normalScorableCount,
         weightedCount,
         unscorableCount,
-        correctNormalCount: correctNormal
+        correctNormalCount: correctNormal,
+        competencyProfile
     };
 
     return <ResultDetailClient data={resultData} />;
 }
+

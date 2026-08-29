@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import Breadcrumb from "../../../components/Breadcrumb";
 import * as XLSX from "xlsx";
 import { globalDialog } from "@/app/providers/DialogProvider";
+import { CompetencyProfileResult } from "@/lib/competencyScoring";
 
 interface Violation {
     id: string;
@@ -19,6 +20,7 @@ interface Answer {
     displayId: string;
     type?: string;
     text: string;
+    competency?: string | null;
     options: string[];
     correctAnswer: string | null;
     candidateAnswer: string | null;
@@ -65,6 +67,8 @@ interface DetailData {
     weightedCount: number;
     unscorableCount: number;
     correctNormalCount: number;
+    answers: Answer[];
+    competencyProfile?: CompetencyProfileResult;
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string }> = {
@@ -74,9 +78,26 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: stri
     projective: { label: "Projective", icon: "draw", color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-950/20 border-teal-100 dark:border-teal-900/30" },
 };
 
+const OVERALL_CATEGORY_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; desc: string }> = {
+    "VERY HIGH": { label: "VERY HIGH", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700 dark:text-blue-300", border: "border-blue-200 dark:border-blue-800", desc: "Penguasaan kompetensi sangat baik" },
+    "HIGH": { label: "HIGH", bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-700 dark:text-emerald-300", border: "border-emerald-200 dark:border-emerald-800", desc: "Penguasaan kompetensi baik" },
+    "MIDDLE": { label: "MIDDLE", bg: "bg-yellow-50 dark:bg-yellow-950/40", text: "text-yellow-700 dark:text-yellow-300", border: "border-yellow-200 dark:border-yellow-800", desc: "Penguasaan kompetensi cukup/memadai" },
+    "MIDDLE LOW": { label: "MIDDLE LOW", bg: "bg-orange-50 dark:bg-orange-950/40", text: "text-orange-700 dark:text-orange-300", border: "border-orange-200 dark:border-orange-800", desc: "Penguasaan dasar mulai terlihat, perlu penguatan" },
+    "LOW": { label: "LOW", bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-700 dark:text-red-300", border: "border-red-200 dark:border-red-800", desc: "Penguasaan kompetensi masih rendah" }
+};
+
+const STATUS_BADGE_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
+    "Key Strength": { bg: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-300", icon: "⭐" },
+    "Strength": { bg: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-300", icon: "🟢" },
+    "Adequate": { bg: "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800", text: "text-yellow-700 dark:text-yellow-300", icon: "🟡" },
+    "Development Area": { bg: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800", text: "text-orange-700 dark:text-orange-300", icon: "🟠" },
+    "Critical Development": { bg: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-300", icon: "🔴" }
+};
+
 export default function ResultDetailClient({ data: initialData }: { data: DetailData }) {
     const [data, setData] = useState<DetailData>(initialData);
     const [viewMode, setViewMode] = useState<"overview" | "answers" | "violations">("overview");
+    const [selectedCompetencyFilter, setSelectedCompetencyFilter] = useState<string>("all");
     const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
     const [gradingAnswerId, setGradingAnswerId] = useState<string | null>(null);
 
@@ -94,31 +115,74 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
     };
 
     const category = CATEGORY_CONFIG[data.test.category] || CATEGORY_CONFIG.intelligence;
+    const compProfile = data.competencyProfile;
+
+    const overallCatInfo = OVERALL_CATEGORY_CONFIG[compProfile?.overallCategory || (data.overallNormalScore >= 80 ? "HIGH" : data.overallNormalScore >= 70 ? "MIDDLE" : data.overallNormalScore >= 60 ? "MIDDLE LOW" : "LOW")] || OVERALL_CATEGORY_CONFIG["MIDDLE"];
+
+    // Distinct list of competencies for filtering
+    const distinctCompetencies = useMemo(() => {
+        const set = new Set<string>();
+        data.answers.forEach(a => {
+            if (a.competency?.trim()) {
+                set.add(a.competency.trim());
+            }
+        });
+        return Array.from(set);
+    }, [data.answers]);
+
+    // Filtered answers
+    const filteredAnswers = useMemo(() => {
+        if (selectedCompetencyFilter === "all") return data.answers;
+        return data.answers.filter(a => a.competency?.trim() === selectedCompetencyFilter);
+    }, [data.answers, selectedCompetencyFilter]);
 
     const exportToExcel = () => {
-        const worksheetData = [
-            ["ASSESSMENT PERFORMANCE REPORT - EXAM RECAP"],
+        const worksheetData: any[][] = [
+            ["ASSESSMENT PERFORMANCE DOSSIER - SALES COMPETENCY REPORT"],
             [],
-            ["Candidate Profile"],
+            ["1. CANDIDATE PROFILE"],
             ["Name", data.candidate.name],
             ["Display ID", data.candidate.displayId],
             ["Email", data.candidate.email],
             ["Batch", data.candidate.batch || "-"],
             [],
-            ["Exam Metadata"],
+            ["2. OVERALL ASSESSMENT RESULTS"],
             ["Test Name", data.test.name],
-            ["Category", category.label],
+            ["Overall Score", `${data.overallNormalScore} / 100`],
+            ["Category Level", overallCatInfo.label],
+            ["Hiring Recommendation", compProfile?.hiringRecommendation || "N/A"],
+            ["Recommendation Rationale", compProfile?.recommendationRationale || "-"],
             ["Duration Limit", `${data.test.duration}m`],
             ["Time Spent", `${m}m ${s}s`],
-            ["Test Score (Normal)", `${data.overallNormalScore}%`],
-            ["Test Score (Weighted)", `${data.totalWeightedScore} Points`],
-            ["System Action", data.examSession.autoSubmitted ? "Force Submitted" : "Normal Submit"],
-            [],
-            ["No", "Question Text", "Candidate Selection", "Correct Answer Key", "Status", "Point / Weight", "Image URL"]
+            ["Proctoring Violations", `${data.violations.length} Flags Detected`],
+            []
         ];
 
+        if (compProfile?.competencies && compProfile.competencies.length > 0) {
+            worksheetData.push(["3. COMPETENCY PROFILE MATRIX"]);
+            worksheetData.push(["No", "Competency Name", "Score (0-100)", "Correct / Total", "Status", "Delta vs Overall", "Benchmark Target", "Benchmark Result"]);
+            
+            compProfile.competencies.forEach((c, idx) => {
+                const deltaStr = c.deltaVsOverall > 0 ? `+${c.deltaVsOverall}` : `${c.deltaVsOverall}`;
+                worksheetData.push([
+                    (idx + 1).toString(),
+                    c.name,
+                    c.score.toString(),
+                    `${c.correctCount}/${c.totalCount}`,
+                    c.status,
+                    deltaStr,
+                    `${c.benchmarkMin}%`,
+                    c.passedBenchmark ? "PASSED" : "BELOW TARGET"
+                ]);
+            });
+            worksheetData.push([]);
+        }
+
+        worksheetData.push(["4. DETAILED ANSWERS AUDIT"]);
+        worksheetData.push(["No", "Competency", "Question Text", "Candidate Selection", "Correct Key Solution", "Status", "Point / Weight"]);
+
         data.answers.forEach((ans, idx) => {
-            const cleanText = ans.text.replace(/<[^>]*>/g, ""); // Strip HTML tags
+            const cleanText = ans.text.replace(/<[^>]*>/g, "");
             const statusMsg = ans.isCorrect 
                 ? "Correct" 
                 : ans.candidateAnswer 
@@ -131,34 +195,33 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
 
             worksheetData.push([
                 (idx + 1).toString(),
+                ans.competency || "General",
                 cleanText,
                 ans.candidateAnswer || "-",
-                ans.correctAnswer || (ans.type === "multiple_choice_weighted" ? "Weighted Answer" : "-"),
+                ans.correctAnswer || (ans.type === "multiple_choice_weighted" ? "Weighted Evaluation" : "-"),
                 ans.type === "multiple_choice_weighted" ? "Weighted Evaluation" : statusMsg,
-                pointOrWeight,
-                ans.imageUrl || "-"
+                pointOrWeight
             ]);
         });
 
         const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
         
-        // Define column widths for better readability in Excel
         worksheet["!cols"] = [
-            { wch: 6 },   // No
-            { wch: 60 },  // Question Text
-            { wch: 25 },  // Candidate Selection
-            { wch: 25 },  // Correct Answer Key
-            { wch: 20 },  // Status
-            { wch: 15 },  // Point / Weight
-            { wch: 50 }   // Image URL
+            { wch: 6 },
+            { wch: 35 },
+            { wch: 60 },
+            { wch: 25 },
+            { wch: 25 },
+            { wch: 20 },
+            { wch: 15 }
         ];
 
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Recap Answers");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Recap Dossier");
 
         const sanitizedCandidateName = data.candidate.name.replace(/[^a-zA-Z0-9]/g, "_");
         const sanitizedTestName = data.test.name.replace(/[^a-zA-Z0-9]/g, "_");
-        const filename = `Recap_${sanitizedCandidateName}_${sanitizedTestName}.xlsx`;
+        const filename = `Sales_Assessment_${sanitizedCandidateName}_${sanitizedTestName}.xlsx`;
 
         XLSX.writeFile(workbook, filename);
     };
@@ -210,7 +273,6 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                 return;
             }
             
-            // Update answers data
             setData(prev => ({
                 ...prev,
                 answers: prev.answers.map(ans => 
@@ -239,15 +301,29 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
                         </Link>
                         <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <h1 className="text-xl md:text-2xl font-black text-[var(--color-text-main)] tracking-tight">
-                                    Assessment Performance Dossier
+                                    Sales Assessment Performance Dossier
                                 </h1>
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${overallCatInfo.bg} ${overallCatInfo.text} ${overallCatInfo.border}`}>
+                                    {overallCatInfo.label}
+                                </span>
                             </div>
-                            <p className="text-xs text-[var(--color-text-sub)] mt-1 font-medium">Detailed exam analysis, candidate responses, and behaviors audit logs.</p>
+                            <p className="text-xs text-[var(--color-text-sub)] mt-1 font-medium">
+                                3-Layer Competency Profile, Decision Flags, and Answer Audits for {data.candidate.name}.
+                            </p>
                         </div>
                     </div>
-                    <Breadcrumb />
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={exportToExcel}
+                            className="px-4 py-2 rounded-[var(--radius-sm)] text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 border border-emerald-500/20 shadow-md shadow-emerald-600/10 hover:shadow-lg transition-all btn-press cursor-pointer flex-shrink-0"
+                        >
+                            <span className="material-symbols-outlined text-[16px]">download</span>
+                            Export Full Dossier (XLS)
+                        </button>
+                        <Breadcrumb />
+                    </div>
                 </div>
             </div>
 
@@ -279,7 +355,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                             </div>
                             <div className="flex items-center gap-2.5 text-xs text-[var(--color-text-sub)]">
                                 <span className="material-symbols-outlined text-[16px] text-primary">analytics</span>
-                                <span className="font-semibold">Category: {category.label}</span>
+                                <span className="font-semibold">Test: {data.test.name}</span>
                             </div>
                         </div>
 
@@ -301,7 +377,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                     {data.candidate.aiPersonalityInsight}
                                 </div>
                             ) : (
-                                <p className="text-[10px] text-[var(--color-text-muted)] italic text-left">Belum ada insight. Klik generate untuk menganalisis jawaban teks kandidat.</p>
+                                <p className="text-[10px] text-[var(--color-text-muted)] italic text-left">Belum ada insight. Klik generate untuk menganalisis karakteristik kandidat.</p>
                             )}
                         </div>
                     </div>
@@ -309,75 +385,44 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                     {/* Card 2: Score Display Panel */}
                     <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 relative overflow-hidden flex flex-col items-center">
                         <div className="card-shimmer" />
-                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] self-start">Test Score</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] self-start">Overall Test Score</p>
                         
                         <div className="relative flex items-center justify-center mt-3.5">
-                            {/* Simple Premium Score Circle Visualizer */}
                             <div className={`size-32 rounded-full border-[10px] flex flex-col items-center justify-center shadow-[var(--shadow-xs)]
-                                ${data.normalScorableCount > 0 && data.weightedCount > 0
-                                    ? "border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
-                                    : data.weightedCount > 0 
-                                        ? "border-primary/20 text-primary" 
+                                ${data.overallNormalScore >= 80 
+                                    ? "border-emerald-500/20 text-emerald-600 dark:text-emerald-400" 
+                                    : data.overallNormalScore >= 70 
+                                        ? "border-yellow-500/20 text-yellow-600 dark:text-yellow-400" 
                                         : data.overallNormalScore >= 60 
-                                            ? "border-emerald-500/20 dark:border-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
-                                            : "border-amber-500/20 dark:border-amber-500/10 text-amber-600 dark:text-amber-400"}`}>
+                                            ? "border-orange-500/20 text-orange-600 dark:text-orange-400" 
+                                            : "border-red-500/20 text-red-600 dark:text-red-400"}`}>
                                 
-                                {data.normalScorableCount > 0 && data.weightedCount > 0 ? (
-                                    <>
-                                        <span className="text-xl font-black">{data.overallNormalScore}% / {data.totalWeightedScore}</span>
-                                        <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">
-                                            Normal / Weighted
-                                        </span>
-                                    </>
-                                ) : data.weightedCount > 0 ? (
-                                    <>
-                                        <span className="text-3xl font-black">{data.totalWeightedScore}</span>
-                                        <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">Raw Score</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="text-3xl font-black">{data.overallNormalScore}%</span>
-                                        <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">
-                                            {data.overallNormalScore >= 60 ? "Passed" : "Audit"}
-                                        </span>
-                                    </>
-                                )}
+                                <span className="text-3xl font-black">{data.overallNormalScore}</span>
+                                <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--color-text-sub)] mt-0.5">
+                                    {overallCatInfo.label}
+                                </span>
                             </div>
                         </div>
 
                         {/* Breakdown Panel */}
                         <div className="w-full mt-5 space-y-2">
-                            {data.normalScorableCount > 0 && (
-                                <div className="flex justify-between items-center px-3 py-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
-                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">
-                                        Calculated Score
-                                    </span>
-                                    <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-                                        {data.calculatedNormalScore} Points
-                                    </span>
-                                </div>
-                            )}
-
-                            {data.weightedCount > 0 && (
-                                <div className="flex justify-between items-center px-3 py-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
-                                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase">
-                                        Weighted Score
-                                    </span>
-                                    <span className="text-xs font-black text-blue-700 dark:text-blue-400">
-                                        {data.totalWeightedScore} Points
-                                    </span>
-                                </div>
-                            )}
+                            <div className="flex justify-between items-center px-3 py-2 bg-[var(--color-bg-elevated)] rounded-lg border border-[var(--color-border)]">
+                                <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase">
+                                    Correct Answers
+                                </span>
+                                <span className="text-xs font-black text-[var(--color-text-main)]">
+                                    {data.correctNormalCount} / {data.test.totalQuestions} Questions
+                                </span>
+                            </div>
                             
-                            {data.unscorableCount > 0 && (
-                                <div className="flex justify-between items-center px-3 py-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-100 dark:border-amber-900/30">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">Manual Review</span>
-                                        <span className="text-[8px] text-amber-600 dark:text-amber-500">Unscored (e.g., Essay)</span>
-                                    </div>
-                                    <span className="text-xs font-black text-amber-700 dark:text-amber-400">{data.unscorableCount} Qs</span>
-                                </div>
-                            )}
+                            <div className={`flex justify-between items-center px-3 py-2 rounded-lg border ${overallCatInfo.bg} ${overallCatInfo.border}`}>
+                                <span className={`text-[10px] font-bold uppercase ${overallCatInfo.text}`}>
+                                    Score Group
+                                </span>
+                                <span className={`text-xs font-black ${overallCatInfo.text}`}>
+                                    {overallCatInfo.label} ({overallCatInfo.desc})
+                                </span>
+                            </div>
                         </div>
 
                         {/* Timing meter bar */}
@@ -409,7 +454,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                     {/* Card 3: Proctoring Safety Context */}
                     <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 relative overflow-hidden">
                         <div className="card-shimmer" />
-                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Security & Device Registry</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] mb-3">Security & Proctoring</p>
                         
                         <div className="flex items-center gap-3">
                             <div className={`size-9 rounded-xl flex items-center justify-center flex-shrink-0
@@ -429,13 +474,6 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 </p>
                             </div>
                         </div>
-
-                        <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2 text-[10px]">
-                            <span className="font-black text-[var(--color-text-muted)] uppercase tracking-wider">Device ID Fingerprint</span>
-                            <code className="block p-2 rounded bg-[var(--color-bg-elevated)] text-[9px] font-mono text-[var(--color-text-sub)] border border-[var(--color-border)] break-all max-h-16 overflow-y-auto">
-                                {data.examSession.deviceFingerprint || "No Fingerprint log available"}
-                            </code>
-                        </div>
                     </div>
                 </div>
 
@@ -452,8 +490,8 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                     : "text-[var(--color-text-sub)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)]"
                                 }`}
                         >
-                            <span className="material-symbols-outlined text-[18px]">dashboard</span>
-                            Overview
+                            <span className="material-symbols-outlined text-[18px]">analytics</span>
+                            Competency Profile & Dossier
                         </button>
 
                         <button
@@ -465,7 +503,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                 }`}
                         >
                             <span className="material-symbols-outlined text-[18px]">fact_check</span>
-                            Answer Sheets
+                            Answer Sheets ({data.answers.length})
                         </button>
 
                         <button
@@ -490,61 +528,239 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                     <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-card)] p-6 relative min-h-[580px] flex flex-col justify-between overflow-hidden">
                         <div className="card-shimmer" />
 
-                        {/* TAB 1: OVERVIEW */}
+                        {/* TAB 1: 3-LAYER COMPETENCY PROFILE & EXECUTIVE DOSSIER */}
                         {viewMode === "overview" && (
-                            <div className="space-y-6 animate-fade-in flex-1">
-                                <div>
-                                    <h3 className="text-sm font-bold text-[var(--color-text-main)] uppercase tracking-wider">Session Overview</h3>
-                                    <p className="text-[11px] text-[var(--color-text-sub)] mt-0.5">Summary of dates, timelines, and assessment classifications.</p>
+                            <div className="space-y-8 animate-fade-in flex-1">
+                                
+                                {/* LAYER 1: EXECUTIVE DECISION & HIRING RECOMMENDATION BANNER */}
+                                {compProfile && (
+                                    <div className={`p-5 rounded-2xl border ${compProfile.recommendationBadgeColor.bg} ${compProfile.recommendationBadgeColor.border} space-y-3 relative overflow-hidden`}>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="size-9 rounded-xl bg-white dark:bg-black/20 flex items-center justify-center shadow-sm">
+                                                    <span className={`material-symbols-outlined text-[22px] ${compProfile.recommendationBadgeColor.text}`}>
+                                                        {compProfile.recommendationBadgeColor.icon}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] block">
+                                                        Assessment Decision & Hiring Flag
+                                                    </span>
+                                                    <h3 className={`text-base font-black ${compProfile.recommendationBadgeColor.text}`}>
+                                                        {compProfile.overallCategory} — {compProfile.hiringRecommendation}
+                                                    </h3>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">
+                                                    Overall: {compProfile.overallScore}/100
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <p className="text-xs leading-relaxed text-[var(--color-text-main)] font-medium pt-1 border-t border-black/5 dark:border-white/5">
+                                            {compProfile.recommendationRationale}
+                                        </p>
+
+                                        {compProfile.gateViolations.length > 0 && (
+                                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl space-y-1 mt-2">
+                                                <span className="text-[10px] font-black uppercase text-red-700 dark:text-red-400 flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[14px]">warning</span>
+                                                    Perhatian Khusus / Gatekeeper Alert:
+                                                </span>
+                                                <ul className="list-disc list-inside text-xs text-red-700 dark:text-red-300 space-y-0.5 font-medium">
+                                                    {compProfile.gateViolations.map((gv, i) => (
+                                                        <li key={i}>{gv}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* LAYER 2: COMPETENCY PROFILE MATRIX */}
+                                <div className="space-y-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
+                                        <div>
+                                            <h3 className="text-sm font-extrabold text-[var(--color-text-main)] uppercase tracking-wider flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-[18px] text-primary">view_timeline</span>
+                                                Layer 2 — Competency Profile Matrix
+                                            </h3>
+                                            <p className="text-[11px] text-[var(--color-text-sub)] mt-0.5">
+                                                Evaluasi detail 10 kompetensi × 10 soal, komparasi terhadap target minimal dan selisih terhadap Overall Score.
+                                            </p>
+                                        </div>
+                                        <span className="text-[10px] font-bold px-2 py-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-md text-[var(--color-text-muted)] w-max">
+                                            {compProfile?.competencies.length || 0} Kompetensi Terukur
+                                        </span>
+                                    </div>
+
+                                    {compProfile && compProfile.competencies.length > 0 ? (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="border-b border-[var(--color-border)] text-[10px] font-black uppercase text-[var(--color-text-muted)] tracking-wider">
+                                                        <th className="py-2.5 px-3">Kompetensi</th>
+                                                        <th className="py-2.5 px-3 text-center">Soal Benar</th>
+                                                        <th className="py-2.5 px-3 text-center">Score</th>
+                                                        <th className="py-2.5 px-3 text-center">Status</th>
+                                                        <th className="py-2.5 px-3 text-center">vs Overall</th>
+                                                        <th className="py-2.5 px-3 text-center">Target Min</th>
+                                                        <th className="py-2.5 px-3 w-32">Visual Bar</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-[var(--color-border)] text-xs">
+                                                    {compProfile.competencies.map((comp, idx) => {
+                                                        const statusStyle = STATUS_BADGE_CONFIG[comp.status] || STATUS_BADGE_CONFIG["Adequate"];
+                                                        const deltaStr = comp.deltaVsOverall > 0 ? `+${comp.deltaVsOverall}` : `${comp.deltaVsOverall}`;
+                                                        const deltaColor = comp.deltaVsOverall > 0 
+                                                            ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30" 
+                                                            : comp.deltaVsOverall < 0 
+                                                                ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30" 
+                                                                : "text-gray-600 bg-gray-50 dark:bg-gray-800";
+
+                                                        return (
+                                                            <tr key={idx} className="hover:bg-[var(--color-bg-hover)]/50 transition-colors">
+                                                                <td className="py-3 px-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[10px] font-mono text-[var(--color-text-muted)] font-bold">{idx + 1}.</span>
+                                                                        <div>
+                                                                            <span className="font-bold text-[var(--color-text-main)] block">{comp.name}</span>
+                                                                            {comp.isCriticalGate && (
+                                                                                <span className="text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase">
+                                                                                    🛡️ Gatekeeper Special Competency
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-3 text-center font-mono font-semibold text-[var(--color-text-sub)]">
+                                                                    {comp.correctCount}/{comp.totalCount}
+                                                                </td>
+                                                                <td className="py-3 px-3 text-center">
+                                                                    <span className="font-extrabold text-sm text-[var(--color-text-main)] font-mono">
+                                                                        {comp.score}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 px-3 text-center">
+                                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${statusStyle.bg} ${statusStyle.text}`}>
+                                                                        <span>{statusStyle.icon}</span>
+                                                                        {comp.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 px-3 text-center">
+                                                                    <span className={`inline-block px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${deltaColor}`}>
+                                                                        {deltaStr}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 px-3 text-center">
+                                                                    <div className="flex items-center justify-center gap-1 font-mono text-[11px]">
+                                                                        <span className="text-[var(--color-text-muted)] font-medium">{comp.benchmarkMin}%</span>
+                                                                        {comp.passedBenchmark ? (
+                                                                            <span className="material-symbols-outlined text-[14px] text-emerald-500" title="Melebihi / memenuhi target minimal">check_circle</span>
+                                                                        ) : (
+                                                                            <span className="material-symbols-outlined text-[14px] text-amber-500" title="Di bawah target minimal">warning</span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-3">
+                                                                    <div className="w-full bg-[var(--color-bg-elevated)] h-2.5 rounded-full overflow-hidden border border-[var(--color-border)]">
+                                                                        <div 
+                                                                            className={`h-full rounded-full transition-all duration-500
+                                                                                ${comp.score >= 90 ? "bg-blue-500" : comp.score >= 80 ? "bg-emerald-500" : comp.score >= 70 ? "bg-yellow-500" : comp.score >= 60 ? "bg-orange-500" : "bg-red-500"}`}
+                                                                            style={{ width: `${comp.score}%` }}
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 text-center text-xs text-[var(--color-text-muted)] border border-dashed border-[var(--color-border)] rounded-xl">
+                                            Soal-soal pada tes ini belum dikelompokkan berdasarkan kompetensi. Anda dapat menambahkan tag kompetensi pada menu konfigurasi soal.
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl space-y-1.5">
-                                        <span className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">Test Name</span>
-                                        <p className="text-xs font-bold text-[var(--color-text-main)]">{data.test.name}</p>
-                                    </div>
-                                    <div className="p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl space-y-1.5">
-                                        <span className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">Test Category</span>
-                                        <div>
-                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${category.bg} ${category.color}`}>
-                                                {category.label}
-                                            </span>
+                                {/* LAYER 3: TOP STRENGTHS & DEVELOPMENT AREAS CARDS */}
+                                {compProfile && compProfile.hasCompetencies && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                        
+                                        {/* Card Top Strengths */}
+                                        <div className="p-5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 space-y-3">
+                                            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-extrabold text-xs uppercase tracking-wider">
+                                                <span className="material-symbols-outlined text-[18px]">workspace_premium</span>
+                                                Top 3 Strengths (Kekuatan Utama)
+                                            </div>
+                                            <div className="space-y-2">
+                                                {compProfile.topStrengths.map((str, i) => (
+                                                    <div key={i} className="flex items-center justify-between p-2.5 bg-white dark:bg-[var(--color-bg-card)] rounded-xl border border-emerald-100 dark:border-emerald-900/30 text-xs">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="size-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
+                                                                {i + 1}
+                                                            </span>
+                                                            <span className="font-bold text-[var(--color-text-main)] truncate">{str.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">
+                                                                {str.score}%
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded">
+                                                                {str.status}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl space-y-1.5">
-                                        <span className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">Total Questions</span>
-                                        <p className="text-xs font-bold text-[var(--color-text-main)]">{data.test.totalQuestions} Questions</p>
-                                    </div>
-                                    <div className="p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl space-y-1.5">
-                                        <span className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">Session Status</span>
-                                        <div>
-                                            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase px-2 py-0.5 rounded">
-                                                {data.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl space-y-1.5">
-                                        <span className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">Session Started</span>
-                                        <p className="text-xs font-bold text-[var(--color-text-main)]">
-                                            {data.startedAt ? new Date(data.startedAt).toLocaleString("id-ID") : "-"}
-                                        </p>
-                                    </div>
-                                    <div className="p-4 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl space-y-1.5">
-                                        <span className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">Session Completed</span>
-                                        <p className="text-xs font-bold text-[var(--color-text-main)]">
-                                            {data.completedAt ? new Date(data.completedAt).toLocaleString("id-ID") : "-"}
-                                        </p>
-                                    </div>
-                                </div>
 
-                                <div className="p-5 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent rounded-xl border border-[var(--color-border-strong)]">
+                                        {/* Card Top Development Areas */}
+                                        <div className="p-5 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 space-y-3">
+                                            <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 font-extrabold text-xs uppercase tracking-wider">
+                                                <span className="material-symbols-outlined text-[18px]">trending_up</span>
+                                                Top 3 Development Focus (Area Pengembangan)
+                                            </div>
+                                            <div className="space-y-2">
+                                                {compProfile.topDevelopmentAreas.map((dev, i) => (
+                                                    <div key={i} className="flex items-center justify-between p-2.5 bg-white dark:bg-[var(--color-bg-card)] rounded-xl border border-orange-100 dark:border-orange-900/30 text-xs">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="size-5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
+                                                                {i + 1}
+                                                            </span>
+                                                            <span className="font-bold text-[var(--color-text-main)] truncate">{dev.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono font-extrabold text-orange-600 dark:text-orange-400 text-xs">
+                                                                {dev.score}%
+                                                            </span>
+                                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${dev.score < 60 ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"}`}>
+                                                                {dev.status}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recruiter Action & Follow-up Guide */}
+                                <div className="p-5 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent rounded-2xl border border-[var(--color-border-strong)] space-y-2">
                                     <h4 className="text-xs font-black uppercase text-[var(--color-text-main)] flex items-center gap-1.5">
-                                        <span className="material-symbols-outlined text-[16px] text-primary">verified_user</span>
-                                        Proctoring Trust Score
+                                        <span className="material-symbols-outlined text-[16px] text-primary">lightbulb</span>
+                                        Rekomendasi Tindak Lanjut Recruiter & User
                                     </h4>
-                                    <p className="text-[11px] text-[var(--color-text-sub)] mt-1.5 leading-relaxed font-semibold">
-                                        This test report has been compiled and locked dynamically by the SELEKSIA proctoring suite. All window focus switches, tabs blurs, and face tracking diagnostics were logged using timestamp indicators.
-                                    </p>
+                                    <div className="text-xs text-[var(--color-text-sub)] space-y-1.5 leading-relaxed font-medium">
+                                        <p>
+                                            • <strong>Keputusan Penerimaan:</strong> {compProfile?.recommendationRationale || "Gunakan skor keseluruhan dan profil kompetensi sebagai acuan."}
+                                        </p>
+                                        <p>
+                                            • <strong>Fokus Onboarding & Training:</strong> Jika kandidat diterima, fokuskan modul pelatihan pada <strong>{compProfile?.topDevelopmentAreas.map(d => d.name).join(", ") || "kompetensi terkait"}</strong> untuk mempercepat kurva performa di lapangan.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -566,8 +782,33 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                     </button>
                                 </div>
 
+                                {/* Filter by competency pills */}
+                                {distinctCompetencies.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-[10px] font-black uppercase text-[var(--color-text-muted)] mr-1">Filter Kompetensi:</span>
+                                        <button
+                                            onClick={() => setSelectedCompetencyFilter("all")}
+                                            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${selectedCompetencyFilter === "all" ? "bg-primary text-white" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)] hover:bg-[var(--color-bg-hover)]"}`}
+                                        >
+                                            Semua ({data.answers.length})
+                                        </button>
+                                        {distinctCompetencies.map(comp => {
+                                            const count = data.answers.filter(a => a.competency?.trim() === comp).length;
+                                            return (
+                                                <button
+                                                    key={comp}
+                                                    onClick={() => setSelectedCompetencyFilter(comp)}
+                                                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${selectedCompetencyFilter === comp ? "bg-primary text-white" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-sub)] hover:bg-[var(--color-bg-hover)]"}`}
+                                                >
+                                                    {comp} ({count})
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
                                 <div className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
-                                    {data.answers.map((ans, idx) => (
+                                    {filteredAnswers.map((ans, idx) => (
                                         <div key={ans.id} className="p-4 border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-card)] shadow-xs relative overflow-hidden group">
                                             {/* Status indicator bar left edge */}
                                             <div className={`absolute left-0 top-0 bottom-0 w-1
@@ -582,10 +823,15 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
 
                                             <div className="pl-3.5 flex flex-col md:flex-row gap-6">
                                                 <div className="flex-1 space-y-3">
-                                                    <div className="flex items-center gap-2.5">
+                                                    <div className="flex items-center gap-2.5 flex-wrap">
                                                         <span className="text-[9px] font-mono font-black text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-2 py-0.5 rounded border border-[var(--color-border)]">
                                                             QUESTION {idx + 1}
                                                         </span>
+                                                        {ans.competency && (
+                                                            <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                {ans.competency}
+                                                            </span>
+                                                        )}
                                                         {ans.type === "multiple_choice_weighted" ? (
                                                             <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-[var(--color-primary-light)] text-primary">
                                                                 Earned Weight: {ans.earnedWeight || 0}
@@ -702,7 +948,6 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                     <div className="relative pl-6 border-l border-[var(--color-border-strong)] space-y-5 max-h-[480px] overflow-y-auto pr-1">
                                         {data.violations.map((v) => (
                                             <div key={v.id} className="relative group/timeline-item">
-                                                {/* Timeline circular indicator bullet */}
                                                 <div className={`absolute -left-[31px] top-1.5 size-4 rounded-full border-2 flex items-center justify-center bg-[var(--color-bg-card)] transition-all duration-300
                                                     ${v.severity >= 3 
                                                         ? "border-red-500 text-red-500 shadow-md shadow-red-500/20" 
@@ -713,7 +958,6 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                     <span className="w-1.5 h-1.5 rounded-full bg-current" />
                                                 </div>
 
-                                                {/* Timeline item card */}
                                                 <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-hover)]/30 hover:bg-[var(--color-bg-hover)] transition-all duration-200">
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-1.5">
                                                         <div className="flex items-center gap-2">

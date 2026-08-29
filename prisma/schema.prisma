@@ -186,6 +186,7 @@ model Question {
   options       String[] // array of option strings
   optionWeights Json?    // map of option index/string to weight
   correctAnswer String?
+  competency    String?      // Category/competency name e.g. "Sales Execution & Performance Control", "Integrity"
   aiRubric      String?      @db.Text
   imageUrl      String?
   timeLimit     Int? // seconds

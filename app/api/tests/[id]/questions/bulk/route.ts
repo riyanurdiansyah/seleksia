@@ -38,6 +38,7 @@ export async function POST(
                 options: q.options || [],
                 optionWeights: q.optionWeights || null,
                 correctAnswer: q.correctAnswer || null,
+                competency: q.competency || null,
                 timeLimit: q.timeLimit ? parseInt(q.timeLimit) : null,
             };
         });

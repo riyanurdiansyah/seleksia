@@ -20,6 +20,7 @@ interface Question {
     options: string[];
     optionWeights?: Record<string, number> | null;
     correctAnswer?: string | null;
+    competency?: string | null;
     imageUrl?: string | null;
     timeLimit?: number | null;
     sortOrder: number;
@@ -68,6 +69,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
     const [test, setTest] = useState<Test | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"questions" | "settings">("questions");
 
     // Edit form
@@ -96,6 +98,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         options: ["", "", "", "", ""],
         optionWeights: {} as Record<string, number>,
         correctAnswer: "",
+        competency: "",
         timeLimit: 0,
         imageUrl: "",
     });
@@ -108,6 +111,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         options: ["", "", "", "", ""],
         optionWeights: {} as Record<string, number>,
         correctAnswer: "",
+        competency: "",
         timeLimit: 0,
         imageUrl: "",
     });
@@ -248,18 +252,15 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     options: newQuestion.type === "essay" ? [] : newQuestion.options.filter((o) => o.trim() !== ""),
                     optionWeights: newQuestion.type === "multiple_choice_weighted" ? newQuestion.optionWeights : null,
                     correctAnswer: newQuestion.correctAnswer || null,
+                    competency: newQuestion.competency?.trim() || null,
                     timeLimit: newQuestion.timeLimit || null,
                     imageUrl: newQuestion.imageUrl || null,
                 }),
             });
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                console.error("API Error:", errData);
-                throw new Error(errData.details || errData.error || "Failed to add question");
-            }
-            const q = await res.json();
-            setTest((prev) => prev ? { ...prev, questions: [...prev.questions, q] } : prev);
-            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], optionWeights: {}, correctAnswer: "", timeLimit: 0, imageUrl: "" });
+            if (!res.ok) throw new Error("Failed to add question");
+            const created = await res.json();
+            setTest((prev) => prev ? { ...prev, questions: [...prev.questions, created] } : prev);
+            setNewQuestion({ text: "", type: test.questionType, options: ["", "", "", "", ""], optionWeights: {}, correctAnswer: "", competency: "", timeLimit: 0, imageUrl: "" });
         } catch (err) {
             console.error(err);
             await globalDialog.alert(err instanceof Error ? err.message : String(err));
@@ -285,22 +286,37 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             "Bobot B",
             "Bobot C",
             "Bobot D",
-            "Bobot E"
+            "Bobot E",
+            "Kompetensi"
         ];
         
-        // Example rows for 3 types
+        // Example rows for types
         const exampleRows = [
             [
-                "Siapakah presiden pertama Indonesia?",
+                "Bagaimana Anda menindaklanjuti prospek yang menunda keputusan pembelian?",
                 "multiple_choice",
-                "Soekarno",
-                "Soeharto",
-                "Habibie",
-                "Gus Dur",
-                "Megawati",
+                "Menganalisis hambatan dan memberikan solusi nilai tambah",
+                "Membiarkan prospek menghubungi kembali nanti",
+                "Menurunkan harga secara drastis",
+                "Menghubungi setiap jam hingga merespon",
+                "Membatalkan prospek",
                 "A",
                 "60",
-                "", "", "", "", ""
+                "", "", "", "", "",
+                "Sales Execution & Performance Control"
+            ],
+            [
+                "Pilihlah tindakan yang mencerminkan kejujuran Anda dalam menyampaikan data penjualan.",
+                "multiple_choice",
+                "Menyampaikan data riil tanpa rekayasa apapun",
+                "Menyesuaikan data sedikit agar target terlihat tercapai",
+                "Menyalahkan tim logistik saat stok tidak akurat",
+                "Menunda pelaporan hingga akhir bulan",
+                "Hanya melaporkan capaian yang bagus saja",
+                "A",
+                "60",
+                "", "", "", "", "",
+                "Integrity"
             ],
             [
                 "Pilihlah pernyataan yang paling mendeskripsikan diri Anda.",
@@ -312,17 +328,8 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                 "Suka melayani",
                 "",
                 "60",
-                "5", "2", "4", "3", "4"
-            ],
-            [
-                "Ibukota negara Indonesia saat ini adalah Jakarta.",
-                "true_false",
-                "True",
-                "False",
-                "", "", "",
-                "True",
-                "30",
-                "", "", "", "", ""
+                "5", "2", "4", "3", "4",
+                "Customer Focus"
             ]
         ];
         
@@ -331,7 +338,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
         // Set column widths
         const wscols = [
             {wch: 40}, {wch: 35}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 20}, {wch: 25}, {wch: 20},
-            {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}
+            {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 35}
         ];
         ws['!cols'] = wscols;
         
@@ -398,12 +405,15 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     correctAns = correctAns.charAt(0).toUpperCase() + correctAns.slice(1).toLowerCase();
                 }
 
+                const competencyVal = row[14] ? row[14].toString().trim() : null;
+
                 questions.push({
                     text: row[0].toString(),
                     type: type as QuestionType,
                     options: options.length > 0 ? options : [],
                     optionWeights: optionWeights,
                     correctAnswer: correctAns,
+                    competency: competencyVal,
                     timeLimit: row[8] ? parseInt(row[8].toString()) : 0,
                 });
             }
@@ -487,6 +497,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
             options: q.options.length > 0 ? [...q.options] : ["", "", "", "", ""],
             optionWeights: q.optionWeights || {},
             correctAnswer: q.correctAnswer || "",
+            competency: q.competency || "",
             timeLimit: q.timeLimit || 0,
             imageUrl: q.imageUrl || "",
         });
@@ -509,6 +520,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                     options: editQuestion.type === "essay" ? [] : editQuestion.options.filter((o) => o.trim() !== ""),
                     optionWeights: editQuestion.type === "multiple_choice_weighted" ? editQuestion.optionWeights : null,
                     correctAnswer: editQuestion.correctAnswer || null,
+                    competency: editQuestion.competency?.trim() || null,
                     timeLimit: editQuestion.timeLimit || null,
                     imageUrl: editQuestion.imageUrl || null,
                 }),
@@ -622,25 +634,35 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                             <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-xl transition-all duration-500 ease-out animate-slide-in-up">
                             {showAddQuestion && (
                                 <div className="p-6 space-y-5 animate-fade-in">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Type</label>
-                                        <Select2
-                                            value={newQuestion.type}
-                                            onChange={(val) => setNewQuestion((p) => ({ ...p, type: val as QuestionType }))}
-                                            options={Object.entries(questionTypeConfig).map(([k, v]) => ({ value: k, label: v.label }))}
-                                            className="w-full text-left"
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Type</label>
+                                            <Select2
+                                                value={newQuestion.type}
+                                                onChange={(val) => setNewQuestion((p) => ({ ...p, type: val as QuestionType }))}
+                                                options={Object.entries(questionTypeConfig).map(([k, v]) => ({ value: k, label: v.label }))}
+                                                className="w-full text-left"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Competency / Sub-category</label>
+                                            <input 
+                                                type="text" 
+                                                value={newQuestion.competency} 
+                                                onChange={(e) => setNewQuestion((p) => ({ ...p, competency: e.target.value }))} 
+                                                className="w-full h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" 
+                                                placeholder="e.g. Sales Execution, Integrity" 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Time Limit (sec, 0 = none)</label>
+                                            <input type="number" value={newQuestion.timeLimit} onChange={(e) => setNewQuestion((p) => ({ ...p, timeLimit: parseInt(e.target.value) || 0 }))} className="w-full h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" min="0" />
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Time Limit (sec, 0 = none)</label>
-                                        <input type="number" value={newQuestion.timeLimit} onChange={(e) => setNewQuestion((p) => ({ ...p, timeLimit: parseInt(e.target.value) || 0 }))} className="w-full h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" min="0" />
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Text (Optional if image uploaded)</label>
+                                        <textarea value={newQuestion.text} onChange={(e) => setNewQuestion((p) => ({ ...p, text: e.target.value }))} rows={2} className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300 resize-none" placeholder="Enter question..." />
                                     </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Text (Optional if image uploaded)</label>
-                                    <textarea value={newQuestion.text} onChange={(e) => setNewQuestion((p) => ({ ...p, text: e.target.value }))} rows={2} className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300 resize-none" placeholder="Enter question..." />
-                                </div>
 
                                 <div className="space-y-1">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Question Image (Optional)</label>
@@ -851,7 +873,7 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                     <span className="text-xs font-bold text-primary">Editing Question #{idx + 1}</span>
                                                     <button onClick={() => setEditingQuestionId(null)} className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-sub)]">Cancel</button>
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                     <div>
                                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Type</label>
                                                         <Select2
@@ -860,6 +882,10 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                                             options={Object.entries(questionTypeConfig).map(([k, v]) => ({ value: k, label: v.label }))}
                                                             className="w-full text-left"
                                                         />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Competency</label>
+                                                        <input type="text" value={editQuestion.competency} onChange={(e) => setEditQuestion((p) => ({ ...p, competency: e.target.value }))} className="w-full h-9 px-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-sm focus:border-primary focus:ring-4 focus:ring-[var(--color-primary-light)] transition-all duration-300" placeholder="e.g. Integrity" />
                                                     </div>
                                                     <div>
                                                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1">Time Limit (sec)</label>
@@ -971,11 +997,16 @@ export default function TestDetailClient({ testId }: { testId: string }) {
                                             <div className="p-5">
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-2">
+                                                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                                                             <span className="flex-shrink-0 w-7 h-7 rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] flex items-center justify-center text-xs font-bold text-[var(--color-text-muted)]">{idx + 1}</span>
                                                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]`}>
                                                                 <span className="material-symbols-outlined text-[12px]">{qType.icon}</span>{qType.label}
                                                             </span>
+                                                            {q.competency && (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                                                    <span className="material-symbols-outlined text-[12px]">stars</span>{q.competency}
+                                                                </span>
+                                                            )}
                                                             {q.timeLimit && q.timeLimit > 0 && (
                                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
                                                                     <span className="material-symbols-outlined text-[12px]">timer</span>{q.timeLimit}s

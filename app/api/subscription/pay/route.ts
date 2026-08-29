@@ -116,18 +116,17 @@ export async function POST(req: NextRequest) {
             email: admin?.email || "admin@example.com",
             mobile: "000000000000",
             amount: amount,
-            description: `Pembayaran Langganan ${plan} Plan [ID: ${paymentRecord.id}]`,
+            description: `Langganan Seleksia - ${plan} Plan [ID: ${paymentRecord.id}]`,
             items: [
                 {
-                    name: `${plan} Plan (30 Hari)`,
+                    name: `Seleksia ${plan} Plan (30 Hari)`,
                     quantity: 1,
                     price: amount,
                     rate: amount,
-                    description: "Langganan CBT"
+                    description: "Langganan Layanan Seleksia Online Assessment & CBT"
                 }
             ],
             redirectUrl: redirectUrl,
-            // Mayar often supports reference or external_id, passing it just in case:
             reference: paymentRecord.id
         };
 

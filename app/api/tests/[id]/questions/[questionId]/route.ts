@@ -67,6 +67,7 @@ export async function PATCH(
         if (body.type !== undefined) data.type = body.type;
         if (body.options !== undefined) data.options = body.options;
         if (body.correctAnswer !== undefined) data.correctAnswer = body.correctAnswer;
+        if (body.competency !== undefined) data.competency = body.competency;
         if (body.timeLimit !== undefined) data.timeLimit = body.timeLimit;
         if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl;
         if (body.optionWeights !== undefined) data.optionWeights = body.optionWeights;

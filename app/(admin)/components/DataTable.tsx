@@ -138,7 +138,7 @@ export default function DataTable<T>({
                                                 </div>
                                             )}
                                         </div>
-                                        {col.filterable && col.accessorKey && (
+                                        {col.filterable && col.accessorKey ? (
                                             <div className="relative mt-1">
                                                 <input
                                                     type="text"
@@ -149,7 +149,9 @@ export default function DataTable<T>({
                                                     onClick={(e) => e.stopPropagation()}
                                                 />
                                             </div>
-                                        )}
+                                        ) : columns.some(c => c.filterable) ? (
+                                            <div className="h-7 mt-1" />
+                                        ) : null}
                                     </div>
                                 </th>
                             ))}

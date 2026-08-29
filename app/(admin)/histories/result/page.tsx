@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import ResultsClient from "./ResultsClient";
 import { prisma } from "@/lib/prisma";
+import { calculateCompetencyProfile } from "@/lib/competencyScoring";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export default async function ResultsPage() {
                     duration: true,
                     questionType: true,
                     questions: {
-                        select: { id: true, type: true, correctAnswer: true, optionWeights: true }
+                        select: { id: true, type: true, correctAnswer: true, optionWeights: true, competency: true, text: true }
                     }
                 }
             },
@@ -75,6 +76,22 @@ export default async function ResultsPage() {
         const overallNormalScore = a.test.questions.length > 0 ? Math.round((correctNormal / a.test.questions.length) * 100) : 0;
         const calculatedNormalScore = normalScorableCount > 0 ? Math.round((correctNormal / normalScorableCount) * 100) : 0;
 
+        // Compute 3-layer Competency Profile
+        const competencyProfile = calculateCompetencyProfile(
+            a.test.questions.map(q => ({
+                id: q.id,
+                competency: q.competency,
+                correctAnswer: q.correctAnswer,
+                optionWeights: q.optionWeights as Record<string, number> | null,
+                type: q.type,
+                text: q.text
+            })),
+            a.answers.map(ans => ({
+                questionId: ans.questionId,
+                answer: ans.answer
+            }))
+        );
+
         return {
             id: a.id,
             candidateName: a.candidate.name,
@@ -92,7 +109,18 @@ export default async function ResultsPage() {
             totalWeightedScore,
             normalScorableCount,
             weightedCount,
-            unscorableCount
+            unscorableCount,
+            overallCategory: competencyProfile.overallCategory,
+            hiringRecommendation: competencyProfile.hiringRecommendation,
+            competencyProfile: {
+                hasCompetencies: competencyProfile.hasCompetencies,
+                overallCategory: competencyProfile.overallCategory,
+                hiringRecommendation: competencyProfile.hiringRecommendation,
+                recommendationBadgeColor: competencyProfile.recommendationBadgeColor,
+                topStrengths: competencyProfile.topStrengths.map(s => s.name),
+                topDevelopmentAreas: competencyProfile.topDevelopmentAreas.map(d => d.name),
+                gateViolationsCount: competencyProfile.gateViolations.length
+            }
         };
     });
 
