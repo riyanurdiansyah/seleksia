@@ -111,10 +111,10 @@ export default function FinishPage() {
                         {/* Heading */}
                         <div>
                             <h1 className="text-3xl font-bold text-[var(--color-text-main)] tracking-tight">
-                                Test Completed!
+                                Tes Selesai!
                             </h1>
                             <p className="mt-2 text-[var(--color-text-sub)]">
-                                Your test has been successfully submitted and recorded.
+                                Jawaban tes Anda telah berhasil dikirim dan tersimpan di sistem.
                             </p>
                         </div>
 
@@ -123,10 +123,10 @@ export default function FinishPage() {
                             <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] shadow-[var(--shadow-card)] border border-[var(--color-border)] p-5">
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-sm font-semibold text-[var(--color-text-sub)]">
-                                        Battery Progress
+                                        Progres Rangkaian Tes
                                     </span>
                                     <span className="text-sm font-bold text-brand-teal">
-                                        {completedCount} / {totalCount} Tests
+                                        {completedCount} / {totalCount} Tes Selesai
                                     </span>
                                 </div>
                                 <div className="w-full h-3 bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
@@ -161,14 +161,14 @@ export default function FinishPage() {
                         {/* Summary Card */}
                         <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] shadow-[var(--shadow-card)] border border-[var(--color-border)] p-6 text-left">
                             <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-4">
-                                Test Summary
+                                Ringkasan Tes
                             </h3>
                             <div className="space-y-3">
                                 {[
-                                    { label: "Status", value: "Submitted ✓", icon: "verified" },
-                                    { label: "Submitted At", value: new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }), icon: "event" },
+                                    { label: "Status", value: "Terkirim ✓", icon: "verified" },
+                                    { label: "Waktu Pengiriman", value: new Date().toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }), icon: "event" },
                                     ...(totalCount > 1
-                                        ? [{ label: "Tests Completed", value: `${completedCount} of ${totalCount}`, icon: "assignment_turned_in" }]
+                                        ? [{ label: "Tes Diselesaikan", value: `${completedCount} dari ${totalCount}`, icon: "assignment_turned_in" }]
                                         : []),
                                 ].map((item) => (
                                     <div
@@ -193,27 +193,24 @@ export default function FinishPage() {
                         {loading ? (
                             <div className="flex items-center justify-center gap-2 py-4">
                                 <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                <span className="text-sm text-[var(--color-text-sub)]">Checking next test...</span>
+                                <span className="text-sm text-[var(--color-text-sub)]">Memeriksa tes berikutnya...</span>
                             </div>
                         ) : nextData?.hasNext ? (
                             /* === NEXT TEST AVAILABLE === */
                             <div className="bg-[var(--color-primary-light)] border border-[var(--color-border-accent)] rounded-[var(--radius-md)] p-6 space-y-4 animate-fade-in">
                                 <div className="flex items-center justify-center gap-2 text-primary">
                                     <span className="material-symbols-outlined text-2xl">arrow_circle_right</span>
-                                    <h3 className="text-lg font-bold">Next Test Ready</h3>
+                                    <h3 className="text-lg font-bold">Tes Berikutnya Siap</h3>
                                 </div>
 
                                 <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-sm)] p-4 border border-[var(--color-border)]">
                                     <p className="text-sm font-semibold text-[var(--color-text-main)]">
                                         {nextData.assignment?.test.name}
                                     </p>
-                                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                                        {nextData.assignment?.test.displayId} • {nextData.assignment?.test.category}
-                                    </p>
                                 </div>
 
                                 <p className="text-sm text-[var(--color-text-sub)]">
-                                    Auto-starting in <span className="font-bold text-primary text-lg">{countdown}</span> seconds
+                                    Otomatis dimulai dalam <span className="font-bold text-primary text-lg">{countdown}</span> detik
                                 </p>
 
                                 <div className="w-full h-1.5 bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
@@ -229,7 +226,7 @@ export default function FinishPage() {
                                         className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[var(--radius-md)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] cursor-pointer btn-press btn-shine"
                                     >
                                         <span className="material-symbols-outlined text-sm">play_arrow</span>
-                                        Start Next Test Now
+                                        Mulai Tes Berikutnya Sekarang
                                     </button>
                                 </div>
                             </div>
@@ -242,11 +239,10 @@ export default function FinishPage() {
                                     </span>
                                     <div>
                                         <p className="text-sm font-semibold text-[var(--color-success)]">
-                                            {totalCount > 1 ? "All Tests Completed!" : "Test Completed!"}
+                                            {totalCount > 1 ? "Seluruh Rangkaian Tes Selesai!" : "Tes Selesai!"}
                                         </p>
                                         <p className="text-sm text-[var(--color-text-sub)] mt-1">
-                                            Your results will be processed and reviewed by the administrator.
-                                            You will be notified when the results are available.
+                                            Hasil tes Anda akan diproses dan dievaluasi oleh tim penguji. Anda dapat menutup halaman ini atau keluar akun.
                                         </p>
                                     </div>
                                 </div>
@@ -259,7 +255,7 @@ export default function FinishPage() {
                                     className="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius-md)] bg-gradient-to-br from-primary to-accent text-white font-semibold text-sm transition-all shadow-[0_4px_15px_var(--color-primary-glow)] hover:shadow-[0_6px_25px_var(--color-primary-glow)] hover:translate-y-[-1px] cursor-pointer btn-press btn-shine"
                                 >
                                     <span className="material-symbols-outlined text-sm">logout</span>
-                                    Log Out
+                                    Keluar / Selesai
                                 </button>
                             </>
                         )}

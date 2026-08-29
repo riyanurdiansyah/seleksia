@@ -137,6 +137,7 @@ export default async function ResultsPage() {
             weightedCount,
             unscorableCount,
             overallCategory: competencyProfile.overallCategory,
+            status: getCompetencyStatus(overallNormalScore, activeScoringConfig?.bands),
             hiringRecommendation: competencyProfile.hiringRecommendation,
             competencyProfile: {
                 hasCompetencies: competencyProfile.hasCompetencies,

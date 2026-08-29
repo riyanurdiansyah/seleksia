@@ -197,7 +197,19 @@ export function getOverallCategory(
     };
 }
 
-export function getCompetencyStatus(score: number): CompetencyStatus {
+export function getCompetencyStatus(
+    score: number,
+    customBands?: ScoringBand[]
+): CompetencyStatus {
+    if (customBands && customBands.length > 0) {
+        const sortedBands = [...customBands].sort((a, b) => b.min - a.min);
+        for (const b of sortedBands) {
+            if (score >= b.min && score <= b.max) {
+                return b.label;
+            }
+        }
+        return sortedBands[sortedBands.length - 1]?.label || "Critical Development";
+    }
     if (score >= 90) return "Key Strength";
     if (score >= 80) return "Strength";
     if (score >= 70) return "Adequate";
@@ -343,7 +355,7 @@ export function calculateCompetencyProfile(
 
     competencyGroups.forEach((val, name) => {
         const score = val.max > 0 ? Math.round((val.earned / val.max) * 100) : 0;
-        const status = getCompetencyStatus(score);
+        const status = getCompetencyStatus(score, customConfig?.bands);
         const { category } = getOverallCategory(score, customConfig?.bands);
         const deltaVsOverall = score - overallScore;
         const gateRule = customConfig?.gatekeepers?.find(g => {

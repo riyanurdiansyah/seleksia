@@ -25,6 +25,8 @@ interface ResultData {
     normalScorableCount: number;
     weightedCount: number;
     unscorableCount: number;
+    status?: string;
+    overallCategory?: string;
     competencyProfile?: {
         hasCompetencies: boolean;
         overallCategory: string;
@@ -129,13 +131,92 @@ const OVERALL_CATEGORY_BADGES: Record<string, {
     }
 };
 
-const STATUS_BADGE_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
-    "Key Strength": { bg: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-300", icon: "⭐" },
-    "Strength": { bg: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-300", icon: "🟢" },
-    "Adequate": { bg: "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800", text: "text-yellow-700 dark:text-yellow-300", icon: "🟡" },
-    "Development Area": { bg: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800", text: "text-orange-700 dark:text-orange-300", icon: "🟠" },
-    "Critical Development": { bg: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-300", icon: "🔴" }
-};
+export function getStatusBadge(rawStatus: string, score: number) {
+    const s = (rawStatus || "").trim();
+    const lower = s.toLowerCase();
+
+    // Direct label keyword matching
+    if (lower.includes("key strength") || lower.includes("very high") || lower.includes("sangat baik") || lower === "grade a" || lower === "a" || lower === "tinggi") {
+        return {
+            bg: "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800",
+            text: "text-blue-700 dark:text-blue-300",
+            icon: "⭐",
+            label: s || "Key Strength"
+        };
+    }
+    if (lower.includes("strength") || lower.includes("high") || lower.includes("baik") || lower === "grade b" || lower === "b") {
+        return {
+            bg: "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800",
+            text: "text-emerald-700 dark:text-emerald-300",
+            icon: "🟢",
+            label: s || "Strength"
+        };
+    }
+    if (lower.includes("adequate") || lower.includes("middle") || lower.includes("sedang") || lower.includes("cukup") || lower === "grade c" || lower === "c") {
+        return {
+            bg: "bg-yellow-50/90 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800",
+            text: "text-yellow-700 dark:text-yellow-300",
+            icon: "🟡",
+            label: s || "Adequate"
+        };
+    }
+    if (lower.includes("development area") || lower.includes("middle low") || lower.includes("perlu pengembangan") || lower === "grade d" || lower === "d") {
+        return {
+            bg: "bg-orange-50/90 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800",
+            text: "text-orange-700 dark:text-orange-300",
+            icon: "🟠",
+            label: s || "Development Area"
+        };
+    }
+    if (lower.includes("critical") || lower.includes("low") || lower.includes("rendah") || lower.includes("kurang") || lower === "grade e" || lower === "e") {
+        return {
+            bg: "bg-red-50/90 dark:bg-red-950/40 border-red-200 dark:border-red-800",
+            text: "text-red-700 dark:text-red-300",
+            icon: "🔴",
+            label: s || "Critical Development"
+        };
+    }
+
+    // Score-based fallback if custom label doesn't match standard keywords
+    if (score >= 90) {
+        return {
+            bg: "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800",
+            text: "text-blue-700 dark:text-blue-300",
+            icon: "⭐",
+            label: s || "Key Strength"
+        };
+    }
+    if (score >= 80) {
+        return {
+            bg: "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800",
+            text: "text-emerald-700 dark:text-emerald-300",
+            icon: "🟢",
+            label: s || "Strength"
+        };
+    }
+    if (score >= 70) {
+        return {
+            bg: "bg-yellow-50/90 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800",
+            text: "text-yellow-700 dark:text-yellow-300",
+            icon: "🟡",
+            label: s || "Adequate"
+        };
+    }
+    if (score >= 60) {
+        return {
+            bg: "bg-orange-50/90 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800",
+            text: "text-orange-700 dark:text-orange-300",
+            icon: "🟠",
+            label: s || "Development Area"
+        };
+    }
+    return {
+        bg: "bg-red-50/90 dark:bg-red-950/40 border-red-200 dark:border-red-800",
+        text: "text-red-700 dark:text-red-300",
+        icon: "🔴",
+        label: s || "Critical Development"
+    };
+}
 
 export function getRecommendationBadgeTheme(rawRec: string, overallScore?: number, gateViolations?: number) {
     const lower = (rawRec || "").toLowerCase().trim();
@@ -520,19 +601,21 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
             filterable: true,
             cell: (row) => {
                 const score = row.overallNormalScore;
-                const status = score >= 90 ? "Key Strength"
+                const status = row.status || row.overallCategory || (
+                    score >= 90 ? "Key Strength"
                     : score >= 80 ? "Strength"
                     : score >= 70 ? "Adequate"
                     : score >= 60 ? "Development Area"
-                    : "Critical Development";
+                    : "Critical Development"
+                );
 
-                const style = STATUS_BADGE_CONFIG[status] || STATUS_BADGE_CONFIG["Adequate"];
+                const style = getStatusBadge(status, score);
 
                 return (
                     <div className="flex flex-col gap-1 py-1">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${style.bg} ${style.text} w-max shadow-2xs`}>
                             <span>{style.icon}</span>
-                            <span>{status}</span>
+                            <span>{style.label}</span>
                         </span>
                         {row.competencyProfile?.gateViolationsCount && row.competencyProfile.gateViolationsCount > 0 ? (
                             <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 pl-1">

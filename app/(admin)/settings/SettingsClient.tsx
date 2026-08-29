@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import Breadcrumb from "../components/Breadcrumb";
 
 /* ===== Types ===== */
@@ -309,7 +309,7 @@ export default function SettingsClient() {
                             Settings
                         </h1>
                         <p className="text-sm text-[var(--color-text-sub)] mt-1 font-medium">
-                            Manage admin accounts and system configuration.
+                            Manage email server and default scoring rules.
                         </p>
                     </div>
                     <Breadcrumb />
@@ -323,10 +323,11 @@ export default function SettingsClient() {
                     <nav className="flex px-6 gap-6">
                         <button 
                             onClick={() => setActiveTab("email")}
-                            className={`py-3 border-b-2 font-medium text-sm transition-all ${
+                            className={`py-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2 ${
                                 activeTab === "email" ? "border-primary text-primary" : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
                             }`}
                         >
+                            <span className="material-symbols-outlined text-[18px]">mail</span>
                             Email Server (SMTP)
                         </button>
                         <button 
@@ -337,16 +338,6 @@ export default function SettingsClient() {
                         >
                             <span className="material-symbols-outlined text-[18px]">tune</span>
                             Default Scoring Scheme
-                        </button>
-
-                        <button className="py-3 border-b-2 border-transparent text-[var(--color-text-muted)] opacity-50 cursor-not-allowed font-medium text-sm">
-                            General
-                        </button>
-                        <button className="py-3 border-b-2 border-transparent text-[var(--color-text-muted)] opacity-50 cursor-not-allowed font-medium text-sm">
-                            Security
-                        </button>
-                        <button className="py-3 border-b-2 border-transparent text-[var(--color-text-muted)] opacity-50 cursor-not-allowed font-medium text-sm">
-                            Notifications
                         </button>
                     </nav>
                 </div>

@@ -6,6 +6,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import * as XLSX from "xlsx";
 import { globalDialog } from "@/app/providers/DialogProvider";
 import { CompetencyProfileResult } from "@/lib/competencyScoring";
+import { formatViolationType, formatViolationDescription } from "@/lib/proctoringTranslations";
 
 interface Violation {
     id: string;
@@ -1007,8 +1008,8 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                         {viewMode === "violations" && (
                             <div className="space-y-6 animate-fade-in flex-1">
                                 <div className="border-b border-[var(--color-border)] pb-3">
-                                    <h3 className="text-sm font-bold text-[var(--color-text-main)] uppercase tracking-wider">Proctoring Timeline Audit</h3>
-                                    <p className="text-[11px] text-[var(--color-text-sub)] mt-0.5">Chronological record of browser, mouse, screen, and focus anomalies.</p>
+                                    <h3 className="text-sm font-bold text-[var(--color-text-main)] uppercase tracking-wider">Audit Linimasa Pengawasan Ujian</h3>
+                                    <p className="text-[11px] text-[var(--color-text-sub)] mt-0.5">Catatan kronologis aktivitas browser, kursor, layar, dan anomali fokus selama pengerjaan tes.</p>
                                 </div>
 
                                 {data.violations.length === 0 ? (
@@ -1017,9 +1018,9 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                             <span className="material-symbols-outlined text-[32px]">shield</span>
                                         </div>
                                         <div>
-                                            <h5 className="text-sm font-extrabold text-[var(--color-text-main)]">Verified Clear</h5>
+                                            <h5 className="text-sm font-extrabold text-[var(--color-text-main)]">Bersih & Bebas Pelanggaran</h5>
                                             <p className="text-xs text-[var(--color-text-sub)] mt-1.5 max-w-xs mx-auto font-medium">
-                                                The candidate completed the session without triggering tab switches, focus losses, devtools openings, or security flags.
+                                                Kandidat menyelesaikan sesi ujian tanpa terdeteksi perpindahan tab, kehilangan fokus, pembukaan developer tools, atau indikasi kecurangan lainnya.
                                             </p>
                                         </div>
                                     </div>
@@ -1040,17 +1041,17 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                 <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-hover)]/30 hover:bg-[var(--color-bg-hover)] transition-all duration-200">
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-1.5">
                                                         <div className="flex items-center gap-2">
-                                                            <p className="font-extrabold text-xs text-[var(--color-text-main)] capitalize">
-                                                                {v.type.replace(/_/g, ' ')}
+                                                            <p className="font-extrabold text-xs text-[var(--color-text-main)]">
+                                                                {formatViolationType(v.type)}
                                                             </p>
-                                                            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded
+                                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded
                                                                 ${v.severity >= 3
                                                                     ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
                                                                     : v.severity === 2
                                                                         ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                                                                         : "bg-yellow-400/10 text-yellow-700 dark:text-yellow-400 border border-yellow-400/20"}`}
                                                             >
-                                                                Severity Lvl {v.severity}
+                                                                Tingkat {v.severity} {v.severity >= 3 ? "(Tinggi)" : v.severity === 2 ? "(Sedang)" : "(Rendah)"}
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)] font-mono font-bold">
@@ -1059,7 +1060,7 @@ export default function ResultDetailClient({ data: initialData }: { data: Detail
                                                         </div>
                                                     </div>
                                                     <p className="text-xs text-[var(--color-text-sub)] font-medium leading-relaxed">
-                                                        {v.description || "Anomalous behavior caught by client telemetry hooks."}
+                                                        {formatViolationDescription(v.description, v.type)}
                                                     </p>
                                                 </div>
                                             </div>

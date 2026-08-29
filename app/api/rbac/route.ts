@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Role } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 
-const prisma = new PrismaClient();
+export const dynamic = 'force-dynamic';
 
 // Get all menus and role access mappings
 export async function GET(req: NextRequest) {
   try {
-    // 1. Get all menus ordered by sortOrder
+    // 1. Get root menus ordered by sortOrder
     const menus = await prisma.menu.findMany({
+      where: { parentId: null },
       orderBy: { sortOrder: "asc" },
       include: {
         submenus: {
@@ -28,6 +30,9 @@ export async function GET(req: NextRequest) {
     });
 
     accessMappings.forEach((mapping) => {
+      if (!roleAccess[mapping.role]) {
+        roleAccess[mapping.role] = {};
+      }
       roleAccess[mapping.role][mapping.menuId] = {
         r: mapping.canRead,
         c: mapping.canCreate,
@@ -59,7 +64,6 @@ export async function PUT(req: NextRequest) {
 
     // Wrap in a transaction: delete old mappings, then create new ones
     await prisma.$transaction(async (tx) => {
-      // We will just clear all mappings and insert the updated ones
       await tx.roleMenuAccess.deleteMany();
 
       const newMappings = [];

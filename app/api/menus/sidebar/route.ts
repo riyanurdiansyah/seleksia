@@ -134,9 +134,54 @@ async function ensureSuperAdminMenus() {
     }
 }
 
+async function ensureSettingsMenu() {
+    try {
+        const existing = await prisma.menu.findFirst({
+            where: { path: "/settings" }
+        });
+
+        if (!existing) {
+            await prisma.menu.create({
+                data: {
+                    name: "Settings",
+                    path: "/settings",
+                    icon: "settings",
+                    isActive: true,
+                    parentId: null,
+                    sortOrder: 101,
+                    roleAccess: {
+                        createMany: {
+                            data: [
+                                {
+                                    role: Role.admin,
+                                    canRead: true,
+                                    canCreate: true,
+                                    canUpdate: true,
+                                    canDelete: true
+                                },
+                                {
+                                    role: Role.superadmin,
+                                    canRead: true,
+                                    canCreate: true,
+                                    canUpdate: true,
+                                    canDelete: true
+                                }
+                            ]
+                        }
+                    }
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Failed to ensure settings menu exists:", err);
+    }
+}
+
 export async function GET(req: NextRequest) {
     try {
+        await ensureSubscriptionMenu();
         await ensureSuperAdminMenus();
+        await ensureSettingsMenu();
         const { searchParams } = new URL(req.url);
         const role = (searchParams.get("role") || "admin") as Role;
 

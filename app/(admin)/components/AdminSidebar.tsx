@@ -250,8 +250,7 @@ export default function AdminSidebar() {
                             </div>
                         ) : (
                             <>
-                                {menus.map(renderMenu)}
-                               
+                                {menus.filter(m => m.path !== "/settings").map(renderMenu)}
                             </>
                         )}
                     </div>
@@ -263,8 +262,11 @@ export default function AdminSidebar() {
                     {isCollapsed ? (
                         <>
                             <Link href="/settings"
-                                className="size-9 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-muted)]
-                                    hover:bg-[var(--color-bg-hover)] hover:text-primary transition-all"
+                                className={`size-9 rounded-[var(--radius-sm)] flex items-center justify-center transition-all ${
+                                    pathname.startsWith("/settings")
+                                        ? "bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)]"
+                                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-primary"
+                                }`}
                                 title="Settings"
                             >
                                 <span className="material-symbols-outlined text-[18px]">settings</span>
@@ -282,10 +284,13 @@ export default function AdminSidebar() {
                         <div className="space-y-0.5">
                             <Link
                                 href="/settings"
-                                className="flex items-center gap-3 px-3.5 py-2.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)]
-                                    hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] hover:translate-x-1 transition-all"
+                                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[var(--radius-sm)] transition-all ${
+                                    pathname.startsWith("/settings")
+                                        ? "bg-[var(--color-primary-light)] text-primary border border-[var(--color-border-accent)] shadow-[0_4px_12px_rgba(0,0,0,0.05)] font-bold"
+                                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-main)] hover:translate-x-1"
+                                }`}
                             >
-                                <span className="material-symbols-outlined text-[18px] text-[var(--color-text-muted)]">settings</span>
+                                <span className="material-symbols-outlined text-[18px]">settings</span>
                                 <span className="text-[13px] font-medium">Settings</span>
                             </Link>
                             <button

@@ -549,7 +549,7 @@ export default function ExamPage() {
                 setCameraActive(false);
                 // Record no camera violation
                 if (assignment) {
-                    recordViolation("no_camera", "Camera access denied or unavailable", 2);
+                    recordViolation("no_camera", "Akses kamera ditolak atau tidak tersedia", 2);
                 }
             }
         };
@@ -573,13 +573,13 @@ export default function ExamPage() {
                 // 5%: no face detected
                 setFaceDetected(false);
                 if (!submitted) {
-                    recordViolation("face_not_detected", "No face detected in camera frame — candidate may have left", 2);
+                    recordViolation("face_not_detected", "Wajah tidak terdeteksi di kamera — kandidat kemungkinan meninggalkan layar", 2);
                 }
             } else if (rand < 0.08) {
                 // 3%: multiple faces detected
                 setFaceDetected(false);
                 if (!submitted) {
-                    recordViolation("multiple_face", "Multiple faces detected in camera frame — possible third-party assistance", 3);
+                    recordViolation("multiple_face", "Terdeteksi lebih dari satu wajah di kamera — kemungkinan bantuan pihak ketiga", 3);
                 }
             } else {
                 setFaceDetected(true);
@@ -596,7 +596,7 @@ export default function ExamPage() {
             if (document.hidden) {
                 setIsTabHidden(true);
                 if (!submitted) {
-                    recordViolation("tab_switch", "Candidate switched to another tab or minimized the browser (Alt+Tab / Cmd+Tab detected)", 3);
+                    recordViolation("tab_switch", "Kandidat berpindah ke tab lain atau meminimalkan browser (Alt+Tab / Cmd+Tab terdeteksi)", 3);
                 }
             } else {
                 setIsTabHidden(false);
@@ -615,7 +615,7 @@ export default function ExamPage() {
         const handler = (e: MouseEvent) => {
             e.preventDefault();
             if (!submitted) {
-                recordViolation("right_click", "Right-click attempt detected", 1);
+                recordViolation("right_click", "Percobaan klik kanan terdeteksi", 1);
             }
         };
         document.addEventListener("contextmenu", handler);
@@ -629,13 +629,13 @@ export default function ExamPage() {
         const handleCopy = (e: ClipboardEvent) => {
             e.preventDefault();
             if (!submitted) {
-                recordViolation("copy_paste", "Copy attempt detected", 2);
+                recordViolation("copy_paste", "Percobaan menyalin teks (Copy) terdeteksi", 2);
             }
         };
         const handlePaste = (e: ClipboardEvent) => {
             e.preventDefault();
             if (!submitted) {
-                recordViolation("copy_paste", "Paste attempt detected", 2);
+                recordViolation("copy_paste", "Percobaan menempel teks (Paste) terdeteksi", 2);
             }
         };
         document.addEventListener("copy", handleCopy);
@@ -652,7 +652,7 @@ export default function ExamPage() {
         if (!assignment) return;
         const handleBlur = () => {
             if (!submitted) {
-                recordViolation("window_blur", "Browser window lost focus — candidate may have switched application", 2);
+                recordViolation("window_blur", "Jendela browser kehilangan fokus — kandidat kemungkinan membuka aplikasi lain", 2);
             }
         };
         window.addEventListener("blur", handleBlur);
@@ -667,7 +667,7 @@ export default function ExamPage() {
             if (e.key === "PrintScreen") {
                 e.preventDefault();
                 if (!submitted) {
-                    recordViolation("screen_capture", "Print Screen key pressed", 3);
+                    recordViolation("screen_capture", "Tombol Print Screen (Tangkapan Layar) ditekan", 3);
                 }
             }
             // Block DevTools shortcuts (Temporarily disabled for debugging console)
@@ -675,7 +675,7 @@ export default function ExamPage() {
             if (e.key === "F12" || (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C"))) {
                 e.preventDefault();
                 if (!submitted) {
-                    recordViolation("devtools_open", "Developer tools shortcut detected", 3);
+                    recordViolation("devtools_open", "Pintasan Developer Tools / Inspect Element terdeteksi", 3);
                 }
             }
             */
@@ -696,7 +696,7 @@ export default function ExamPage() {
             const isFs = !!document.fullscreenElement;
             setIsFullscreen(isFs);
             if (!isFs && !submitted) {
-                recordViolation("fullscreen_exit", "Candidate exited fullscreen mode", 2);
+                recordViolation("fullscreen_exit", "Kandidat keluar dari mode layar penuh (Fullscreen)", 2);
             }
         };
 
@@ -726,7 +726,7 @@ export default function ExamPage() {
             if (!submitted && (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight)) {
                 if (leaveTimeout) clearTimeout(leaveTimeout);
                 leaveTimeout = setTimeout(() => {
-                    recordViolation("cursor_leave", "Cursor left the exam window area for more than 10 seconds", 1);
+                    recordViolation("cursor_leave", "Kursor meninggalkan area jendela ujian lebih dari 10 detik", 1);
                 }, 10000);
             }
         };
@@ -759,7 +759,7 @@ export default function ExamPage() {
             // @ts-ignore - isExtended is a newer API not fully typed everywhere
             if (window.screen && window.screen.isExtended) {
                 if (!submitted) {
-                    recordViolation("multiple_displays", "Multiple display monitors detected", 2);
+                    recordViolation("multiple_displays", "Terdeteksi penggunaan lebih dari satu layar monitor (Multi-Display)", 2);
                 }
             }
         };
@@ -776,7 +776,7 @@ export default function ExamPage() {
 
         const handleOffline = () => {
             if (!submitted) {
-                recordViolation("network_disconnect", "Network connection lost", 2);
+                recordViolation("network_disconnect", "Koneksi internet terputus", 2);
             }
         };
         const handleOnline = () => {
@@ -801,7 +801,7 @@ export default function ExamPage() {
 
             // If clicks are less than 50ms apart, it might be an auto-clicker
             if (timeSinceLastClick < 50 && !submitted && lastClickTimeRef.current !== 0) {
-                recordViolation("rapid_click", "Abnormally rapid clicking detected (possible auto-clicker/macro)", 3);
+                recordViolation("rapid_click", "Pola klik sangat cepat yang tidak wajar terdeteksi (indikasi auto-clicker/makro)", 3);
             }
 
             lastClickTimeRef.current = now;
@@ -851,7 +851,7 @@ export default function ExamPage() {
                         // If it's consistently loud for a few frames
                         if (thresholdExceededCount > 10) {
                             if (!submitted) {
-                                recordViolation("audio_noise_detected", "Loud continuous noise or speech detected", 2);
+                                recordViolation("audio_noise_detected", "Terdeteksi suara bising atau percakapan terus-menerus di mikrofon", 2);
                             }
                             thresholdExceededCount = 0; // reset
                         }
@@ -1311,19 +1311,19 @@ export default function ExamPage() {
                             <div className="size-20 bg-red-800/50 rounded-full flex items-center justify-center mx-auto animate-pulse">
                                 <span className="material-symbols-outlined text-6xl text-red-300">warning</span>
                             </div>
-                            <h2 className="text-2xl font-bold">⚠️ Violation Detected!</h2>
+                            <h2 className="text-2xl font-bold">⚠️ Pelanggaran Terdeteksi!</h2>
                             <p className="text-red-200 text-sm leading-relaxed">{violationMsg}</p>
                             <div className="px-5 py-3 bg-red-800/60 rounded-[var(--radius-md)]">
-                                <span className="font-bold text-lg">Warning #{violations}</span>
+                                <span className="font-bold text-lg">Peringatan Ke-{violations}</span>
                                 <p className="text-xs text-red-300 mt-1">
-                                    All violations are recorded and will be reviewed by the proctor.
+                                    Seluruh anomali dan pelanggaran terekam di sistem dan akan ditinjau oleh tim pengawas.
                                 </p>
                             </div>
                             {isTabHidden ? (
                                 <div className="px-4 py-3 bg-red-700/40 rounded-[var(--radius-sm)] border border-red-500/30">
                                     <span className="material-symbols-outlined text-red-300 text-2xl mb-1 block">tab_unselected</span>
                                     <p className="text-sm font-semibold text-red-200">
-                                        Return to this tab to continue your exam.
+                                        Kembali ke tab ini untuk melanjutkan pengerjaan ujian Anda.
                                     </p>
                                 </div>
                             ) : (
@@ -1331,7 +1331,7 @@ export default function ExamPage() {
                                     onClick={() => setShowViolation(false)}
                                     className="mt-2 px-8 py-3 bg-[var(--color-bg-card)]/15 hover:bg-[var(--color-bg-card)]/25 border border-white/20 rounded-[var(--radius-md)] text-white font-semibold text-sm transition-all cursor-pointer"
                                 >
-                                    I Understand — Continue Exam
+                                    Saya Mengerti — Lanjutkan Ujian
                                 </button>
                             )}
                         </div>
@@ -1346,27 +1346,27 @@ export default function ExamPage() {
                                 <div className="size-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                                     <span className="material-symbols-outlined text-primary text-3xl">task_alt</span>
                                 </div>
-                                <h3 className="text-xl font-bold text-[var(--color-text-main)] dark:text-white">Submit Test?</h3>
+                                <h3 className="text-xl font-bold text-[var(--color-text-main)] dark:text-white">Kirim Jawaban Ujian?</h3>
                                 {unansweredCount > 0 && (
                                     <div className="bg-[var(--color-warning-light)] dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 rounded-[var(--radius-sm)] text-sm text-amber-800 dark:text-amber-200">
-                                        ⚠️ You still have <strong>{unansweredCount} unanswered</strong> question{unansweredCount > 1 ? "s" : ""}.
+                                        ⚠️ Anda masih memiliki <strong>{unansweredCount} soal</strong> yang belum dijawab.
                                     </div>
                                 )}
                                 <p className="text-sm text-[var(--color-text-sub)] dark:text-[var(--color-text-muted)]">
-                                    Once submitted, you cannot change your answers. Time remaining: <strong>{formatTime(timeLeft)}</strong>
+                                    Setelah dikirim, jawaban tidak dapat diubah kembali. Sisa waktu: <strong>{formatTime(timeLeft)}</strong>
                                 </p>
                                 <div className="flex gap-3 pt-2">
                                     <button
                                         onClick={() => setShowSubmitModal(false)}
                                         className="flex-1 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] dark:border-slate-600 text-slate-700 dark:text-[var(--color-text-muted)] font-medium text-sm hover:bg-[var(--color-bg-elevated)] dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                     >
-                                        Continue Test
+                                        Kembali Mengerjakan
                                     </button>
                                     <button
                                         onClick={handleSubmit}
                                         className="flex-1 py-2.5 rounded-[var(--radius-sm)] bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition-all cursor-pointer"
                                     >
-                                        Submit Now
+                                        Kirim Sekarang
                                     </button>
                                 </div>
                             </div>
