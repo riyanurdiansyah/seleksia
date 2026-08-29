@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import ResultsClient from "./ResultsClient";
 import { prisma } from "@/lib/prisma";
-import { calculateCompetencyProfile } from "@/lib/competencyScoring";
+import { calculateCompetencyProfile, getCompetencyStatus } from "@/lib/competencyScoring";
 
 export const dynamic = 'force-dynamic';
 
