@@ -228,13 +228,13 @@ export function isSpecialGate(
     customGatekeepers?: GatekeeperRule[]
 ): boolean {
     const key = name.trim().toLowerCase();
-    if (customGatekeepers && customGatekeepers.length > 0) {
+    if (Array.isArray(customGatekeepers)) {
         return customGatekeepers.some(g => {
             const gk = g.competency.trim().toLowerCase();
             return key.includes(gk) || gk.includes(key);
         });
     }
-    return SPECIAL_GATE_COMPETENCIES.some(g => key.includes(g) || g.includes(key));
+    return false;
 }
 
 /**
