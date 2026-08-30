@@ -98,12 +98,12 @@ export default function FinishPage() {
                             : "opacity-0 translate-y-8"
                             }`}
                     >
-                        {/* Success Icon */}
+                        {/* Status Icon */}
                         <div className="relative mx-auto w-24 h-24">
-                            <div className="absolute inset-0 bg-[var(--color-success)]/20 rounded-full animate-ping" />
-                            <div className="relative size-24 bg-[var(--color-success-light)] rounded-full flex items-center justify-center shadow-[0_0_30px_var(--color-success-glow)]">
-                                <span className="material-symbols-outlined text-[var(--color-success)] text-5xl">
-                                    check_circle
+                            <div className={`absolute inset-0 rounded-full animate-ping ${nextData?.hasNext ? "bg-primary/20" : "bg-[var(--color-success)]/20"}`} />
+                            <div className={`relative size-24 rounded-full flex items-center justify-center ${nextData?.hasNext ? "bg-[var(--color-primary-light)] text-primary shadow-[0_0_30px_var(--color-primary-glow)]" : "bg-[var(--color-success-light)] text-[var(--color-success)] shadow-[0_0_30px_var(--color-success-glow)]"}`}>
+                                <span className="material-symbols-outlined text-5xl">
+                                    {nextData?.hasNext ? "task_alt" : "celebration"}
                                 </span>
                             </div>
                         </div>
@@ -111,10 +111,16 @@ export default function FinishPage() {
                         {/* Heading */}
                         <div>
                             <h1 className="text-3xl font-bold text-[var(--color-text-main)] tracking-tight">
-                                Tes Selesai!
+                                {nextData?.hasNext
+                                    ? "Jawaban Berhasil Disimpan!"
+                                    : totalCount > 1
+                                        ? "Seluruh Rangkaian Tes Selesai!"
+                                        : "Tes Selesai!"}
                             </h1>
                             <p className="mt-2 text-[var(--color-text-sub)]">
-                                Jawaban tes Anda telah berhasil dikirim dan tersimpan di sistem.
+                                {nextData?.hasNext
+                                    ? "Jawaban tes ini telah tersimpan. Silakan bersiap untuk melanjutkan ke tes berikutnya dalam rangkaian ujian Anda."
+                                    : "Semua rangkaian tes Anda telah berhasil dikirim dan tersimpan di sistem."}
                             </p>
                         </div>
 

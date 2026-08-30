@@ -12,12 +12,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Username and password are required" }, { status: 400 });
         }
 
-        // Find candidate(s) by email or displayId (ordered by newest first)
+        const cleanUsername = username.trim();
+
+        // Find candidate(s) by email or displayId (case-insensitive)
         const candidates = await prisma.candidate.findMany({
             where: {
                 OR: [
-                    { email: username.toLowerCase() },
-                    { displayId: username.toUpperCase() },
+                    { email: { equals: cleanUsername, mode: "insensitive" } },
+                    { displayId: { equals: cleanUsername, mode: "insensitive" } },
                 ],
             },
             orderBy: { createdAt: "desc" },
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if password is still the default (displayId)
-        if (password === candidate.displayId) {
+        if (password.trim().toLowerCase() === candidate.displayId.toLowerCase()) {
             const resetResponse = NextResponse.json({
                 success: true,
                 requirePasswordReset: true,

@@ -1019,16 +1019,16 @@ export default function ExamPage() {
                             <div className="size-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
                                 <span className="material-symbols-outlined text-primary text-4xl">fullscreen</span>
                             </div>
-                            <h2 className="text-2xl font-bold text-[var(--color-text-main)] dark:text-white">Fullscreen Required</h2>
+                            <h2 className="text-2xl font-bold text-[var(--color-text-main)] dark:text-white">Mode Layar Penuh Diperlukan</h2>
                             <p className="text-[var(--color-text-sub)] dark:text-[var(--color-text-muted)] text-sm leading-relaxed">
-                                This exam must be taken in fullscreen mode to ensure integrity. Please enter fullscreen to continue your test.
+                                Ujian ini wajib dikerjakan dalam mode layar penuh (fullscreen) untuk menjaga integritas ujian. Silakan masuk ke layar penuh untuk melanjutkan tes.
                             </p>
                             <button
                                 onClick={requestFullscreen}
                                 className="w-full mt-4 py-3 rounded-[var(--radius-sm)] bg-primary hover:bg-primary-hover text-white font-bold text-sm transition-all shadow-[0_0_15px_rgba(var(--color-primary),0.3)] cursor-pointer flex items-center justify-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-sm">open_in_full</span>
-                                Enter Fullscreen
+                                Masuk Layar Penuh
                             </button>
                         </div>
                     </div>
@@ -1054,20 +1054,20 @@ export default function ExamPage() {
                                 <div className="hidden sm:block text-right">
                                     <p className="text-xs font-semibold text-[var(--color-text-main)] dark:text-white truncate max-w-[200px]">{testName}</p>
                                     {totalAssignments > 1 && (
-                                        <p className="text-[10px] text-[var(--color-text-muted)]">Test {currentNumber} of {totalAssignments}</p>
+                                        <p className="text-[10px] text-[var(--color-text-muted)]">Tes {currentNumber} dari {totalAssignments}</p>
                                     )}
                                 </div>
                                 <span className="text-sm font-medium text-[var(--color-text-sub)] dark:text-[var(--color-text-muted)]">
-                                    Question{" "}
+                                    Soal{" "}
                                     <span className="text-[var(--color-text-main)] dark:text-white font-bold">{currentQ + 1}</span>{" "}
-                                    of {questions.length}
+                                    dari {questions.length}
                                 </span>
 
                                 {/* Save indicator */}
                                 {saved && (
                                     <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium animate-fade-in">
                                         <span className="material-symbols-outlined text-sm">cloud_done</span>
-                                        Saved
+                                        Tersimpan
                                     </div>
                                 )}
                             </div>
@@ -1077,7 +1077,7 @@ export default function ExamPage() {
                                 {violations > 0 && (
                                     <div className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] dark:bg-red-900/30 text-[var(--color-danger)] dark:text-red-400 text-xs font-bold">
                                         <span className="material-symbols-outlined text-[14px]">warning</span>
-                                        {violations} warning{violations > 1 ? "s" : ""}
+                                        {violations} peringatan
                                     </div>
                                 )}
                                 <div className="flex items-center gap-2">
@@ -1090,7 +1090,7 @@ export default function ExamPage() {
                                             }`}
                                     />
                                     <span className="text-xs font-medium text-[var(--color-text-sub)] dark:text-[var(--color-text-muted)] hidden sm:inline">
-                                        {cameraActive ? (faceDetected ? "Camera OK" : "Face?") : "No Cam"}
+                                        {cameraActive ? (faceDetected ? "Kamera OK" : "Wajah?") : "Tanpa Kamera"}
                                     </span>
                                 </div>
                             </div>
@@ -1192,7 +1192,7 @@ export default function ExamPage() {
                                         className="flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] dark:border-slate-600 text-slate-700 dark:text-[var(--color-text-muted)] font-medium text-sm hover:bg-[var(--color-bg-card)] dark:hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                                     >
                                         <span className="material-symbols-outlined text-sm">arrow_back</span>
-                                        Previous
+                                        Sebelumnya
                                     </button>
 
                                     {currentQ < questions.length - 1 ? (
@@ -1200,7 +1200,7 @@ export default function ExamPage() {
                                             onClick={() => setCurrentQ((p) => Math.min(questions.length - 1, p + 1))}
                                             className="flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-sm)] bg-primary hover:bg-primary-hover text-white font-medium text-sm transition-all shadow-[var(--shadow-md)] shadow-primary/25 cursor-pointer"
                                         >
-                                            Next
+                                            Berikutnya
                                             <span className="material-symbols-outlined text-sm">arrow_forward</span>
                                         </button>
                                     ) : (
@@ -1208,7 +1208,7 @@ export default function ExamPage() {
                                             onClick={() => setShowSubmitModal(true)}
                                             className="flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-sm)] bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition-all shadow-[var(--shadow-md)] shadow-green-600/25 cursor-pointer"
                                         >
-                                            Submit Test
+                                            Kirim Jawaban
                                             <span className="material-symbols-outlined text-sm">send</span>
                                         </button>
                                     )}
@@ -1219,7 +1219,7 @@ export default function ExamPage() {
                             <div className="space-y-4">
                                 <div className="bg-[var(--color-bg-card)] dark:bg-slate-900 rounded-[var(--radius-md)] shadow-[var(--shadow-sm)] border border-[var(--color-border)] dark:border-slate-800 p-4 sticky top-20">
                                     <h4 className="text-xs font-semibold text-[var(--color-text-sub)] dark:text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-                                        Questions
+                                        Daftar Soal
                                     </h4>
                                     <div className="grid grid-cols-5 gap-1.5">
                                         {questions.map((q, idx) => {
@@ -1247,15 +1247,15 @@ export default function ExamPage() {
                                     <div className="mt-4 space-y-1.5 text-[10px] text-[var(--color-text-sub)] dark:text-[var(--color-text-muted)]">
                                         <div className="flex items-center gap-2">
                                             <div className="size-3 rounded bg-primary" />
-                                            Current
+                                            Sedang Dikerjakan
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="size-3 rounded bg-primary/15" />
-                                            Answered ({answeredCount})
+                                            Sudah Dijawab ({answeredCount})
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="size-3 rounded bg-slate-100 dark:bg-slate-800" />
-                                            Unanswered ({unansweredCount})
+                                            Belum Dijawab ({unansweredCount})
                                         </div>
                                     </div>
 
@@ -1265,7 +1265,7 @@ export default function ExamPage() {
                                         className="w-full mt-4 py-2.5 rounded-[var(--radius-sm)] bg-green-600 hover:bg-green-700 text-white font-bold text-xs transition-all shadow-[var(--shadow-md)] shadow-green-600/25 flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
                                         <span className="material-symbols-outlined text-sm">send</span>
-                                        Submit Test
+                                        Kirim Jawaban
                                     </button>
                                 </div>
                             </div>

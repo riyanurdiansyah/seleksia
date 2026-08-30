@@ -12,6 +12,22 @@ export interface ScoringBand {
     color?: string; // "emerald" | "teal" | "amber" | "orange" | "rose" | "purple" | "blue"
 }
 
+export interface StatusBand {
+    min: number;
+    max: number;
+    label: string; // e.g. "Key Strength", "Strength", "Adequate", "Development Area", "Critical Development"
+    description?: string;
+    color?: string; // "blue" | "emerald" | "amber" | "orange" | "rose"
+}
+
+export const DEFAULT_STATUS_BANDS: StatusBand[] = [
+    { min: 90, max: 100, label: "Key Strength", description: "Penguasaan kompetensi di atas ekspektasi tinggi.", color: "blue" },
+    { min: 80, max: 89, label: "Strength", description: "Penguasaan kompetensi kuat dan konsisten.", color: "emerald" },
+    { min: 70, max: 79, label: "Adequate", description: "Penguasaan kompetensi memadai sesuai standar minimum.", color: "amber" },
+    { min: 60, max: 69, label: "Development Area", description: "Area yang perlu pengembangan dan pendampingan.", color: "orange" },
+    { min: 0, max: 59, label: "Critical Development", description: "Area kritis yang membutuhkan pelatihan mendasar.", color: "rose" }
+];
+
 export interface RecommendationRule {
     type: string; // e.g. "RECOMMENDED", "CONSIDER", "DEVELOPMENT_REQUIRED", "NOT_RECOMMENDED", "DEEP_DIVE"
     label: string; // e.g. "Recommended", "Disarankan", "Lolos Tahap 1"
@@ -31,6 +47,7 @@ export interface CustomScoringConfig {
     enabled?: boolean;
     schemeName?: string; // e.g. "Sales 5-Tier Standard", "Company Custom Scheme"
     bands?: ScoringBand[];
+    statusBands?: StatusBand[];
     recommendations?: RecommendationRule[];
     benchmarks?: Record<string, number>;
     gatekeepers?: GatekeeperRule[];
@@ -100,6 +117,13 @@ export const PRESET_SCORING_SCHEMES: Record<string, CustomScoringConfig> = {
             { min: 60, max: 69, label: "MIDDLE LOW", description: "Penguasaan dasar mulai terlihat tetapi masih memerlukan penguatan intensif.", color: "orange" },
             { min: 0, max: 59, label: "LOW", description: "Penguasaan kompetensi masih rendah dan membutuhkan pengembangan mendasar.", color: "rose" }
         ],
+        statusBands: [
+            { min: 90, max: 100, label: "Key Strength", description: "Penguasaan kompetensi sangat tinggi dan di atas rata-rata.", color: "blue" },
+            { min: 80, max: 89, label: "Strength", description: "Penguasaan kompetensi kuat dan konsisten.", color: "emerald" },
+            { min: 70, max: 79, label: "Adequate", description: "Penguasaan kompetensi memadai sesuai standar minimum.", color: "amber" },
+            { min: 60, max: 69, label: "Development Area", description: "Area yang perlu pengembangan dan pendampingan.", color: "orange" },
+            { min: 0, max: 59, label: "Critical Development", description: "Area kritis yang membutuhkan pelatihan mendasar.", color: "rose" }
+        ],
         recommendations: [
             { type: "RECOMMENDED", label: "Recommended", minOverallScore: 80, color: "emerald", description: "Kandidat memenuhi seluruh kualifikasi standar dan direkomendasikan." },
             { type: "CONSIDER / FURTHER ASSESSMENT", label: "Consider Assessment", minOverallScore: 70, color: "amber", description: "Kandidat berada pada tingkat cukup dan memerlukan pendalaman aspek tertentu." },
@@ -134,6 +158,11 @@ export const PRESET_SCORING_SCHEMES: Record<string, CustomScoringConfig> = {
             { min: 60, max: 79, label: "SEDANG", description: "Kompetensi cukup memadai.", color: "amber" },
             { min: 0, max: 59, label: "RENDAH", description: "Kompetensi di bawah standar.", color: "rose" }
         ],
+        statusBands: [
+            { min: 80, max: 100, label: "Strength", description: "Kompetensi kuat dan konsisten.", color: "emerald" },
+            { min: 60, max: 79, label: "Adequate", description: "Kompetensi cukup memadai.", color: "amber" },
+            { min: 0, max: 59, label: "Critical Development", description: "Area kritis membutuhkan pengembangan.", color: "rose" }
+        ],
         recommendations: [
             { type: "RECOMMENDED", label: "Lolos (Disarankan)", minOverallScore: 75, color: "emerald" },
             { type: "CONSIDER", label: "Dipertimbangkan", minOverallScore: 60, color: "amber" },
@@ -151,6 +180,13 @@ export const PRESET_SCORING_SCHEMES: Record<string, CustomScoringConfig> = {
             { min: 60, max: 74, label: "GRADE C", description: "Cukup (Average)", color: "amber" },
             { min: 50, max: 59, label: "GRADE D", description: "Kurang (Below Average)", color: "orange" },
             { min: 0, max: 49, label: "GRADE E", description: "Gagal (Fail)", color: "rose" }
+        ],
+        statusBands: [
+            { min: 85, max: 100, label: "Key Strength", description: "Penguasaan sangat unggul.", color: "blue" },
+            { min: 75, max: 84, label: "Strength", description: "Penguasaan kuat dan baik.", color: "emerald" },
+            { min: 60, max: 74, label: "Adequate", description: "Penguasaan cukup / rata-rata.", color: "amber" },
+            { min: 50, max: 59, label: "Development Area", description: "Area di bawah rata-rata.", color: "orange" },
+            { min: 0, max: 49, label: "Critical Development", description: "Area gagal / butuh perbaikan total.", color: "rose" }
         ],
         recommendations: [
             { type: "RECOMMENDED", label: "Passed (Grade A/B)", minOverallScore: 75, color: "emerald" },
@@ -199,22 +235,36 @@ export function getOverallCategory(
 
 export function getCompetencyStatus(
     score: number,
-    customBands?: ScoringBand[]
+    customStatusBands?: StatusBand[]
 ): CompetencyStatus {
-    if (customBands && customBands.length > 0) {
-        const sortedBands = [...customBands].sort((a, b) => b.min - a.min);
-        for (const b of sortedBands) {
-            if (score >= b.min && score <= b.max) {
-                return b.label;
-            }
+    const bands = customStatusBands && customStatusBands.length > 0
+        ? [...customStatusBands].sort((a, b) => b.min - a.min)
+        : DEFAULT_STATUS_BANDS;
+
+    for (const b of bands) {
+        if (score >= b.min && score <= b.max) {
+            return b.label;
         }
-        return sortedBands[sortedBands.length - 1]?.label || "Critical Development";
     }
-    if (score >= 90) return "Key Strength";
-    if (score >= 80) return "Strength";
-    if (score >= 70) return "Adequate";
-    if (score >= 60) return "Development Area";
-    return "Critical Development";
+    return bands[bands.length - 1]?.label || "Critical Development";
+}
+
+export function resolveScoringConfig(
+    testConfig?: CustomScoringConfig | null,
+    companyConfig?: CustomScoringConfig | null
+): CustomScoringConfig {
+    const t = (testConfig as any) || {};
+    const c = (companyConfig as any) || {};
+
+    return {
+        enabled: t.enabled ?? c.enabled ?? true,
+        schemeName: t.schemeName || c.schemeName || "Standard 5-Tier",
+        bands: (t.bands && t.bands.length > 0) ? t.bands : (c.bands && c.bands.length > 0 ? c.bands : undefined),
+        statusBands: (t.statusBands && t.statusBands.length > 0) ? t.statusBands : (c.statusBands && c.statusBands.length > 0 ? c.statusBands : undefined),
+        recommendations: (t.recommendations && t.recommendations.length > 0) ? t.recommendations : (c.recommendations && c.recommendations.length > 0 ? c.recommendations : undefined),
+        benchmarks: (t.benchmarks && Object.keys(t.benchmarks).length > 0) ? t.benchmarks : (c.benchmarks && Object.keys(c.benchmarks).length > 0 ? c.benchmarks : undefined),
+        gatekeepers: (t.gatekeepers && t.gatekeepers.length > 0) ? t.gatekeepers : (c.gatekeepers && c.gatekeepers.length > 0 ? c.gatekeepers : undefined),
+    };
 }
 
 export function getBenchmarkForCompetency(
@@ -355,7 +405,7 @@ export function calculateCompetencyProfile(
 
     competencyGroups.forEach((val, name) => {
         const score = val.max > 0 ? Math.round((val.earned / val.max) * 100) : 0;
-        const status = getCompetencyStatus(score, customConfig?.bands);
+        const status = getCompetencyStatus(score, customConfig?.statusBands);
         const { category } = getOverallCategory(score, customConfig?.bands);
         const deltaVsOverall = score - overallScore;
         const gateRule = customConfig?.gatekeepers?.find(g => {

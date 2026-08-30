@@ -82,6 +82,8 @@ import {
     CustomScoringConfig, 
     PRESET_SCORING_SCHEMES, 
     ScoringBand, 
+    StatusBand,
+    DEFAULT_STATUS_BANDS,
     RecommendationRule, 
     GatekeeperRule 
 } from "@/lib/competencyScoring";
@@ -153,7 +155,11 @@ export default function SettingsClient() {
                 .then(res => res.json())
                 .then(res => {
                     if (res.success && res.data?.scoringConfig) {
-                        setCompanyScoring(res.data.scoringConfig);
+                        const cfg = res.data.scoringConfig;
+                        if (!cfg.statusBands || cfg.statusBands.length === 0) {
+                            cfg.statusBands = JSON.parse(JSON.stringify(DEFAULT_STATUS_BANDS));
+                        }
+                        setCompanyScoring(cfg);
                     }
                 })
                 .catch(err => console.error("Error loading company scoring:", err))
@@ -840,13 +846,142 @@ export default function SettingsClient() {
                                     </div>
                                 </div>
 
-                                {/* Section 2: Hiring Recommendations Rules */}
+                                {/* Section 2: Competency Status Rules */}
+                                <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-text-main)] flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-[18px] text-blue-500">stars</span>
+                                                2. Aturan Status Tingkat Perkembangan (Competency Status)
+                                            </h4>
+                                            <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed mt-0.5">
+                                                Atur status dan rentang skor untuk status perkembangan kompetensi (misal: Key Strength, Strength, Adequate, Development Area, Critical Development).
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setCompanyScoring(prev => ({
+                                                    ...prev,
+                                                    statusBands: [...(prev.statusBands || DEFAULT_STATUS_BANDS), { min: 0, max: 59, label: "Critical Development", description: "Area kritis membutuhkan pengembangan.", color: "rose" }]
+                                                }));
+                                            }}
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-bold bg-[var(--color-primary-light)] text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">add</span>
+                                            Tambah Baris
+                                        </button>
+                                    </div>
+
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="border-b border-[var(--color-border)] text-[11px] font-bold uppercase text-[var(--color-text-muted)] bg-[var(--color-bg-card)]">
+                                                    <th className="p-2.5 w-24">Min (%)</th>
+                                                    <th className="p-2.5 w-24">Max (%)</th>
+                                                    <th className="p-2.5 w-52">Label Status</th>
+                                                    <th className="p-2.5">Keterangan Status</th>
+                                                    <th className="p-2.5 w-16 text-center">Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(companyScoring.statusBands || DEFAULT_STATUS_BANDS).map((sBand, idx) => (
+                                                    <tr key={idx} className="border-b border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors">
+                                                        <td className="p-2">
+                                                            <input
+                                                                type="number"
+                                                                value={sBand.min}
+                                                                onChange={(e) => {
+                                                                    const val = parseInt(e.target.value) || 0;
+                                                                    setCompanyScoring(prev => {
+                                                                        const newBands = [...(prev.statusBands || DEFAULT_STATUS_BANDS)];
+                                                                        newBands[idx] = { ...newBands[idx], min: val };
+                                                                        return { ...prev, statusBands: newBands };
+                                                                    });
+                                                                }}
+                                                                className="w-full h-8 px-2 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)] text-center font-mono"
+                                                                min="0"
+                                                                max="100"
+                                                            />
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <input
+                                                                type="number"
+                                                                value={sBand.max}
+                                                                onChange={(e) => {
+                                                                    const val = parseInt(e.target.value) || 0;
+                                                                    setCompanyScoring(prev => {
+                                                                        const newBands = [...(prev.statusBands || DEFAULT_STATUS_BANDS)];
+                                                                        newBands[idx] = { ...newBands[idx], max: val };
+                                                                        return { ...prev, statusBands: newBands };
+                                                                    });
+                                                                }}
+                                                                className="w-full h-8 px-2 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)] text-center font-mono"
+                                                                min="0"
+                                                                max="100"
+                                                            />
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <input
+                                                                type="text"
+                                                                value={sBand.label}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setCompanyScoring(prev => {
+                                                                        const newBands = [...(prev.statusBands || DEFAULT_STATUS_BANDS)];
+                                                                        newBands[idx] = { ...newBands[idx], label: val };
+                                                                        return { ...prev, statusBands: newBands };
+                                                                    });
+                                                                }}
+                                                                className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-xs font-bold text-[var(--color-text-main)]"
+                                                                placeholder="e.g. Key Strength"
+                                                            />
+                                                        </td>
+                                                        <td className="p-2">
+                                                            <input
+                                                                type="text"
+                                                                value={sBand.description || ""}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setCompanyScoring(prev => {
+                                                                        const newBands = [...(prev.statusBands || DEFAULT_STATUS_BANDS)];
+                                                                        newBands[idx] = { ...newBands[idx], description: val };
+                                                                        return { ...prev, statusBands: newBands };
+                                                                    });
+                                                                }}
+                                                                className="w-full h-8 px-2.5 rounded bg-[var(--color-bg-card)] border border-[var(--color-border)] text-xs text-[var(--color-text-sub)]"
+                                                                placeholder="Keterangan status..."
+                                                            />
+                                                        </td>
+                                                        <td className="p-2 text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setCompanyScoring(prev => ({
+                                                                        ...prev,
+                                                                        statusBands: (prev.statusBands || DEFAULT_STATUS_BANDS).filter((_, i) => i !== idx)
+                                                                    }));
+                                                                }}
+                                                                className="p-1 rounded text-[var(--color-text-muted)] hover:text-danger hover:bg-[var(--color-danger-light)] transition-colors"
+                                                                title="Hapus Baris"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Section 3: Hiring Recommendations Rules */}
                                 <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-4">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-text-main)] flex items-center gap-1.5">
                                                 <span className="material-symbols-outlined text-[18px] text-emerald-500">verified</span>
-                                                2. Aturan Rekomendasi Hiring Default
+                                                3. Aturan Rekomendasi Hiring Default
                                             </h4>
                                             <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed mt-0.5">
                                                 Tentukan standar kelulusan kandidat (Overall Score) yang diterapkan secara default.
@@ -951,13 +1086,13 @@ export default function SettingsClient() {
                                     </div>
                                 </div>
 
-                                {/* Section 3: Gatekeeper Rules */}
+                                {/* Section 4: Gatekeeper Rules */}
                                 <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-4">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-text-main)] flex items-center gap-1.5">
                                                 <span className="material-symbols-outlined text-[18px] text-purple-500">policy</span>
-                                                3. Syarat Mutlak Perusahaan (Gatekeeper Rules)
+                                                4. Syarat Mutlak Perusahaan (Gatekeeper Rules)
                                             </h4>
                                             <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed mt-0.5">
                                                 Kompetensi mutlak yang harus lulus di semua tes asesmen perusahaan Anda.

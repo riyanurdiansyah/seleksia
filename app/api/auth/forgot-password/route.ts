@@ -14,9 +14,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Email is required" }, { status: 400 });
         }
 
-        // Find all candidates with this email across all companies
+        const cleanEmail = email.trim();
+
+        // Find all candidates with this email across all companies (case-insensitive)
         const candidates = await prisma.candidate.findMany({
-            where: { email: email.toLowerCase() },
+            where: { email: { equals: cleanEmail, mode: "insensitive" } },
             include: { company: true }
         });
 
@@ -31,12 +33,14 @@ export async function POST(req: NextRequest) {
 
         // Update all accounts associated with this email
         await prisma.candidate.updateMany({
-            where: { email: email.toLowerCase() },
+            where: { email: { equals: cleanEmail, mode: "insensitive" } },
             data: {
                 resetToken,
                 resetTokenExpiry
             }
         });
+
+        const company = candidates[0]?.company;
 
         // Determine sender email (Prioritize company.slug@seleksia.com)
         let senderEmail = "support@seleksia.com";

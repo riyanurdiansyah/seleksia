@@ -1,7 +1,7 @@
 import ResultDetailClient from "./ResultDetailClient";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { calculateCompetencyProfile } from "@/lib/competencyScoring";
+import { calculateCompetencyProfile, resolveScoringConfig } from "@/lib/competencyScoring";
 
 export const dynamic = 'force-dynamic';
 
@@ -109,7 +109,7 @@ export default async function ResultDetailPage({ params }: { params: Promise<{ i
             questionId: ans.questionId,
             answer: ans.answer
         })),
-        (assignment.test.scoringConfig || assignment.test.company?.scoringConfig || null) as any
+        resolveScoringConfig(assignment.test.scoringConfig as any, assignment.test.company?.scoringConfig as any)
     );
 
     const isTestWeighted = assignment.test.questionType === "multiple_choice_weighted" || weightedCount > 0;

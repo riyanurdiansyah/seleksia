@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateExecutiveRecommendation } from "@/lib/ai";
 import { getCompanyId } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { calculateCompetencyProfile } from "@/lib/competencyScoring";
+import { calculateCompetencyProfile, resolveScoringConfig } from "@/lib/competencyScoring";
 
 export async function POST(req: NextRequest) {
     try {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Calculate competency profile
-        const activeScoringConfig = assignment.test.scoringConfig || assignment.test.company?.scoringConfig || null;
+        const activeScoringConfig = resolveScoringConfig(assignment.test.scoringConfig as any, assignment.test.company?.scoringConfig as any);
         const compProfile = calculateCompetencyProfile(
             assignment.test.questions.map(q => ({
                 id: q.id,

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import ResultsClient from "./ResultsClient";
 import { prisma } from "@/lib/prisma";
-import { calculateCompetencyProfile, getCompetencyStatus } from "@/lib/competencyScoring";
+import { calculateCompetencyProfile, getCompetencyStatus, resolveScoringConfig } from "@/lib/competencyScoring";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,7 @@ export default async function ResultsPage() {
         include: {
             candidate: {
                 select: {
+                    id: true,
                     name: true,
                     displayId: true,
                     batch: true
@@ -89,7 +90,7 @@ export default async function ResultsPage() {
         });
 
         // Resolve active scoring config: per-test override > company default > global fallback
-        const activeScoringConfig = a.test.scoringConfig || a.test.company?.scoringConfig || null;
+        const activeScoringConfig = resolveScoringConfig(a.test.scoringConfig as any, a.test.company?.scoringConfig as any);
 
         // Compute 3-layer Competency Profile with dynamic tenant config
         const competencyProfile = calculateCompetencyProfile(
@@ -120,7 +121,8 @@ export default async function ResultsPage() {
         return {
             id: a.id,
             candidateName: a.candidate.name,
-            candidateId: a.candidate.displayId,
+            candidateId: a.candidate.id,
+            candidateDisplayId: a.candidate.displayId,
             testName: a.test.name,
             testDescription: a.test.description || "",
             category: a.test.category,
@@ -137,7 +139,7 @@ export default async function ResultsPage() {
             weightedCount,
             unscorableCount,
             overallCategory: competencyProfile.overallCategory,
-            status: getCompetencyStatus(overallNormalScore, activeScoringConfig?.bands),
+            status: getCompetencyStatus(overallNormalScore, activeScoringConfig?.statusBands),
             hiringRecommendation: competencyProfile.hiringRecommendation,
             competencyProfile: {
                 hasCompetencies: competencyProfile.hasCompetencies,

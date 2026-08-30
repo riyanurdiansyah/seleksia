@@ -10,6 +10,7 @@ interface ResultData {
     id: string; // The assignment ID
     candidateName: string;
     candidateId: string;
+    candidateDisplayId?: string;
     testName: string;
     testDescription?: string;
     category: string;
@@ -45,6 +46,7 @@ interface ResultData {
 
 interface GroupedCandidate {
     candidateId: string;
+    candidateDisplayId?: string;
     candidateName: string;
     batch: string;
     overallRecommendation: string;
@@ -136,7 +138,7 @@ export function getStatusBadge(rawStatus: string, score: number) {
     const lower = s.toLowerCase();
 
     // Direct label keyword matching
-    if (lower.includes("key strength") || lower.includes("very high") || lower.includes("sangat baik") || lower === "grade a" || lower === "a" || lower === "tinggi") {
+    if (lower.includes("key strength") || lower.includes("sangat unggul") || lower.includes("sangat kuat")) {
         return {
             bg: "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800",
             text: "text-blue-700 dark:text-blue-300",
@@ -144,7 +146,7 @@ export function getStatusBadge(rawStatus: string, score: number) {
             label: s || "Key Strength"
         };
     }
-    if (lower.includes("strength") || lower.includes("high") || lower.includes("baik") || lower === "grade b" || lower === "b") {
+    if ((lower.includes("strength") && !lower.includes("key")) || lower.includes("unggul") || lower.includes("kuat")) {
         return {
             bg: "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800",
             text: "text-emerald-700 dark:text-emerald-300",
@@ -152,7 +154,7 @@ export function getStatusBadge(rawStatus: string, score: number) {
             label: s || "Strength"
         };
     }
-    if (lower.includes("adequate") || lower.includes("middle") || lower.includes("sedang") || lower.includes("cukup") || lower === "grade c" || lower === "c") {
+    if (lower.includes("adequate") || lower.includes("memadai") || lower.includes("cukup")) {
         return {
             bg: "bg-yellow-50/90 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800",
             text: "text-yellow-700 dark:text-yellow-300",
@@ -160,7 +162,7 @@ export function getStatusBadge(rawStatus: string, score: number) {
             label: s || "Adequate"
         };
     }
-    if (lower.includes("development area") || lower.includes("middle low") || lower.includes("perlu pengembangan") || lower === "grade d" || lower === "d") {
+    if (lower.includes("development area") || lower.includes("perlu pengembangan") || (lower.includes("pengembangan") && !lower.includes("kritis"))) {
         return {
             bg: "bg-orange-50/90 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800",
             text: "text-orange-700 dark:text-orange-300",
@@ -168,7 +170,7 @@ export function getStatusBadge(rawStatus: string, score: number) {
             label: s || "Development Area"
         };
     }
-    if (lower.includes("critical") || lower.includes("low") || lower.includes("rendah") || lower.includes("kurang") || lower === "grade e" || lower === "e") {
+    if (lower.includes("critical") || lower.includes("kritis") || lower.includes("kurang") || lower.includes("rendah")) {
         return {
             bg: "bg-red-50/90 dark:bg-red-950/40 border-red-200 dark:border-red-800",
             text: "text-red-700 dark:text-red-300",
@@ -220,7 +222,7 @@ export function getStatusBadge(rawStatus: string, score: number) {
 
 export function getRecommendationBadgeTheme(rawRec: string, overallScore?: number, gateViolations?: number) {
     const lower = (rawRec || "").toLowerCase().trim();
-    
+
     // 1. Negative / Fail / Not Recommended (Check first so "tidak lolos" is not caught by "lolos")
     if (
         lower.includes("tidak") ||
@@ -320,7 +322,7 @@ export function getCategoryBadge(rawCat: string, score?: number) {
     if (OVERALL_CATEGORY_BADGES[key]) {
         return OVERALL_CATEGORY_BADGES[key];
     }
-    
+
     // Dynamic matching by score or keywords
     const lower = key.toLowerCase();
     if (lower.includes("sangat") || lower.includes("very") || lower.includes("grade a") || (score !== undefined && score >= 90)) {
@@ -398,6 +400,7 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                 const results = [res];
                 map.set(res.candidateId, {
                     candidateId: res.candidateId,
+                    candidateDisplayId: res.candidateDisplayId,
                     candidateName: res.candidateName,
                     batch: res.batch,
                     overallRecommendation: computeOverallRecommendation(results),
@@ -423,7 +426,7 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
                     </div>
                     <div>
                         <p className="font-semibold text-sm text-[var(--color-text-main)] group-hover:text-primary transition-colors cursor-pointer">{row.candidateName}</p>
-                        <p className="text-[10px] text-[var(--color-text-muted)] font-mono mt-0.5">{row.candidateId}</p>
+                        <p className="text-[10px] text-[var(--color-text-muted)] font-mono mt-0.5">{row.candidateDisplayId || row.candidateId}</p>
                     </div>
                 </div>
             )
@@ -601,12 +604,12 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
             filterable: true,
             cell: (row) => {
                 const score = row.overallNormalScore;
-                const status = row.status || row.overallCategory || (
+                const status = row.status || (
                     score >= 90 ? "Key Strength"
-                    : score >= 80 ? "Strength"
-                    : score >= 70 ? "Adequate"
-                    : score >= 60 ? "Development Area"
-                    : "Critical Development"
+                        : score >= 80 ? "Strength"
+                            : score >= 70 ? "Adequate"
+                                : score >= 60 ? "Development Area"
+                                    : "Critical Development"
                 );
 
                 const style = getStatusBadge(status, score);
@@ -666,7 +669,9 @@ export default function ResultsClient({ initialData }: { initialData: ResultData
         }
     ], []);
 
-    const selectedCandidate = candidateIdFilter ? groupedCandidates.find(c => c.candidateId === candidateIdFilter) : null;
+    const selectedCandidate = candidateIdFilter
+        ? groupedCandidates.find(c => c.candidateId === candidateIdFilter || c.candidateDisplayId === candidateIdFilter)
+        : null;
 
     return (
         <div className="space-y-6 pb-20 animate-slide-in-up">
