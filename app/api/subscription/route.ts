@@ -49,25 +49,36 @@ export async function GET() {
 
         // Resolve limits based on plan
         const planName = company.subscriptionPlan || "Free";
+        const planNameLower = planName.toLowerCase();
+        const isCustomOrUnlimited = 
+            planNameLower.includes("unlimited") || 
+            planNameLower.includes("custom") || 
+            planNameLower.includes("enterprise") || 
+            planNameLower.includes("lifetime") || 
+            planNameLower.includes("unlimit");
+
         const dbPlan = await prisma.subscriptionPlan.findFirst({
-            where: { name: planName }
+            where: { name: { equals: planName, mode: "insensitive" } }
         });
 
         let candidateLimit = 3;
         let testLimit = 1;
 
-        if (dbPlan) {
-            candidateLimit = dbPlan.maxCandidates;
-            testLimit = dbPlan.maxTests;
+        if (isCustomOrUnlimited) {
+            candidateLimit = -1;
+            testLimit = -1;
+        } else if (dbPlan) {
+            candidateLimit = (dbPlan.maxCandidates === 0 || dbPlan.maxCandidates === -1) ? -1 : dbPlan.maxCandidates;
+            testLimit = (dbPlan.maxTests === 0 || dbPlan.maxTests === -1) ? -1 : dbPlan.maxTests;
         } else {
-            if (planName === "Starter") {
+            if (planNameLower === "starter") {
                 candidateLimit = 100;
                 testLimit = 10;
-            } else if (planName === "Business") {
+            } else if (planNameLower === "business") {
                 candidateLimit = 1000;
                 testLimit = 50;
-            } else if (planName === "Enterprise") {
-                candidateLimit = -1; // unlimited placeholder
+            } else if (planNameLower === "enterprise") {
+                candidateLimit = -1;
                 testLimit = -1;
             }
         }

@@ -317,7 +317,7 @@ export default function SubscriptionDashboard() {
                         <div className="flex justify-between items-center">
                             <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Kuota Kandidat</span>
                             <span className="text-xs font-bold text-[var(--color-text-main)]">
-                                {candidatesUsage.current} / {candidatesUsage.limit >= 99999 ? "∞" : candidatesUsage.limit}
+                                {candidatesUsage.current} / {candidatesUsage.limit <= 0 || candidatesUsage.limit >= 99999 ? "∞ (Tanpa Batas)" : candidatesUsage.limit}
                             </span>
                         </div>
                         <p className="text-[11px] text-[var(--color-text-sub)]">Jumlah kandidat aktif yang dapat didaftarkan di portal ujian.</p>
@@ -328,17 +328,29 @@ export default function SubscriptionDashboard() {
                         <div className="w-full h-3.5 bg-[var(--color-bg-elevated)] rounded-full overflow-hidden p-0.5 border border-[var(--color-border)]">
                             <div 
                                 className={`h-full rounded-full transition-all duration-500
-                                    ${(candidatesUsage.current / candidatesUsage.limit) >= 0.85 
-                                        ? "bg-gradient-to-r from-orange-500 to-red-500" 
-                                        : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]"
+                                    ${(candidatesUsage.limit <= 0 || candidatesUsage.limit >= 99999)
+                                        ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                                        : (candidatesUsage.current / candidatesUsage.limit) >= 0.85 
+                                            ? "bg-gradient-to-r from-orange-500 to-red-500" 
+                                            : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]"
                                     }`}
-                                style={{ width: `${Math.min((candidatesUsage.current / candidatesUsage.limit) * 100, 100)}%` }}
+                                style={{ width: candidatesUsage.limit <= 0 || candidatesUsage.limit >= 99999 ? "100%" : `${Math.min((candidatesUsage.current / candidatesUsage.limit) * 100, 100)}%` }}
                             />
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-[var(--color-text-muted)]">
-                            <span>0%</span>
-                            <span>{Math.round(Math.min((candidatesUsage.current / candidatesUsage.limit) * 100, 100))}% Pemakaian</span>
-                            <span>100%</span>
+                            {candidatesUsage.limit <= 0 || candidatesUsage.limit >= 99999 ? (
+                                <>
+                                    <span>Aktif</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Tanpa Batas (Unlimited)</span>
+                                    <span>∞</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>0%</span>
+                                    <span>{Math.round(Math.min((candidatesUsage.current / candidatesUsage.limit) * 100, 100))}% Pemakaian</span>
+                                    <span>100%</span>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -350,7 +362,7 @@ export default function SubscriptionDashboard() {
                         <div className="flex justify-between items-center">
                             <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Kuota Paket Ujian</span>
                             <span className="text-xs font-bold text-[var(--color-text-main)]">
-                                {testsUsage.current} / {testsUsage.limit >= 99999 ? "∞" : testsUsage.limit}
+                                {testsUsage.current} / {testsUsage.limit <= 0 || testsUsage.limit >= 99999 ? "∞ (Tanpa Batas)" : testsUsage.limit}
                             </span>
                         </div>
                         <p className="text-[11px] text-[var(--color-text-sub)]">Jumlah paket ujian CBT psikologi yang dapat dipublikasikan.</p>
@@ -361,17 +373,29 @@ export default function SubscriptionDashboard() {
                         <div className="w-full h-3.5 bg-[var(--color-bg-elevated)] rounded-full overflow-hidden p-0.5 border border-[var(--color-border)]">
                             <div 
                                 className={`h-full rounded-full transition-all duration-500
-                                    ${(testsUsage.current / testsUsage.limit) >= 0.85 
-                                        ? "bg-gradient-to-r from-orange-500 to-red-500" 
-                                        : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]"
+                                    ${(testsUsage.limit <= 0 || testsUsage.limit >= 99999)
+                                        ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                                        : (testsUsage.current / testsUsage.limit) >= 0.85 
+                                            ? "bg-gradient-to-r from-orange-500 to-red-500" 
+                                            : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]"
                                     }`}
-                                style={{ width: `${Math.min((testsUsage.current / testsUsage.limit) * 100, 100)}%` }}
+                                style={{ width: testsUsage.limit <= 0 || testsUsage.limit >= 99999 ? "100%" : `${Math.min((testsUsage.current / testsUsage.limit) * 100, 100)}%` }}
                             />
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-[var(--color-text-muted)]">
-                            <span>0%</span>
-                            <span>{Math.round(Math.min((testsUsage.current / testsUsage.limit) * 100, 100))}% Pemakaian</span>
-                            <span>100%</span>
+                            {testsUsage.limit <= 0 || testsUsage.limit >= 99999 ? (
+                                <>
+                                    <span>Aktif</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Tanpa Batas (Unlimited)</span>
+                                    <span>∞</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>0%</span>
+                                    <span>{Math.round(Math.min((testsUsage.current / testsUsage.limit) * 100, 100))}% Pemakaian</span>
+                                    <span>100%</span>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -31,26 +31,37 @@ export async function checkSubscriptionAccess(companyId: string, action: ActionT
     // For create actions, check limits based on subscription plan
     // Find the plan in database
     const planName = company.subscriptionPlan || 'Free';
+    const planNameLower = planName.toLowerCase();
+    const isCustomOrUnlimited = 
+        planNameLower.includes("unlimited") || 
+        planNameLower.includes("custom") || 
+        planNameLower.includes("enterprise") ||
+        planNameLower.includes("lifetime") ||
+        planNameLower.includes("unlimit");
+
     const plan = await prisma.subscriptionPlan.findFirst({
-        where: { name: planName }
+        where: { name: { equals: planName, mode: 'insensitive' } }
     });
 
     // Fallback limits if plan not found in DB
     let maxCandidates = 3;
     let maxTests = 1;
 
-    if (plan) {
-        maxCandidates = plan.maxCandidates;
-        maxTests = plan.maxTests;
+    if (isCustomOrUnlimited) {
+        maxCandidates = -1;
+        maxTests = -1;
+    } else if (plan) {
+        maxCandidates = (plan.maxCandidates === 0 || plan.maxCandidates === -1) ? -1 : plan.maxCandidates;
+        maxTests = (plan.maxTests === 0 || plan.maxTests === -1) ? -1 : plan.maxTests;
     } else {
         // Hardcoded fallbacks if DB table is empty
-        if (planName === "Starter") {
+        if (planNameLower === "starter") {
             maxCandidates = 100;
             maxTests = 10;
-        } else if (planName === "Business") {
+        } else if (planNameLower === "business") {
             maxCandidates = 1000;
             maxTests = 50;
-        } else if (planName === "Enterprise") {
+        } else if (planNameLower === "enterprise") {
             maxCandidates = -1; // unlimited
             maxTests = -1;
         }
@@ -58,7 +69,7 @@ export async function checkSubscriptionAccess(companyId: string, action: ActionT
 
     // If action is create_candidate, check candidate limit
     if (action === 'create_candidate') {
-        if (maxCandidates === -1) return { allowed: true };
+        if (maxCandidates === -1 || maxCandidates <= 0) return { allowed: true };
 
         // Count candidates created in the current billing cycle
         const startedAt = company.subscriptionStartedAt || new Date(0); // fallback if null
@@ -84,7 +95,7 @@ export async function checkSubscriptionAccess(companyId: string, action: ActionT
 
     // If action is create_test, check test limit
     if (action === 'create_test') {
-        if (maxTests === -1) return { allowed: true };
+        if (maxTests === -1 || maxTests <= 0) return { allowed: true };
 
         // Count all tests (absolute quota)
         const testCount = await prisma.test.count({

@@ -25,7 +25,7 @@ function formatWaktuPelaksanaan(start: Date | null | undefined, end: Date | null
     }
 }
 
-export async function sendWelcomeEmail(candidateId: string, plainPassword?: string) {
+export async function sendWelcomeEmail(candidateId: string, plainPassword?: string): Promise<{ success: boolean; error?: string; simulated?: boolean }> {
     try {
         const candidate = await prisma.candidate.findUnique({
             where: { id: candidateId },
@@ -37,9 +37,12 @@ export async function sendWelcomeEmail(candidateId: string, plainPassword?: stri
             }
         });
 
-        if (!candidate || !candidate.email) return;
+        if (!candidate || !candidate.email) {
+            return { success: false, error: "Kandidat tidak ditemukan atau belum memiliki email" };
+        }
 
         const company = candidate.company;
+        const companyId = company?.id || candidate.companyId;
         const passwordToUse = plainPassword || candidate.displayId;
 
         // Determine sender email (Prioritize company.slug@seleksia.com)
@@ -56,17 +59,17 @@ export async function sendWelcomeEmail(candidateId: string, plainPassword?: stri
 
         const senderName = company?.name ? `${company.name} Assessment` : "Seleksia Assessment";
 
-        if (!process.env.RESEND_API_KEY) {
+        if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.includes("dummy")) {
             console.warn(`[DEV MODE] Welcome email intended for ${candidate.email}`);
             console.warn(`[DEV MODE] Password: ${passwordToUse}`);
-            return;
+            return { success: true, simulated: true };
         }
 
         const loginUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/login` : "http://localhost:3000/login";
 
         // Fetch custom template from database
         const template = await prisma.emailTemplate.findFirst({
-            where: { companyId: company.id, isDefault: true }
+            where: { companyId, isDefault: true }
         });
 
         const waktuPelaksanaan = formatWaktuPelaksanaan(candidate.accessStart, candidate.accessEnd);
@@ -138,11 +141,13 @@ export async function sendWelcomeEmail(candidateId: string, plainPassword?: stri
 
         if (error) {
             console.error("Failed to send welcome email via Resend:", error);
-            return;
+            return { success: false, error: error.message || "Gagal mengirim email melalui Resend" };
         }
 
         console.log(`Welcome email sent to ${candidate.email}`);
-    } catch (error) {
+        return { success: true };
+    } catch (error: any) {
         console.error("Failed to send welcome email:", error);
+        return { success: false, error: error?.message || "Terjadi kesalahan saat mengirim email" };
     }
 }

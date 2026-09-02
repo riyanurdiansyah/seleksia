@@ -6,6 +6,7 @@ import DataTable, { ColumnDef } from "../../components/DataTable";
 import Breadcrumb from "../../components/Breadcrumb";
 import Select2 from "../../components/Select2";
 import * as XLSX from "xlsx";
+import { globalDialog } from "@/app/providers/DialogProvider";
 
 /* ===== Types ===== */
 interface Candidate {
@@ -60,6 +61,9 @@ export default function CandidatesClient() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editCandidate, setEditCandidate] = useState<any>(null);
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+    const [resendTarget, setResendTarget] = useState<{ id: string; name: string; email: string } | null>(null);
+    const [isResending, setIsResending] = useState(false);
+    const [resendingId, setResendingId] = useState<string | null>(null);
     const [newCandidate, setNewCandidate] = useState({
         name: "",
         email: "",
@@ -529,9 +533,21 @@ export default function CandidatesClient() {
             header: "Actions",
             sortable: false,
             filterable: false,
-            className: "text-right w-24",
+            className: "text-right min-w-[130px]",
             cell: (row) => (
                 <div className="flex items-center justify-end gap-1">
+                    <button
+                        onClick={() => setResendTarget({ id: row.id, name: row.name, email: row.email })}
+                        disabled={!row.email || resendingId === row.id}
+                        className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={!row.email ? "Kandidat belum memiliki email" : "Kirim Ulang Email Undangan"}
+                    >
+                        {resendingId === row.id ? (
+                            <span className="material-symbols-outlined text-[18px] animate-spin text-primary">progress_activity</span>
+                        ) : (
+                            <span className="material-symbols-outlined text-[18px]">send</span>
+                        )}
+                    </button>
                     <button className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-primary hover:bg-[var(--color-bg-hover)] transition-colors" title="View Details">
                         <span className="material-symbols-outlined text-[18px]">visibility</span>
                     </button>
@@ -576,7 +592,7 @@ export default function CandidatesClient() {
                 </div>
             )
         }
-    ], []);
+    ], [resendingId]);
 
     /* Add candidate */
     const handleAddCandidate = async () => {
@@ -643,6 +659,34 @@ export default function CandidatesClient() {
             setCandidates((prev) => prev.filter((c) => c.id !== id));
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    /* Resend Invitation Email */
+    const handleConfirmResend = async () => {
+        if (!resendTarget) return;
+        const target = resendTarget;
+        setIsResending(true);
+        setResendingId(target.id);
+        try {
+            const res = await fetch(`/api/candidates/${target.id}/resend-invitation`, {
+                method: "POST",
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "Gagal mengirim ulang email undangan");
+            }
+            setResendTarget(null);
+            await globalDialog.alert(
+                data.message || `Email undangan berhasil dikirim ulang ke ${target.email}`,
+                "Berhasil"
+            );
+        } catch (err: any) {
+            console.error("Resend invitation error:", err);
+            await globalDialog.alert(err.message || "Gagal mengirim ulang email undangan", "Gagal");
+        } finally {
+            setIsResending(false);
+            setResendingId(null);
         }
     };
 
@@ -1459,6 +1503,18 @@ export default function CandidatesClient() {
                         setDeleteTarget(null);
                     }
                 }}
+            />
+
+            {/* Resend Confirmation */}
+            <ConfirmDialog
+                open={!!resendTarget}
+                title="Kirim Ulang Undangan"
+                message={`Apakah Anda yakin ingin mengirim ulang email undangan asesmen ke "${resendTarget?.name}" (${resendTarget?.email})?`}
+                confirmLabel={isResending ? "Mengirim..." : "Kirim Email"}
+                variant="primary"
+                icon="send"
+                onCancel={() => !isResending && setResendTarget(null)}
+                onConfirm={handleConfirmResend}
             />
         </>
     );

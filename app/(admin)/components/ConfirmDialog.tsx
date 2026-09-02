@@ -8,7 +8,8 @@ interface ConfirmDialogProps {
     message: string;
     confirmLabel?: string;
     cancelLabel?: string;
-    variant?: "danger" | "warning";
+    variant?: "danger" | "warning" | "primary";
+    icon?: string;
     onConfirm: () => void;
     onCancel: () => void;
 }
@@ -20,6 +21,7 @@ export default function ConfirmDialog({
     confirmLabel = "Delete",
     cancelLabel = "Cancel",
     variant = "danger",
+    icon,
     onConfirm,
     onCancel,
 }: ConfirmDialogProps) {
@@ -46,11 +48,18 @@ export default function ConfirmDialog({
 
     const iconColor = variant === "danger"
         ? "bg-[var(--color-danger-light)] text-danger"
-        : "bg-[var(--color-warning-light)] text-warning";
+        : variant === "warning"
+        ? "bg-[var(--color-warning-light)] text-warning"
+        : "bg-[var(--color-primary-light)] text-primary";
 
     const confirmBtnColor = variant === "danger"
         ? "bg-gradient-to-br from-danger to-[#e05a4e] shadow-[0_4px_15px_var(--color-danger-glow)]"
-        : "bg-gradient-to-br from-warning to-[#e0a030] shadow-[0_4px_15px_rgba(234,179,8,0.3)]";
+        : variant === "warning"
+        ? "bg-gradient-to-br from-warning to-[#e0a030] shadow-[0_4px_15px_rgba(234,179,8,0.3)]"
+        : "bg-primary text-white shadow-[var(--shadow-primary)] hover:bg-primary/90";
+
+    const defaultIcon = variant === "danger" ? "delete_forever" : variant === "warning" ? "warning" : "send";
+    const iconName = icon || defaultIcon;
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-[8px] flex items-center justify-center z-[9999] p-5">
@@ -64,7 +73,7 @@ export default function ConfirmDialog({
                     {/* Icon */}
                     <div className={`w-16 h-16 rounded-[20px] flex items-center justify-center mx-auto mb-5 ${iconColor}`}>
                         <span className="material-symbols-outlined text-[28px]">
-                            {variant === "danger" ? "delete_forever" : "warning"}
+                            {iconName}
                         </span>
                     </div>
 
